@@ -33,9 +33,13 @@ class PricesApplicationTests {
 	}
 
 	@Test
-	void contextLoadsWithMigratedPostgresAndNoCommercialSeed() {
+	void contextLoadsWithVerifiedStoreDirectoryAndNoInventedProductsOrPrices() {
 		assertThat(jdbc.queryForObject("select count(*) from cities", Integer.class)).isEqualTo(4);
-		assertThat(jdbc.queryForObject("select count(*) from stores", Integer.class)).isZero();
+		assertThat(jdbc.queryForObject("select count(*) from stores", Integer.class)).isEqualTo(1);
+		assertThat(jdbc.queryForObject("select source_reference from stores", String.class))
+				.isEqualTo("https://redesupermarket.com.br/lojas/supermarket-aterrado/");
+		assertThat(jdbc.queryForObject("select price_source_note from stores", String.class))
+				.contains("Preços não integrados");
 		assertThat(jdbc.queryForObject("select count(*) from products", Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("select count(*) from price_records", Integer.class)).isZero();
 	}

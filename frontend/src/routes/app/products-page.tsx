@@ -13,12 +13,15 @@ import {
 import { AddToList } from "@/features/catalog/add-to-list";
 import { MeasurementPrice } from "@/features/catalog/measurement-price";
 import { ProductImage } from "@/features/catalog/product-image";
+import { ComparisonStoreFilter } from "@/features/catalog/comparison-store-filter";
+import { queryString } from "@/lib/api";
 import { ProductSearchFilters } from "@/features/catalog/product-search-filters";
 import { productMetadata } from "@/features/catalog/product-label";
 import { formatCurrency, formatDate } from "@/lib/brand";
 import { catalogApi, type ProductFilters } from "@/services/gomo-api";
 
 export function ProductsPage() {
+  const [storeIds, setStoreIds] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
@@ -37,21 +40,14 @@ export function ProductsPage() {
     selectedCity ||
     cities.data?.content.find((city) => city.name === "Volta Redonda")?.id ||
     "";
+  const searchReady = query.length >= 2 || Object.values(filters).some(Boolean);
   const products = useQuery({
-    queryKey: ["products", "browse", query, page, filters],
+    queryKey: ["products", "discovery", query, page, filters, cityId, storeIds],
     queryFn: ({ signal }) =>
-      catalogApi.products({ ...filters, query, page, size: 20 }, signal),
+      catalogApi.discoverProducts({ ...filters, query, page, size: 20, cityId, storeIds }, signal),
+    enabled: !cities.isPending && searchReady,
   });
-  const ids = products.data?.content.map((product) => product.id) ?? [];
-  const offers = useQuery({
-    queryKey: ["product-offers", ids, cityId],
-    queryFn: ({ signal }) => catalogApi.offers(ids, cityId, signal),
-    enabled: Boolean(ids.length && cityId),
-  });
-  const byProduct = new Map(
-    offers.data?.map((item) => [item.productId, item.offers]),
-  );
-  const waiting = products.isPending || search.trim() !== query;
+  const waiting = (searchReady && products.isPending) || search.trim() !== query;
 
   return (
     <>
@@ -91,7 +87,11 @@ export function ProductsPage() {
             id="catalog-city"
             label="Cidade dos preços"
             value={cityId}
-            onChange={(event) => setSelectedCity(event.target.value)}
+            onChange={(event) => {
+              setSelectedCity(event.target.value);
+              setStoreIds([]);
+              setPage(0);
+            }}
           >
             <option value="">Selecione a cidade</option>
             {cities.data?.content.map((city) => (
@@ -121,23 +121,18 @@ export function ProductsPage() {
                 setPage(0);
               }}
             />
+            <div className="px-5 pb-5">
+              <ComparisonStoreFilter
+                cityId={cityId}
+                value={storeIds}
+                onChange={(ids) => { setStoreIds(ids); setPage(0); }}
+              />
+            </div>
           </div>
         ) : null}
       </section>
       {cities.isError ? (
         <ErrorState retry={() => void cities.refetch()} />
-      ) : null}
-      {offers.isError ? (
-        <p role="alert" className="mb-4 text-sm text-danger">
-          Não foi possível consultar os preços.{" "}
-          <button
-            type="button"
-            className="underline"
-            onClick={() => void offers.refetch()}
-          >
-            Tentar novamente
-          </button>
-        </p>
       ) : null}
       <section aria-live="polite" aria-busy={waiting}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -150,7 +145,9 @@ export function ProductsPage() {
             </span>
           ) : null}
         </div>
-        {waiting ? (
+        {!searchReady ? (
+          <EmptyState title="Qual produto você quer comparar?" description="Digite o nome, a marca e, se souber, o tamanho. As ofertas equivalentes aparecem juntas por produto." />
+        ) : waiting ? (
           <SkeletonRows rows={5} />
         ) : products.isError ? (
           <ErrorState retry={() => void products.refetch()} />
@@ -162,11 +159,10 @@ export function ProductsPage() {
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {products.data.content.map((product) => {
-                const available = (byProduct.get(product.id) ?? []).filter(
-                  (offer) =>
-                    !filters.storeId || offer.storeId === filters.storeId,
-                );
+              {products.data.content.map((group) => {
+                const product = group.product;
+                const available = group.offers;
+                const comparisonUrl = `/app/produtos/${product.id}?${queryString({ cityId, storeIds: storeIds.join(",") })}`;
                 const best = available[0];
                 return (
                   <article
@@ -178,10 +174,10 @@ export function ProductsPage() {
                       <div className="min-w-0">
                         <h3 className="text-sm font-semibold leading-6">
                           <Link
-                            to={`/app/produtos/${product.id}`}
+                            to={comparisonUrl}
                             className="hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-focus"
                           >
-                            {product.name}
+                            {group.displayName}
                           </Link>
                         </h3>
                         <p className="mt-1 text-xs leading-5 text-muted">
@@ -190,17 +186,11 @@ export function ProductsPage() {
                       </div>
                     </div>
                     <div className="mb-5 mt-5 flex-1">
-                      {offers.isFetching ? (
-                        <p className="text-sm text-muted">
-                          Consultando preços…
-                        </p>
-                      ) : best && best.price.unitPrice !== null ? (
+                      {best && best.price.unitPrice !== null ? (
                         <>
-                          {available.length > 1 ? (
-                            <StatusBadge tone="success">
-                              Menor preço entre {available.length} lojas
-                            </StatusBadge>
-                          ) : null}
+                          <StatusBadge tone={available.length > 1 ? "success" : "neutral"}>
+                            {available.length > 1 ? `Menor preço entre ${available.length} mercados` : "Preço em 1 mercado"}
+                          </StatusBadge>
                           <p className="mt-2 text-2xl font-extrabold tabular-nums">
                             {formatCurrency(best.price.unitPrice)}
                           </p>
@@ -220,19 +210,15 @@ export function ProductsPage() {
                         </>
                       ) : (
                         <p className="text-sm text-muted">
-                          {offers.isError
-                            ? "Preços indisponíveis no momento."
-                            : cityId
+                          {cityId
                               ? "Sem preço atual nesta cidade."
                               : "Selecione a cidade para consultar preços."}
                         </p>
                       )}
                     </div>
+                    {!group.identityConfirmed ? <p className="mb-3 text-xs text-warning">Variante ou apresentação incompleta. Confira as possíveis correspondências.</p> : null}
                     <div className="flex flex-wrap gap-2">
-                      <NativeButton
-                        to={`/app/produtos/${product.id}`}
-                        size="sm"
-                      >
+                      <NativeButton to={comparisonUrl} size="sm">
                         Comparar
                       </NativeButton>
                       <AddToList product={product} />

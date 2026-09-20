@@ -31,11 +31,11 @@ public class PriceAlertService {
     @Transactional
     public PriceAlertResponse create(AuthenticatedUser user, CreatePriceAlertRequest request) {
         if (!user.emailVerified()) {
-            throw new ApiException(HttpStatus.FORBIDDEN,
-                    "Confirme o e-mail antes de criar alertas.");
-        }
+            throw new ApiException(HttpStatus.FORBIDDEN, "Confirme o e-mail antes de criar alertas.");}
+            
         products.requireProduct(request.productId());
         locations.requireCity(request.cityId());
+
         return PriceAlertResponse.from(alerts.save(new PriceAlert(user.id(), request, clock.instant())));
     }
 
@@ -49,6 +49,7 @@ public class PriceAlertService {
         PriceAlert alert = alerts.findByIdAndUserId(alertId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Alerta não encontrado."));
         alert.deactivate(clock.instant());
+
         return PriceAlertResponse.from(alert);
     }
 }

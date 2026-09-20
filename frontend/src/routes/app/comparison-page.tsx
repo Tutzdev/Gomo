@@ -7,15 +7,19 @@ import { NativeButton } from "@/components/ui/native-button";
 import { PageHeading } from "@/components/page/page-elements";
 import { catalogApi } from "@/services/gomo-api";
 import { ProductPicker } from "@/features/catalog/product-picker";
+import { ComparisonStoreFilter } from "@/features/catalog/comparison-store-filter";
+import { PossibleProductMatches } from "@/features/catalog/possible-product-matches";
 import { StoreOffers } from "@/features/catalog/store-offers";
 import { formatDate } from "@/lib/brand";
 
 export function ComparisonPage() {
+  const [storeIds, setStoreIds] = useState<string[]>([]);
   const [productId, setProductId] = useState("");
   const [cityId, setCityId] = useState("");
   const [submitted, setSubmitted] = useState<{
     productId: string;
     cityId: string;
+    storeIds: string[];
   } | null>(null);
   const cities = useQuery({
     queryKey: ["cities", "comparison"],
@@ -24,7 +28,11 @@ export function ComparisonPage() {
   const comparison = useQuery({
     queryKey: ["comparison", submitted],
     queryFn: () =>
-      catalogApi.compareProduct(submitted!.productId, submitted!.cityId),
+      catalogApi.compareAllProductOffers(
+        submitted!.productId,
+        submitted!.cityId,
+        submitted!.storeIds,
+      ),
     enabled: Boolean(submitted),
   });
   const sortedStores = useMemo(
@@ -49,11 +57,14 @@ export function ComparisonPage() {
         className="surface grid gap-4 p-4 sm:p-5 lg:grid-cols-[1.5fr_1fr_auto] lg:items-start"
         onSubmit={(event) => {
           event.preventDefault();
-          if (productId && cityId) setSubmitted({ productId, cityId });
+          if (productId && cityId)
+            setSubmitted({ productId, cityId, storeIds });
         }}
       >
         <ProductPicker
           id="comparison-product"
+          cityId={cityId}
+          storeIds={storeIds}
           value={productId}
           onChange={(id) => {
             setProductId(id);
@@ -64,7 +75,11 @@ export function ComparisonPage() {
           id="comparison-city"
           label="Cidade"
           value={cityId}
-          onChange={(event) => setCityId(event.target.value)}
+          onChange={(event) => {
+            setCityId(event.target.value);
+            setStoreIds([]);
+            setSubmitted(null);
+          }}
           required
         >
           <option value="">Selecione uma cidade</option>
@@ -82,6 +97,16 @@ export function ComparisonPage() {
           <Search className="size-4" aria-hidden />
           Comparar
         </NativeButton>
+        <div className="lg:col-span-3">
+          <ComparisonStoreFilter
+            cityId={cityId}
+            value={storeIds}
+            onChange={(ids) => {
+              setStoreIds(ids);
+              setSubmitted(null);
+            }}
+          />
+        </div>
       </form>
 
       {cities.isError ? (
@@ -127,6 +152,11 @@ export function ComparisonPage() {
               </p>
             </div>
             <StoreOffers stores={sortedStores} />
+            <PossibleProductMatches
+              products={comparison.data?.possibleMatches ?? []}
+              cityId={submitted?.cityId}
+              storeIds={submitted?.storeIds}
+            />
             <p className="mt-5 flex items-start gap-2 text-sm text-muted">
               <CheckCircle2
                 className="mt-0.5 size-4 shrink-0 text-success"

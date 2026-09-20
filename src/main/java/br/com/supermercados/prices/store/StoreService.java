@@ -68,6 +68,17 @@ public class StoreService {
         return page.getContent().stream().map(StoreResponse::from).toList();
     }
 
+    public List<StoreResponse> selectComparisonStores(UUID cityId, List<UUID> selectedIds, int maximumStores) {
+        List<StoreResponse> available = findAllActiveStores(cityId, maximumStores);
+        if (selectedIds == null || selectedIds.isEmpty()) return available;
+        var selected = new java.util.HashSet<>(selectedIds);
+        List<StoreResponse> filtered = available.stream().filter(store -> selected.contains(store.id())).toList();
+        if (filtered.size() != selected.size()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Selecione apenas mercados ativos da cidade escolhida.");
+        }
+        return filtered;
+    }
+
     public Store requireStore(UUID storeId) {
         return storeRepository.findById(storeId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Loja não encontrada"));

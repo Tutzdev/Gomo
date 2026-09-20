@@ -13,12 +13,15 @@ public class CollectionScheduler {
 
     private final CollectionCoordinator coordinator;
     private final boolean enabled;
+    private final boolean existingOnly;
 
     public CollectionScheduler(
             CollectionCoordinator coordinator,
-            @Value("${app.collection.enabled:true}") boolean enabled) {
+            @Value("${app.collection.enabled:true}") boolean enabled,
+            @Value("${app.collection.existing-only:true}") boolean existingOnly) {
         this.coordinator = coordinator;
         this.enabled = enabled;
+        this.existingOnly = existingOnly;
     }
 
     @Scheduled(
@@ -29,7 +32,11 @@ public class CollectionScheduler {
             return;
         }
         try {
-            coordinator.collectAll();
+            if (existingOnly) {
+                coordinator.refreshExisting(null);
+            } else {
+                coordinator.collectAll();
+            }
         } catch (RuntimeException exception) {
             LOGGER.error("Não foi possível iniciar a coleta agendada: {}", exception.getMessage(), exception);
         }

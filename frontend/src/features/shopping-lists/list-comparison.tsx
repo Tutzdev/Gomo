@@ -10,22 +10,24 @@ import type { ShoppingListItem } from "@/types/api";
 export function ListComparison({
   id,
   cityId,
+  storeIds,
   items,
 }: {
   id: string;
   cityId: string;
+  storeIds: string[];
   items: ShoppingListItem[];
 }) {
   const [page, setPage] = useState(0);
   const results = useRef<HTMLDivElement>(null);
   const scrolledToResults = useRef(false);
   const comparison = useQuery({
-    queryKey: ["shopping-list-comparison", id, cityId, page],
-    queryFn: () => shoppingListApi.compare(id, cityId, page, 10),
+    queryKey: ["shopping-list-comparison", id, cityId, storeIds, page],
+    queryFn: () => shoppingListApi.compare(id, cityId, page, 10, storeIds),
   });
   const recommendation = useQuery({
-    queryKey: ["shopping-list-recommendation", id, cityId],
-    queryFn: () => shoppingListApi.recommendation(id, cityId),
+    queryKey: ["shopping-list-recommendation", id, cityId, storeIds],
+    queryFn: () => shoppingListApi.recommendation(id, cityId, storeIds),
   });
   useEffect(() => {
     if (
@@ -221,6 +223,11 @@ export function ListComparison({
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border p-5">
               <div>
                 <h4 className="font-bold">{store.storeName}</h4>
+                {store.priceSourceNote ? (
+                  <p className="mt-2 text-sm text-muted">
+                    {store.priceSourceNote}
+                  </p>
+                ) : null}
                 <p className="mt-2 text-sm text-muted">
                   {store.pricedItems} de {store.requestedItems} itens ·
                   cobertura{" "}

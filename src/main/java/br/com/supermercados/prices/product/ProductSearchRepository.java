@@ -55,6 +55,14 @@ public class ProductSearchRepository {
         return new PageImpl<>(products, pageable, total);
     }
 
+    /** Pagination belongs after equivalence grouping, not before it. */
+    public List<Product> findCandidates(ProductSearch search) {
+        SearchSql sql = prepare(search);
+        Query query = bind(entityManager.createNativeQuery("SELECT p.* FROM products p WHERE " + sql.where()
+                + " ORDER BY " + sql.relevance() + ", p.search_name, p.name, p.id", Product.class), sql.parameters());
+        return query.getResultList().stream().map(Product.class::cast).toList();
+    }
+
     public ProductSearchFacets facets(ProductSearch search) {
         SearchSql sql = prepare(search);
         List<String> brands = distinctText(sql, "brand");

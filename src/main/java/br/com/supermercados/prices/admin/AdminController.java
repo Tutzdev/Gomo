@@ -46,6 +46,7 @@ public class AdminController {
             @AuthenticationPrincipal AuthenticatedUser actor,
             @Valid @RequestBody SourceRegistration request) {
         DataSourceResponse response = catalog.registerSource(actor.id(), request);
+        
         return ResponseEntity.created(URI.create("/api/v1/admin/sources/" + response.id())).body(response);
     }
 
@@ -54,6 +55,7 @@ public class AdminController {
             @AuthenticationPrincipal AuthenticatedUser actor,
             @PathVariable UUID id,
             @RequestBody UpdateDataSourceRequest request) {
+
         return catalog.changeSourceStatus(actor.id(), id, request);
     }
 
@@ -62,6 +64,7 @@ public class AdminController {
             @AuthenticationPrincipal AuthenticatedUser actor,
             @Valid @RequestBody ChainObservation request) {
         ChainResponse response = catalog.ingestChain(actor.id(), request);
+
         return ResponseEntity.created(URI.create("/api/v1/chains/" + response.id())).body(response);
     }
 
@@ -70,6 +73,7 @@ public class AdminController {
             @AuthenticationPrincipal AuthenticatedUser actor,
             @Valid @RequestBody StoreObservation request) {
         StoreResponse response = catalog.ingestStore(actor.id(), request);
+
         return ResponseEntity.created(URI.create("/api/v1/stores/" + response.id())).body(response);
     }
 
@@ -78,6 +82,7 @@ public class AdminController {
             @AuthenticationPrincipal AuthenticatedUser actor,
             @Valid @RequestBody ProductObservation request) {
         ProductResponse response = catalog.ingestProduct(actor.id(), request);
+
         return ResponseEntity.created(URI.create("/api/v1/products/" + response.id())).body(response);
     }
 
@@ -86,6 +91,7 @@ public class AdminController {
             @AuthenticationPrincipal AuthenticatedUser actor,
             @Valid @RequestBody PriceObservation request) {
         PriceRecordResponse response = catalog.recordPrice(actor.id(), request);
+
         return ResponseEntity.created(URI.create("/api/v1/prices/" + response.id())).body(response);
     }
 
@@ -94,6 +100,7 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Sort sort = Sort.by(Sort.Direction.DESC, "occurredAt", "id");
+
         return audit.findAll(PageRequests.create(page, size, sort));
     }
 }

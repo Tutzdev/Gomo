@@ -38,8 +38,10 @@ public class CollectionAdminController {
     @PostMapping
     public List<CollectionRunResponse> collect(
             @RequestParam(required = false) String collectorCode,
+            @RequestParam(defaultValue = "false") boolean existingOnly,
             @AuthenticationPrincipal AuthenticatedUser actor) {
-        List<CollectionRunResponse> results = coordinator.collectSelected(collectorCode);
+        List<CollectionRunResponse> results = existingOnly
+                ? coordinator.refreshExisting(collectorCode) : coordinator.collectSelected(collectorCode);
         results.forEach(result -> audit.record(
                 actor.id(), AdminAction.COLLECTION_TRIGGERED, "COLLECTION_RUN", result.id()));
         return results;

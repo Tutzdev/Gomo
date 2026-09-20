@@ -13,7 +13,13 @@ public record ShoppingStoreComparison(
         int missingItems,
         BigDecimal subtotalKnown,
         boolean completeShoppingList,
-        List<ComparisonItemResponse> items) {
+        List<ComparisonItemResponse> items,
+        String priceSourceNote) {
+
+    public ShoppingStoreComparison(UUID storeId, String storeName, int requestedItems, int pricedItems,
+            int missingItems, BigDecimal subtotalKnown, boolean completeShoppingList, List<ComparisonItemResponse> items) {
+        this(storeId, storeName, requestedItems, pricedItems, missingItems, subtotalKnown, completeShoppingList, items, null);
+    }
 
     public ShoppingStoreComparison {
         items = List.copyOf(items);

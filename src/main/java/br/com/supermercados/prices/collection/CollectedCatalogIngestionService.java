@@ -32,12 +32,22 @@ public class CollectedCatalogIngestionService {
 
     private final CollectionCatalogService catalogs;
     private final ProductIngestionService products;
+    private final br.com.supermercados.prices.product.ProductSourceReferenceRepository productReferences;
     private final PriceService prices;
     private final PriceRecordRepository priceRecords;
     private final PriceChangeGuard priceChangeGuard;
     private final PriceObservationReference observationReferences;
 
     public CollectionResult ingest(CollectorMetadata metadata, CollectedCatalog collectedCatalog) {
+        return ingest(metadata, collectedCatalog, false);
+    }
+
+    public CollectionResult refreshExisting(CollectorMetadata metadata, CollectedCatalog collectedCatalog) {
+        return ingest(metadata, collectedCatalog, true);
+    }
+
+    private CollectionResult ingest(CollectorMetadata metadata, CollectedCatalog collectedCatalog,
+            boolean existingOnly) {
         CollectionCatalog catalog = catalogs.ensureCatalog(
                 metadata, collectedCatalog.store(), collectedCatalog.collectedAt());
         MutableResult result = new MutableResult(collectedCatalog.foundCount());
@@ -51,7 +61,7 @@ public class CollectedCatalogIngestionService {
         collectedCatalog.warnings().forEach(result::addSkippedError);
 
         List<ProductPrice> collectedPrices = ingestProducts(
-                metadata, collectedCatalog, catalog.sourceId(), result);
+                metadata, collectedCatalog, catalog.sourceId(), result, existingOnly);
         ingestPrices(metadata, collectedCatalog, catalog, collectedPrices, result);
 
         return result.toResult(catalog.sourceId(), catalog.storeId());
@@ -61,10 +71,15 @@ public class CollectedCatalogIngestionService {
             CollectorMetadata metadata,
             CollectedCatalog catalog,
             UUID sourceId,
-            MutableResult result) {
+            MutableResult result, boolean existingOnly) {
         List<ProductPrice> collectedPrices = new ArrayList<>();
 
         for (CollectedProduct collectedProduct : catalog.products()) {
+            if (existingOnly && productReferences.findBySourceIdAndSourceReference(
+                    sourceId, collectedProduct.sourceReference()).isEmpty()) {
+                result.skippedCount++;
+                continue;
+            }
             try {
                 SourceObservation source = new SourceObservation(
                         sourceId, collectedProduct.sourceReference(), catalog.collectedAt());
@@ -127,7 +142,8 @@ public class CollectedCatalogIngestionService {
                         collectedPrice.productId(), catalog.storeId(), catalog.sourceId(), sourceReference,
                         product.regularPrice(), product.promotionalPrice(), "BRL",
                         collectedCatalog.collectedAt(), product.validUntil(),
-                        product.promotionValidUntil(), product.promotionCondition(), product.availability(), product.originUrl()));
+                        product.promotionValidUntil(), product.promotionCondition(), product.availability(),
+                        product.originUrl(), product.sourceReference(), product.name()));
                 if (existingReferences.contains(sourceReference)) {
                     result.skippedCount++;
                 } else {

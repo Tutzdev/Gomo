@@ -1,6 +1,7 @@
 package br.com.supermercados.prices.comparison;
 
 import java.util.UUID;
+import java.util.List;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,10 +28,11 @@ public class ComparisonController {
     public ProductComparisonResponse product(
             @RequestParam UUID productId,
             @RequestParam UUID cityId,
+            @RequestParam(required = false) List<UUID> storeIds,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return comparisons.compareProduct(productId, cityId,
-                PageRequests.create(page, size, Sort.by("name", "id")));
+                PageRequests.create(page, size, Sort.by("name", "id")), storeIds);
     }
 
     @GetMapping("/shopping-lists/{id}")
@@ -38,17 +40,19 @@ public class ComparisonController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID id,
             @RequestParam UUID cityId,
+            @RequestParam(required = false) List<UUID> storeIds,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return comparisons.compareShoppingList(user.id(), id, cityId,
-                PageRequests.create(page, size, Sort.by("name", "id")));
+                PageRequests.create(page, size, Sort.by("name", "id")), storeIds);
     }
 
     @GetMapping("/shopping-lists/{id}/recommendation")
     public ShoppingRecommendationResponse recommendation(
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID id,
-            @RequestParam UUID cityId) {
-        return comparisons.recommendShoppingList(user.id(), id, cityId);
+            @RequestParam UUID cityId,
+            @RequestParam(required = false) List<UUID> storeIds) {
+        return comparisons.recommendShoppingList(user.id(), id, cityId, storeIds);
     }
 }

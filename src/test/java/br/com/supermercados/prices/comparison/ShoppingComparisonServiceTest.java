@@ -5,6 +5,12 @@ import br.com.supermercados.prices.location.LocationService;
 import br.com.supermercados.prices.price.PriceFixtures;
 import br.com.supermercados.prices.price.PricePolicy;
 import br.com.supermercados.prices.price.PriceRecordRepository;
+import br.com.supermercados.prices.product.ProductEquivalenceService;
+import br.com.supermercados.prices.product.Product;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import java.util.LinkedHashMap;
 import br.com.supermercados.prices.price.PriceStatus;
 import br.com.supermercados.prices.product.ProductService;
 import br.com.supermercados.prices.shoppinglist.ShoppingListItemResponse;
@@ -53,13 +59,24 @@ class ShoppingComparisonServiceTest {
     @Mock private ProductService products;
     @Mock private ShoppingListService shoppingLists;
     @Mock private PriceRecordRepository prices;
+    @Mock private ProductEquivalenceService equivalence;
 
     private ShoppingComparisonService comparisons;
 
     @BeforeEach
     void setUp() {
         PricePolicy policy = new PricePolicy(Duration.ofDays(2));
-        comparisons = new ShoppingComparisonService(locations, stores, products, shoppingLists, prices,
+        lenient().when(equivalence.find(any())).thenAnswer(invocation -> {
+            var matches = new LinkedHashMap<UUID, ProductEquivalenceService.Matches>();
+            for (UUID id : invocation.<List<UUID>>getArgument(0)) {
+                Product product = mock(Product.class);
+                when(product.getId()).thenReturn(id);
+                matches.put(id, new ProductEquivalenceService.Matches(List.of(product), List.of()));
+            }
+            return matches;
+        });
+        comparisons = new ShoppingComparisonService(locations, stores, products, shoppingLists,
+                new EquivalentPriceService(equivalence, prices, policy),
                 policy, new ShoppingPriceCalculator(policy), Clock.fixed(now, ZoneOffset.UTC), 500);
     }
 
@@ -126,7 +143,7 @@ class ShoppingComparisonServiceTest {
         UUID completeStore = UUID.randomUUID();
         List<ShoppingListItemResponse> items = List.of(item(firstProduct), item(secondProduct));
         when(shoppingLists.getOwnedList(userId, listId)).thenReturn(shoppingList(items));
-        when(stores.findAllActiveStores(cityId, 500)).thenReturn(List.of(
+        when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(List.of(
                 store(incompleteStore, "Incomplete"), store(completeStore, "Complete")));
         when(prices.findLatestForStoresAndProducts(
                 List.of(incompleteStore, completeStore), List.of(firstProduct, secondProduct)))
@@ -157,7 +174,7 @@ class ShoppingComparisonServiceTest {
         UUID lastStoreId = availableStores.getLast().id();
         when(shoppingLists.getOwnedList(userId, listId))
                 .thenReturn(shoppingList(List.of(item(productId))));
-        when(stores.findAllActiveStores(cityId, 500)).thenReturn(availableStores);
+        when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(availableStores);
         when(prices.findLatestForStoresAndProducts(
                 availableStores.stream().map(StoreResponse::id).toList(), List.of(productId)))
                 .thenReturn(observations);
@@ -174,7 +191,7 @@ class ShoppingComparisonServiceTest {
         UUID storeId = UUID.randomUUID();
         when(shoppingLists.getOwnedList(userId, listId))
                 .thenReturn(shoppingList(List.of(item(productId), item(UUID.randomUUID()))));
-        when(stores.findAllActiveStores(cityId, 500)).thenReturn(List.of(store(storeId, "Incomplete")));
+        when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(List.of(store(storeId, "Incomplete")));
         when(prices.findLatestForStoresAndProducts(
                 org.mockito.ArgumentMatchers.eq(List.of(storeId)), org.mockito.ArgumentMatchers.anyList()))
                 .thenReturn(List.of(PriceFixtures.regular(productId, storeId, "3.00", now)));

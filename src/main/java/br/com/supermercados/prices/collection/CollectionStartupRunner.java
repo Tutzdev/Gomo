@@ -23,7 +23,11 @@ public class CollectionStartupRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments arguments) {
         for (String code : collectorCodes.split(",")) {
-            if (code.strip().startsWith("replay:")) {
+            if (code.strip().startsWith("replay-existing:")) {
+                coordinator.replayExisting(code.strip().substring("replay-existing:".length()));
+            } else if (code.strip().startsWith("refresh:")) {
+                coordinator.refreshExisting(code.strip().substring("refresh:".length()));
+            } else if (code.strip().startsWith("replay:")) {
                 coordinator.replayArchived(code.strip().substring("replay:".length()));
             } else if (!code.isBlank()) {
                 coordinator.collectSelected(code.strip());

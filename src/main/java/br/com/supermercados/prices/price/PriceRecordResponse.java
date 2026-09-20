@@ -22,7 +22,9 @@ public record PriceRecordResponse(
         String sourceReference,
         PriceOriginType originType,
         UUID contributionId,
-        String originUrl) {
+        String originUrl,
+        String sourceProductReference,
+        String sourceProductName) {
 
     public static PriceRecordResponse from(PriceRecord record) {
         return new PriceRecordResponse(
@@ -42,6 +44,8 @@ public record PriceRecordResponse(
                 record.getSourceReference(),
                 record.getOriginType(),
                 record.getContributionId(),
-                record.getOriginUrl());
+                record.getOriginUrl(),
+                record.getSourceProductReference(),
+                record.getSourceProductName());
     }
 }

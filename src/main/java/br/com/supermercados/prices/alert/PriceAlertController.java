@@ -35,6 +35,7 @@ public class PriceAlertController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody CreatePriceAlertRequest request) {
         PriceAlertResponse response = alerts.create(user, request);
+        
         return ResponseEntity.created(URI.create("/api/v1/alerts/" + response.id())).body(response);
     }
 
@@ -44,15 +45,14 @@ public class PriceAlertController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Sort sort = Sort.by(Sort.Direction.DESC, "createdAt", "id");
+
         return alerts.findMine(user.id(), PageRequests.create(page, size, sort));
     }
 
     @PatchMapping("/alerts/{id}/deactivation")
     public PriceAlertResponse deactivate(
             @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id) {
-        return alerts.deactivate(user.id(), id);
-    }
+            @PathVariable UUID id) {return alerts.deactivate(user.id(), id);}
 
     @GetMapping("/notifications")
     public PageResponse<AlertNotificationResponse> findNotifications(
@@ -60,13 +60,12 @@ public class PriceAlertController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Sort sort = Sort.by(Sort.Direction.DESC, "createdAt", "id");
+
         return notifications.findMine(user.id(), PageRequests.create(page, size, sort));
     }
 
     @PatchMapping("/notifications/{id}/read")
     public AlertNotificationResponse markRead(
             @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id) {
-        return notifications.markRead(user.id(), id);
-    }
+            @PathVariable UUID id) {return notifications.markRead(user.id(), id);}
 }

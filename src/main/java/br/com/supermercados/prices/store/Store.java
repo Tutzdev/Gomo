@@ -34,6 +34,9 @@ public class Store {
     @Column(length = 500)
     private String address;
 
+    @Column(length = 1000)
+    private String priceSourceNote;
+
     @Column(precision = 10, scale = 7)
     private BigDecimal latitude;
 

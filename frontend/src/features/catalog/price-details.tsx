@@ -73,6 +73,11 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
                 ? "Preço enviado pela comunidade."
                 : "Preço obtido de uma fonte pública da loja."}
             </p>
+            {observation.sourceProductReference ? (
+              <p className="mt-2 break-all">
+                Código na fonte: {observation.sourceProductReference}
+              </p>
+            ) : null}
             {observation.originUrl ? (
               <a
                 className="mt-2 inline-block font-semibold text-primary underline"

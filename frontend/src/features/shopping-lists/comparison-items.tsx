@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { formatCurrency, formatDate } from "@/lib/brand";
 import type { ShoppingComparisonItem } from "@/types/api";
 
@@ -37,6 +38,20 @@ export function ComparisonItems({
             >
               <td className="min-w-52 p-3">
                 <p className="font-semibold">{item.productName}</p>
+                {item.price.observation?.sourceProductName ||
+                (item.matchedProduct && item.matchedProduct.id !== item.productId) ? (
+                  <p className="mt-1 text-xs text-muted">
+                    Nesta loja: {item.price.observation?.sourceProductName ?? item.matchedProduct?.name}
+                  </p>
+                ) : null}
+                {item.hasPossibleMatches ? (
+                  <Link
+                    className="mt-1 inline-block text-xs text-primary underline"
+                    to={`/app/produtos/${item.productId}`}
+                  >
+                    Conferir cadastros com variante ou embalagem não confirmada
+                  </Link>
+                ) : null}
                 <p className="mt-1 text-xs text-muted">
                   {statusLabels[item.price.status]}
                   {item.price.status === "KNOWN" &&
@@ -49,6 +64,12 @@ export function ComparisonItems({
                     <summary className="cursor-pointer">
                       Coleta: {formatDate(item.price.observation.collectedAt)}
                     </summary>
+                    {item.price.observation.sourceProductReference ? (
+                      <p className="mt-1 break-all">
+                        Código na fonte:{" "}
+                        {item.price.observation.sourceProductReference}
+                      </p>
+                    ) : null}
                     {item.price.observation.originUrl ? (
                       <a
                         className="mt-1 inline-block text-primary underline"

@@ -24,10 +24,14 @@ public record ProductResponse(
         String originUrl) {
 
     public static ProductResponse from(Product product) {
+        return from(product, product.getName());
+    }
+
+    public static ProductResponse from(Product product, String displayName) {
         return new ProductResponse(
                 product.getId(),
                 product.getGtin(),
-                product.getName(),
+                displayName,
                 product.getNormalizedName(),
                 product.getBrand(),
                 product.getNormalizedBrand(),

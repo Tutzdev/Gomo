@@ -22,10 +22,30 @@ public class ProductController {
 
     private final ProductService productService;
     private final ProductOfferService productOffers;
+    private final ProductDiscoveryService discovery;
+
+    @GetMapping("/discovery")
+    public PageResponse<ProductDiscoveryResult> discover(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String gtin,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) UUID storeId,
+            @RequestParam(required = false) UUID cityId,
+            @RequestParam(required = false) List<UUID> storeIds,
+            @RequestParam(required = false) String unit,
+            @RequestParam(required = false) BigDecimal quantity,
+            @RequestParam(defaultValue = "relevance") String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return PageResponse.from(discovery.search(new ProductSearch(query, brand, gtin, category,
+                storeId, unit, quantity, sort), cityId, storeIds, PageRequests.create(page, size, Sort.unsorted())));
+    }
 
     @GetMapping("/offers")
-    public List<ProductOffers> offers(@RequestParam List<UUID> ids, @RequestParam UUID cityId) {
-        return productOffers.findOffers(ids, cityId);
+    public List<ProductOffers> offers(@RequestParam List<UUID> ids, @RequestParam UUID cityId,
+            @RequestParam(required = false) List<UUID> storeIds) {
+        return productOffers.findOffers(ids, cityId, storeIds);
     }
 
     @GetMapping

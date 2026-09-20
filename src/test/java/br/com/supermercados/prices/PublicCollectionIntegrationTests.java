@@ -76,7 +76,7 @@ class PublicCollectionIntegrationTests {
         assertThat(first.errorMessage()).contains("preço normal ausente");
         assertThat(second.errorCount()).isZero();
         assertThat(second.createdCount()).isEqualTo(26);
-        assertThat(jdbc.queryForObject("select count(*) from stores", Integer.class)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("select count(*) from stores", Integer.class)).isEqualTo(3);
         int prices = jdbc.queryForObject("select count(*) from price_records", Integer.class);
         assertThat(ingestion.ingest(nagumo.metadata(), nagumoCatalog).skippedCount())
                 .isEqualTo(first.updatedCount() + first.errorCount());
@@ -90,8 +90,12 @@ class PublicCollectionIntegrationTests {
                         .param("cityId", "5c4cb935-52e1-4bf8-8d17-902dc0837c66"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         var stores = mapper.readTree(comparison).path("stores").path("content");
-        assertThat(stores.size()).isEqualTo(2);
-        stores.forEach(store -> assertThat(store.path("price").path("status").asString()).isEqualTo("KNOWN"));
+        assertThat(stores.size()).isEqualTo(3);
+        stores.forEach(store -> {
+            String expected = "Supermarket Aterrado".equals(store.path("storeName").asString())
+                    ? "NO_OBSERVATION" : "KNOWN";
+            assertThat(store.path("price").path("status").asString()).isEqualTo(expected);
+        });
         mvc.perform(get("/api/v1/products").param("query", "7894900027013")).andExpect(status().isOk());
         mvc.perform(get("/api/v1/stores")).andExpect(status().isOk());
         mvc.perform(get("/api/v1/prices").param("productId", productId.toString())
@@ -112,5 +116,21 @@ class PublicCollectionIntegrationTests {
         } catch (java.io.IOException exception) {
             throw new IllegalStateException(exception);
         }
+    }
+
+    @Test
+    void refreshingPricesDoesNotCreateProductsAndPreservesOriginalSourceNames() {
+        var collected = nagumo.collect();
+        var existing = new CollectedCatalog(collected.store(), collected.products().subList(0, 1),
+                1, collected.collectedAt(), java.util.List.of());
+        ingestion.ingest(nagumo.metadata(), existing);
+        int before = jdbc.queryForObject("select count(*) from products", Integer.class);
+        var refreshed = ingestion.refreshExisting(nagumo.metadata(), new CollectedCatalog(collected.store(),
+                collected.products(), collected.foundCount(), Instant.now(), collected.warnings()));
+        assertThat(refreshed.createdCount()).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from products", Integer.class)).isEqualTo(before);
+        assertThat(refreshed.updatedCount()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from price_records where source_product_name is not null", Integer.class))
+                .isGreaterThan(0);
     }
 }

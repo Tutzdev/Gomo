@@ -18,6 +18,7 @@ public class ProductService {
 
     private final ProductRepository repository;
     private final ProductSearchRepository searchRepository;
+    private final ProductComparisonEvidence evidence;
 
     public Page<ProductResponse> search(ProductSearch search, Pageable pageable) {
         return searchRepository.search(search, pageable);
@@ -28,7 +29,12 @@ public class ProductService {
     }
 
     public ProductResponse findProduct(UUID productId) {
-        return ProductResponse.from(requireProduct(productId));
+        Product product = requireProduct(productId);
+        return ProductResponse.from(product, comparisonName(product));
+    }
+
+    public String comparisonName(Product product) {
+        return evidence.displayName(product);
     }
 
     public Page<ProductResponse> searchInStore(UUID storeId, ProductSearch search, Pageable pageable) {

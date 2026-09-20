@@ -7,11 +7,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import br.com.supermercados.prices.common.PageResponse;
 import br.com.supermercados.prices.location.LocationService;
 import br.com.supermercados.prices.price.PricePolicy;
-import br.com.supermercados.prices.price.MeasurementPrice;
-import br.com.supermercados.prices.price.PriceRecord;
-import br.com.supermercados.prices.price.PriceRecordRepository;
+import br.com.supermercados.prices.product.ProductResponse;
 import br.com.supermercados.prices.product.ProductService;
 import br.com.supermercados.prices.shoppinglist.ShoppingListItemResponse;
 import br.com.supermercados.prices.shoppinglist.ShoppingListService;
@@ -40,7 +37,7 @@ public class ShoppingComparisonService {
     private final StoreService stores;
     private final ProductService products;
     private final ShoppingListService shoppingLists;
-    private final PriceRecordRepository prices;
+    private final EquivalentPriceService prices;
     private final PricePolicy pricePolicy;
     private final ShoppingPriceCalculator calculator;
     private final Clock clock;
@@ -51,7 +48,7 @@ public class ShoppingComparisonService {
             StoreService stores,
             ProductService products,
             ShoppingListService shoppingLists,
-            PriceRecordRepository prices,
+            EquivalentPriceService prices,
             PricePolicy pricePolicy,
             ShoppingPriceCalculator calculator,
             Clock clock,
@@ -73,50 +70,64 @@ public class ShoppingComparisonService {
     }
 
     public ProductComparisonResponse compareProduct(UUID productId, UUID cityId, Pageable pageable) {
+        return compareProduct(productId, cityId, pageable, null);
+    }
+
+    public ProductComparisonResponse compareProduct(UUID productId, UUID cityId, Pageable pageable, List<UUID> storeIds) {
         var product = products.requireProduct(productId);
         locations.requireCity(cityId);
         Instant comparedAt = clock.instant();
-        Page<StoreResponse> availableStores = stores.findActiveStores(cityId, pageable);
-        Map<UUID, Map<UUID, PriceRecord>> latestPricesByStore = latestPrices(
-                availableStores, List.of(productId));
+        Page<StoreResponse> availableStores = comparisonStores(cityId, pageable, storeIds);
+        var offers = prices.find(List.of(productId), availableStores.stream().map(StoreResponse::id).toList(), comparedAt);
+        var latestPricesByStore = offers.byStore();
         Page<ProductStoreComparison> comparisons = availableStores.map(store -> {
-            var quote = pricePolicy.quote(latestPricesByStore.getOrDefault(store.id(), Map.of()).get(productId), comparedAt);
+            var record = latestPricesByStore.getOrDefault(store.id(), Map.of()).get(productId);
+            var quote = pricePolicy.quote(record, comparedAt);
+            var matched = offers.matchedProduct(productId, record);
             return new ProductStoreComparison(store.id(), store.name(), quote,
-                    MeasurementPrice.calculate(quote.unitPrice(), product.getQuantity(), product.getUnit()));
+                    offers.measurementPrice(productId, record, quote.unitPrice()),
+                    matched == null ? null : ProductResponse.from(matched), store.priceSourceNote());
         });
 
-        return new ProductComparisonResponse(productId, product.getName(), cityId, CURRENCY, comparedAt,
-                PageResponse.from(comparisons));
+        return new ProductComparisonResponse(productId, products.comparisonName(product), cityId, CURRENCY, comparedAt,
+                PageResponse.from(comparisons), offers.possible(productId).stream().map(ProductResponse::from).toList());
     }
 
     public ShoppingListComparisonResponse compareShoppingList(
             UUID userId, UUID listId, UUID cityId, Pageable pageable) {
+        return compareShoppingList(userId, listId, cityId, pageable, null);
+    }
+
+    public ShoppingListComparisonResponse compareShoppingList(
+            UUID userId, UUID listId, UUID cityId, Pageable pageable, List<UUID> storeIds) {
         var shoppingList = shoppingLists.getOwnedList(userId, listId);
         locations.requireCity(cityId);
         Instant comparedAt = clock.instant();
-        Page<StoreResponse> availableStores = stores.findActiveStores(cityId, pageable);
+        Page<StoreResponse> availableStores = comparisonStores(cityId, pageable, storeIds);
         List<UUID> productIds = shoppingList.items().stream()
                 .map(ShoppingListItemResponse::productId).toList();
-        Map<UUID, Map<UUID, PriceRecord>> latestPricesByStore = latestPrices(availableStores, productIds);
-        Page<ShoppingStoreComparison> comparisons = availableStores.map(store -> calculator.calculate(
-                store.id(), store.name(), shoppingList.items(),
-                latestPricesByStore.getOrDefault(store.id(), Map.of()), comparedAt));
+        var offers = prices.find(productIds, availableStores.stream().map(StoreResponse::id).toList(), comparedAt);
+        Page<ShoppingStoreComparison> comparisons = availableStores.map(store ->
+                calculateStore(store, shoppingList.items(), offers, comparedAt));
 
         return new ShoppingListComparisonResponse(listId, cityId, CURRENCY, comparedAt,
                 PageResponse.from(comparisons));
     }
 
     public ShoppingRecommendationResponse recommendShoppingList(UUID userId, UUID listId, UUID cityId) {
+        return recommendShoppingList(userId, listId, cityId, null);
+    }
+
+    public ShoppingRecommendationResponse recommendShoppingList(
+            UUID userId, UUID listId, UUID cityId, List<UUID> storeIds) {
         var shoppingList = shoppingLists.getOwnedList(userId, listId);
         Instant comparedAt = clock.instant();
-        List<StoreResponse> availableStores = stores.findAllActiveStores(cityId, maximumRecommendationStores);
+        List<StoreResponse> availableStores = stores.selectComparisonStores(cityId, storeIds, maximumRecommendationStores);
         List<UUID> productIds = shoppingList.items().stream()
                 .map(ShoppingListItemResponse::productId).toList();
-        Map<UUID, Map<UUID, PriceRecord>> latestPricesByStore = latestPrices(availableStores, productIds);
+        var offers = prices.find(productIds, availableStores.stream().map(StoreResponse::id).toList(), comparedAt);
         List<ShoppingStoreComparison> comparisons = availableStores.stream()
-                .map(store -> calculator.calculate(store.id(), store.name(), shoppingList.items(),
-                        latestPricesByStore.getOrDefault(store.id(), Map.of()), comparedAt))
-                .toList();
+                .map(store -> calculateStore(store, shoppingList.items(), offers, comparedAt)).toList();
         List<StoreRecommendationCandidate> candidates = comparisons.stream()
                 .map(StoreRecommendationCandidate::from).toList();
 
@@ -163,19 +174,26 @@ public class ShoppingComparisonService {
                 .toList();
     }
 
-    private Map<UUID, Map<UUID, PriceRecord>> latestPrices(Page<StoreResponse> availableStores,
-            List<UUID> productIds) {
-        return latestPrices(availableStores.getContent(), productIds);
+    private ShoppingStoreComparison calculateStore(StoreResponse store, List<ShoppingListItemResponse> items,
+            EquivalentPriceService.Result offers, Instant comparedAt) {
+        var storePrices = offers.byStore().getOrDefault(store.id(), Map.of());
+        var calculation = calculator.calculate(store.id(), store.name(), items, storePrices, comparedAt);
+        var detailedItems = calculation.items().stream().map(item -> {
+            var matched = offers.matchedProduct(item.productId(), storePrices.get(item.productId()));
+            return new ComparisonItemResponse(item.productId(), item.productName(), item.quantity(),
+                    item.price(), item.lineTotal(), matched == null ? null : ProductResponse.from(matched),
+                    !offers.possible(item.productId()).isEmpty());
+        }).toList();
+        return new ShoppingStoreComparison(store.id(), store.name(), calculation.requestedItems(),
+                calculation.pricedItems(), calculation.missingItems(), calculation.subtotalKnown(),
+                calculation.completeShoppingList(), detailedItems, store.priceSourceNote());
     }
 
-    private Map<UUID, Map<UUID, PriceRecord>> latestPrices(
-            List<StoreResponse> availableStores, List<UUID> productIds) {
-        if (availableStores.isEmpty() || productIds.isEmpty()) {
-            return Map.of();
-        }
-        List<UUID> storeIds = availableStores.stream().map(StoreResponse::id).toList();
-        return prices.findLatestForStoresAndProducts(storeIds, productIds).stream()
-                .collect(Collectors.groupingBy(PriceRecord::getStoreId,
-                        Collectors.toMap(PriceRecord::getProductId, Function.identity())));
+    private Page<StoreResponse> comparisonStores(UUID cityId, Pageable pageable, List<UUID> storeIds) {
+        if (storeIds == null || storeIds.isEmpty()) return stores.findActiveStores(cityId, pageable);
+        List<StoreResponse> selected = stores.selectComparisonStores(cityId, storeIds, maximumRecommendationStores);
+        int from = (int) Math.min(pageable.getOffset(), selected.size());
+        int to = Math.min(from + pageable.getPageSize(), selected.size());
+        return new PageImpl<>(selected.subList(from, to), pageable, selected.size());
     }
 }

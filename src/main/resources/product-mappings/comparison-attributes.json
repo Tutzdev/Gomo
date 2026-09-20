@@ -1,0 +1,23 @@
+[
+  {
+    "gtin": "7894900027044",
+    "name": "Refrigerante Coca-Cola Original PET 1L",
+    "brand": "Coca-Cola",
+    "verifiedAt": "2026-09-20",
+    "sources": [
+      "https://www.supernovaera.com.br/refrigerante-em-65640/p",
+      "https://www.hiperideal.com.br/refrigerante-coca-cola-original-1l-148598/p"
+    ]
+  },
+  {
+    "gtin": "7894900015119",
+    "name": "Refrigerante Coca-Cola Original Retornável 1L",
+    "brand": "Coca-Cola",
+    "verifiedAt": "2026-09-20",
+    "reviewedNames": ["Refrigerante Cola Cola 1l"],
+    "sources": [
+      "https://www.adegacuencafar.com.br/fartura/produto/m/refrig-coca-cola-1lt-retornavel-212",
+      "https://coobrasil.com.br/produto/7894900015119/refricoca-cola-1l-retornavel"
+    ]
+  }
+]

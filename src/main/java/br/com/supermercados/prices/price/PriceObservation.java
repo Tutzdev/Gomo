@@ -25,7 +25,26 @@ public record PriceObservation(
         Instant promotionValidUntil,
         @Size(max = 500) String promotionCondition,
         @NotNull StockAvailability availability,
-        @Size(max = 2048) @Pattern(regexp = "https://[^\\s]+") String originUrl) {
+        @Size(max = 2048) @Pattern(regexp = "https://[^\\s]+") String originUrl,
+        @Size(max = 2048) String sourceProductReference,
+        @Size(max = 200) String sourceProductName) {
+
+    public PriceObservation(UUID productId, UUID storeId, UUID sourceId, String sourceReference,
+            BigDecimal regularPrice, BigDecimal promotionalPrice, String currency, Instant collectedAt,
+            Instant validUntil, Instant promotionValidUntil, String promotionCondition, StockAvailability availability,
+            String originUrl, String sourceProductReference) {
+        this(productId, storeId, sourceId, sourceReference, regularPrice, promotionalPrice, currency,
+                collectedAt, validUntil, promotionValidUntil, promotionCondition, availability, originUrl,
+                sourceProductReference, null);
+    }
+
+    public PriceObservation(UUID productId, UUID storeId, UUID sourceId, String sourceReference,
+            BigDecimal regularPrice, BigDecimal promotionalPrice, String currency, Instant collectedAt,
+            Instant validUntil, Instant promotionValidUntil, String promotionCondition, StockAvailability availability,
+            String originUrl) {
+        this(productId, storeId, sourceId, sourceReference, regularPrice, promotionalPrice, currency,
+                collectedAt, validUntil, promotionValidUntil, promotionCondition, availability, originUrl, null);
+    }
 
     public PriceObservation(UUID productId, UUID storeId, UUID sourceId, String sourceReference,
             BigDecimal regularPrice, BigDecimal promotionalPrice, String currency, Instant collectedAt,

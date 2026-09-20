@@ -57,7 +57,7 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
                 id, product_id, store_id, source_id, source_reference,
                 regular_price, promotional_price, currency, collected_at, recorded_at,
                 valid_until, promotion_valid_until, promotion_condition,
-                availability, origin_type, contribution_id, origin_url
+                availability, origin_type, contribution_id, origin_url, source_product_reference, source_product_name
             ) VALUES (
                 :#{#record.id}, :#{#record.productId}, :#{#record.storeId},
                 :#{#record.sourceId}, :#{#record.sourceReference},
@@ -65,7 +65,7 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
                 :#{#record.collectedAt}, :#{#record.recordedAt}, :#{#record.validUntil},
                 :#{#record.promotionValidUntil}, :#{#record.promotionCondition},
                 :#{#record.availability.name()},
-                :#{#record.originType.name()}, :#{#record.contributionId}, :#{#record.originUrl}
+                :#{#record.originType.name()}, :#{#record.contributionId}, :#{#record.originUrl}, :#{#record.sourceProductReference}, :#{#record.sourceProductName}
             ) ON CONFLICT (source_id, source_reference) DO NOTHING
             """, nativeQuery = true)
     int insertIfAbsent(@Param("record") PriceRecord record);
@@ -73,4 +73,8 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
     @Modifying
     @Query(value = "UPDATE price_records SET origin_url = :originUrl WHERE id = :id AND origin_url IS NULL", nativeQuery = true)
     int fillMissingOrigin(@Param("id") UUID id, @Param("originUrl") String originUrl);
+
+    @Modifying
+    @Query(value = "UPDATE price_records SET source_product_name = :name WHERE id = :id AND source_product_name IS NULL", nativeQuery = true)
+    int fillMissingSourceDescription(@Param("id") UUID id, @Param("name") String name);
 }

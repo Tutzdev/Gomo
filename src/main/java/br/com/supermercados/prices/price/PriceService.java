@@ -82,6 +82,10 @@ public class PriceService {
                 && prices.fillMissingOrigin(persisted.getId(), candidate.getOriginUrl()) > 0) {
             persisted.enrichOrigin(candidate.getOriginUrl());
         }
+        if (persisted.getSourceProductName() == null && candidate.getSourceProductName() != null
+                && prices.fillMissingSourceDescription(persisted.getId(), candidate.getSourceProductName()) > 0) {
+            persisted.enrichSourceDescription(candidate.getSourceProductName());
+        }
         alertEvaluator.evaluate(persisted.getId());
         return PriceRecordResponse.from(persisted);
     }

@@ -84,9 +84,12 @@ export interface Store {
   collectedAt: string;
   updatedAt: string;
   lastPriceCollectedAt: string | null;
+  priceSourceNote: string | null;
 }
 
 export interface PriceRecord {
+  sourceProductReference: string | null;
+  sourceProductName: string | null;
   id: string;
   productId: string;
   storeId: string;
@@ -116,6 +119,7 @@ export interface PriceQuote {
 }
 
 export interface ProductComparison {
+  possibleMatches: Product[];
   productId: string;
   productName: string;
   cityId: string;
@@ -126,12 +130,22 @@ export interface ProductComparison {
     storeName: string;
     price: PriceQuote;
     measurementPrice: MeasurementPrice | null;
+    matchedProduct: Product | null;
+    priceSourceNote: string | null;
   }>;
 }
 
 export interface MeasurementPrice {
   amount: number;
   unit: string;
+}
+
+export interface ProductDiscoveryResult {
+  displayName: string;
+  product: Product;
+  offers: ProductComparison["stores"]["content"];
+  catalogEntries: number;
+  identityConfirmed: boolean;
 }
 
 export interface ProductOffers {
@@ -160,6 +174,8 @@ export interface ShoppingList extends ShoppingListSummary {
 }
 
 export interface ShoppingComparisonItem {
+  matchedProduct: Product | null;
+  hasPossibleMatches: boolean;
   productId: string;
   productName: string;
   quantity: number;
@@ -168,6 +184,7 @@ export interface ShoppingComparisonItem {
 }
 
 export interface ShoppingStoreComparison {
+  priceSourceNote: string | null;
   storeId: string;
   storeName: string;
   requestedItems: number;
@@ -224,7 +241,12 @@ export interface ShoppingCombination {
   subtotalKnown: number | null;
   completeShoppingList: boolean;
   savingsAgainstCompleteStore: number | null;
-  stores: Array<{ storeId: string; storeName: string; subtotal: number; items: ShoppingComparisonItem[] }>;
+  stores: Array<{
+    storeId: string;
+    storeName: string;
+    subtotal: number;
+    items: ShoppingComparisonItem[];
+  }>;
 }
 
 export interface StoreProduct {

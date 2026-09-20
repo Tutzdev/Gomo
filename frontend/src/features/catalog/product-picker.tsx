@@ -14,9 +14,11 @@ interface ProductPickerProps {
   onChange: (id: string) => void;
   excludedIds?: string[];
   onSearchChange?: (search: string) => void;
+  cityId?: string;
+  storeIds?: string[];
 }
 
-export function ProductPicker({ id, value, onChange, excludedIds = [], onSearchChange }: ProductPickerProps) {
+export function ProductPicker({ id, value, onChange, excludedIds = [], onSearchChange, cityId, storeIds }: ProductPickerProps) {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -48,13 +50,13 @@ export function ProductPicker({ id, value, onChange, excludedIds = [], onSearchC
   }, [active]);
 
   const products = useQuery({
-    queryKey: ["products", "picker", query, page, filters],
-    queryFn: ({ signal }) => catalogApi.products({ ...filters, query, page, size: 8 }, signal),
+    queryKey: ["products", "picker-groups", query, page, filters, cityId, storeIds],
+    queryFn: ({ signal }) => catalogApi.discoverProducts({ ...filters, query, page, size: 8, cityId, storeIds }, signal),
     enabled: open && query.length >= 2 && !selected,
     retry: 1,
   });
   const waiting = search.trim() !== query || products.isFetching;
-  const options = waiting ? [] : products.data?.content ?? [];
+  const options = waiting ? [] : products.data?.content.map((group) => ({ ...group.product, name: group.displayName })) ?? [];
   const expanded = open && !selected && search.trim().length >= 2;
   const activeOption = options[active];
   const suggestions = [...new Set(options.map((product) => product.brand).filter((brand): brand is string => Boolean(brand)))].filter((brand) => brand.toLowerCase().includes(query.toLowerCase()) && brand.toLowerCase() !== query.toLowerCase()).slice(0, 3);

@@ -46,14 +46,22 @@ public class CollectionCoordinator {
     }
 
     public List<CollectionRunResponse> collectSelected(String collectorCode) {
-        return collectSelected(collectorCode, false);
+        return collectSelected(collectorCode, false, false);
+    }
+
+    public List<CollectionRunResponse> refreshExisting(String collectorCode) {
+        return collectSelected(collectorCode, false, true);
     }
 
     public List<CollectionRunResponse> replayArchived(String collectorCode) {
-        return collectSelected(collectorCode, true);
+        return collectSelected(collectorCode, true, false);
     }
 
-    private List<CollectionRunResponse> collectSelected(String collectorCode, boolean replay) {
+    public List<CollectionRunResponse> replayExisting(String collectorCode) {
+        return collectSelected(collectorCode, true, true);
+    }
+
+    private List<CollectionRunResponse> collectSelected(String collectorCode, boolean replay, boolean existingOnly) {
         List<SupermarketCollector> selected = collectorCode == null ? collectors : collectors.stream()
                 .filter(collector -> collector.metadata().code().equals(collectorCode)).toList();
         if (selected.isEmpty() && collectorCode != null) {
@@ -69,7 +77,7 @@ public class CollectionCoordinator {
                 if (index > 0 && !waitBeforeNextCollector()) {
                     break;
                 }
-                results.add(collect(selected.get(index), replay));
+                results.add(collect(selected.get(index), replay, existingOnly));
             }
             return List.copyOf(results);
         } finally {
@@ -77,7 +85,7 @@ public class CollectionCoordinator {
         }
     }
 
-    private CollectionRunResponse collect(SupermarketCollector collector, boolean replay) {
+    private CollectionRunResponse collect(SupermarketCollector collector, boolean replay, boolean existingOnly) {
         CollectorMetadata metadata = collector.metadata();
         CollectionRunResponse run = runs.start(metadata);
         LOGGER.info("Coleta {} iniciada para {}", run.id(), metadata.code());
@@ -92,7 +100,7 @@ public class CollectionCoordinator {
                 }
             }
             CollectionRunResponse completed = runs.finish(
-                    run.id(), ingestion.ingest(metadata, catalog));
+                    run.id(), existingOnly ? ingestion.refreshExisting(metadata, catalog) : ingestion.ingest(metadata, catalog));
             LOGGER.info("Coleta {} finalizada para {}: status={}, encontrados={}, criados={}, "
                             + "atualizados={}, ignorados={}, erros={}",
                     completed.id(), metadata.code(), completed.status(), completed.foundCount(),

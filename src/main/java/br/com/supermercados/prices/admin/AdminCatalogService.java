@@ -42,6 +42,7 @@ public class AdminCatalogService {
     public DataSourceResponse registerSource(UUID actorUserId, SourceRegistration registration) {
         DataSource source = sources.registerVerifiedSource(registration);
         audit.record(actorUserId, AdminAction.SOURCE_REGISTERED, "DATA_SOURCE", source.getId());
+
         return DataSourceResponse.from(source);
     }
 
@@ -50,6 +51,7 @@ public class AdminCatalogService {
             UUID actorUserId, UUID sourceId, UpdateDataSourceRequest request) {
         DataSourceResponse response = sources.changeEnabled(sourceId, request.enabled());
         audit.record(actorUserId, AdminAction.SOURCE_STATUS_CHANGED, "DATA_SOURCE", response.id());
+
         return response;
     }
 
@@ -57,6 +59,7 @@ public class AdminCatalogService {
     public ChainResponse ingestChain(UUID actorUserId, ChainObservation observation) {
         ChainResponse response = stores.ingestChain(observation);
         audit.record(actorUserId, AdminAction.CHAIN_INGESTED, "SUPERMARKET_CHAIN", response.id());
+
         return response;
     }
 
@@ -64,6 +67,7 @@ public class AdminCatalogService {
     public StoreResponse ingestStore(UUID actorUserId, StoreObservation observation) {
         StoreResponse response = stores.ingestStore(observation);
         audit.record(actorUserId, AdminAction.STORE_INGESTED, "STORE", response.id());
+
         return response;
     }
 
@@ -71,6 +75,7 @@ public class AdminCatalogService {
     public ProductResponse ingestProduct(UUID actorUserId, ProductObservation observation) {
         ProductResponse response = products.ingest(observation);
         audit.record(actorUserId, AdminAction.PRODUCT_INGESTED, "PRODUCT", response.id());
+
         return response;
     }
 
@@ -78,6 +83,7 @@ public class AdminCatalogService {
     public PriceRecordResponse recordPrice(UUID actorUserId, PriceObservation observation) {
         PriceRecordResponse response = prices.appendObservation(observation);
         audit.record(actorUserId, AdminAction.PRICE_RECORDED, "PRICE_RECORD", response.id());
+        
         return response;
     }
 }
