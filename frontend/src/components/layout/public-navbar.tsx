@@ -8,7 +8,6 @@ import { useAuth } from "@/features/auth/auth-context";
 
 const navigation = [
   { label: "Como funciona", href: "/#como-funciona" },
-  { label: "Recursos", href: "/#recursos" },
   { label: "Preço", href: "/#preco" },
   { label: "Dúvidas", href: "/#duvidas" },
 ];
@@ -17,6 +16,7 @@ export function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
   const platformPath = user ? "/app" : "/entrar";
+  const signUpPath = user ? "/app/comparar" : "/entrar?modo=cadastro";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
@@ -38,8 +38,8 @@ export function PublicNavbar() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <NativeButton to={platformPath} variant="ghost">Acessar plataforma</NativeButton>
-          <NativeButton to="/assinar" glow>Assinar agora</NativeButton>
+          <NativeButton to={platformPath} variant="ghost" className="landing-button">Acessar plataforma</NativeButton>
+          <NativeButton to={signUpPath} glow className="landing-button">Começar grátis</NativeButton>
         </div>
 
         <button
@@ -74,7 +74,7 @@ export function PublicNavbar() {
           </div>
           <div className="mt-auto grid gap-2 border-t border-border pt-5">
             <NativeButton to={platformPath} variant="secondary" className="w-full">Acessar plataforma</NativeButton>
-            <NativeButton to="/assinar" glow className="w-full">Assinar agora</NativeButton>
+            <NativeButton to={signUpPath} glow className="w-full">Começar grátis</NativeButton>
           </div>
         </nav>
       </Sheet>
