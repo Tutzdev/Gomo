@@ -3,10 +3,13 @@ import type {
   AdminAudit,
   AlertNotification,
   AuthResponse,
+  BillingCycle,
   CatalogItem,
   CatalogItemDetail,
+  CatalogItemHistory,
   City,
   PageResponse,
+  PremiumValue,
   PriceAlert,
   PriceContribution,
   PriceRecord,
@@ -24,6 +27,7 @@ import type {
   StockAvailability,
   Store,
   StoreProduct,
+  SubscriptionStatus,
   User,
   UserPreference,
 } from "@/types/api";
@@ -89,10 +93,14 @@ export const catalogApi = {
       `/catalog/items?${queryString({ ...filters, storeIds: filters.storeIds?.join(",") })}`,
       { authenticated: false, signal },
     ),
+  // Sent with the session (when there is one) so the API can apply the account's plan.
   catalogItem: (id: string, cityId?: string, storeIds?: string[]) =>
     apiRequest<CatalogItemDetail>(
       `/catalog/items/${id}?${queryString({ cityId, storeIds: storeIds?.join(",") })}`,
-      { authenticated: false },
+    ),
+  catalogItemHistory: (id: string, cityId: string, storeIds?: string[]) =>
+    apiRequest<CatalogItemHistory>(
+      `/catalog/items/${id}/history?${queryString({ cityId, storeIds: storeIds?.join(",") })}`,
     ),
   discoverProducts: (filters: ProductFilters & { cityId?: string; storeIds?: string[] } = {}, signal?: AbortSignal) =>
     apiRequest<PageResponse<ProductDiscoveryResult>>(
@@ -188,7 +196,6 @@ export const catalogApi = {
   priceHistory: (productId: string, storeId: string, page = 0, size = 20) =>
     apiRequest<PageResponse<PriceRecord>>(
       `/prices?${queryString({ productId, storeId, page, size })}`,
-      { authenticated: false },
     ),
   compareProduct: (
     productId: string,
@@ -199,7 +206,6 @@ export const catalogApi = {
   ) =>
     apiRequest<ProductComparison>(
       `/comparisons/products?${queryString({ productId, cityId, page, size, storeIds: storeIds.join(",") })}`,
-      { authenticated: false },
     ),
 };
 
@@ -364,4 +370,13 @@ export const adminApi = {
     apiRequest("/admin/products", { method: "POST", body: input }),
   recordPrice: (input: unknown) =>
     apiRequest("/admin/prices", { method: "POST", body: input }),
+};
+
+export const subscriptionApi = {
+  status: () => apiRequest<SubscriptionStatus>("/subscription"),
+  startTrial: (billingCycle: BillingCycle) =>
+    apiRequest<SubscriptionStatus>("/subscription/trial", { method: "POST", body: { billingCycle } }),
+  cancelTrial: () => apiRequest<SubscriptionStatus>("/subscription/trial", { method: "DELETE" }),
+  premiumValue: (cityId: string) =>
+    apiRequest<PremiumValue>(`/subscription/premium-value?${queryString({ cityId })}`),
 };

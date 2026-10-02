@@ -10,10 +10,13 @@ import { formatCurrency, formatDate } from "@/lib/brand";
 import { AddToList } from "@/features/catalog/add-to-list";
 import { ProductImage } from "@/features/catalog/product-image";
 import { ProductOffersPanel } from "@/features/catalog/product-offers-panel";
+import { LockedPriceHistory } from "@/features/plan/price-history-panel";
+import { usePlan } from "@/features/plan/use-plan";
 
 export function ProductDetailPage() {
   const { id = "" } = useParams();
   const [storeId, setStoreId] = useState("");
+  const { premium } = usePlan();
   const product = useQuery({
     queryKey: ["product", id],
     queryFn: () => catalogApi.product(id),
@@ -26,7 +29,7 @@ export function ProductDetailPage() {
   const history = useQuery({
     queryKey: ["price-history", id, storeId],
     queryFn: () => catalogApi.priceHistory(id, storeId),
-    enabled: Boolean(id && storeId),
+    enabled: Boolean(premium && id && storeId),
   });
 
   if (product.isLoading) return <LoadingState />;
@@ -89,86 +92,96 @@ export function ProductDetailPage() {
             </p>
           ) : null}
         </section>
-        <section className="surface p-5">
-          <h2 className="font-bold">Histórico de preços</h2>
-          <p className="mt-1 text-sm text-muted">
-            Escolha uma loja para consultar observações reais.
-          </p>
-          <div className="mt-5 max-w-md">
-            <SelectField
-              id="history-store"
-              label="Supermercado"
-              value={storeId}
-              onChange={(event) => setStoreId(event.target.value)}
-            >
-              <option value="">Selecione uma loja</option>
-              {stores.data?.content.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.name}
-                </option>
-              ))}
-            </SelectField>
-          </div>
-          <div className="mt-6">
-            {!storeId ? (
-              <EmptyState
-                title="Selecione uma loja"
-                description="O histórico depende do produto e da loja escolhidos."
-              />
-            ) : history.isLoading ? (
-              <LoadingState label="Carregando histórico…" />
-            ) : history.isError ? (
-              <ErrorState retry={() => void history.refetch()} />
-            ) : !history.data?.content.length ? (
-              <EmptyState
-                title="Sem histórico disponível"
-                description="Ainda não há observações para esta combinação."
-              />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="data-table min-w-[42rem]">
-                  <caption className="sr-only">
-                    Histórico de preços do produto
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Preço regular</th>
-                      <th>Promoção</th>
-                      <th>Disponibilidade</th>
-                      <th>Origem</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.data.content.map((record) => (
-                      <tr key={record.id}>
-                        <td>{formatDate(record.collectedAt)}</td>
-                        <td>{formatCurrency(record.regularPrice)}</td>
-                        <td>
-                          {record.promotionalPrice
-                            ? formatCurrency(record.promotionalPrice)
-                            : "—"}
-                        </td>
-                        <td>
-                          {record.availability === "AVAILABLE"
-                            ? "Em estoque"
-                            : record.availability === "UNAVAILABLE"
-                              ? "Sem estoque"
-                              : "Desconhecida"}
-                        </td>
-                        <td>
-                          {record.originType === "USER_CONTRIBUTION"
-                            ? "Comunidade"
-                            : "Fonte cadastrada"}
-                        </td>
+        {!premium ? (
+          <section className="surface overflow-hidden">
+            <div className="border-b border-border p-5">
+              <h2 className="font-bold">Histórico de preços</h2>
+              <p className="mt-1 text-sm text-muted">Observações dos últimos 90 dias em cada loja.</p>
+            </div>
+            <LockedPriceHistory />
+          </section>
+        ) : (
+          <section className="surface p-5">
+            <h2 className="font-bold">Histórico de preços</h2>
+            <p className="mt-1 text-sm text-muted">
+              Escolha uma loja para consultar as observações dos últimos 90 dias.
+            </p>
+            <div className="mt-5 max-w-md">
+              <SelectField
+                id="history-store"
+                label="Supermercado"
+                value={storeId}
+                onChange={(event) => setStoreId(event.target.value)}
+              >
+                <option value="">Selecione uma loja</option>
+                {stores.data?.content.map((store) => (
+                  <option key={store.id} value={store.id}>
+                    {store.name}
+                  </option>
+                ))}
+              </SelectField>
+            </div>
+            <div className="mt-6">
+              {!storeId ? (
+                <EmptyState
+                  title="Selecione uma loja"
+                  description="O histórico depende do produto e da loja escolhidos."
+                />
+              ) : history.isLoading ? (
+                <LoadingState label="Carregando histórico…" />
+              ) : history.isError ? (
+                <ErrorState retry={() => void history.refetch()} />
+              ) : !history.data?.content.length ? (
+                <EmptyState
+                  title="Sem histórico disponível"
+                  description="Ainda não há observações para esta combinação."
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="data-table min-w-[42rem]">
+                    <caption className="sr-only">
+                      Histórico de preços do produto
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Preço regular</th>
+                        <th>Promoção</th>
+                        <th>Disponibilidade</th>
+                        <th>Origem</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </section>
+                    </thead>
+                    <tbody>
+                      {history.data.content.map((record) => (
+                        <tr key={record.id}>
+                          <td>{formatDate(record.collectedAt)}</td>
+                          <td>{formatCurrency(record.regularPrice)}</td>
+                          <td>
+                            {record.promotionalPrice
+                              ? formatCurrency(record.promotionalPrice)
+                              : "—"}
+                          </td>
+                          <td>
+                            {record.availability === "AVAILABLE"
+                              ? "Em estoque"
+                              : record.availability === "UNAVAILABLE"
+                                ? "Sem estoque"
+                                : "Desconhecida"}
+                          </td>
+                          <td>
+                            {record.originType === "USER_CONTRIBUTION"
+                              ? "Comunidade"
+                              : "Fonte cadastrada"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </div>
     </>
   );

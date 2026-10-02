@@ -4,6 +4,8 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { StatusBadge } from "@/components/page/page-elements";
 import { formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
+import { DailyComparisonsMeter, DailyLimitNotice, LockedStores } from "@/features/plan/plan-locks";
+import { PriceHistoryPanel } from "@/features/plan/price-history-panel";
 import { catalogApi } from "@/services/gomo-api";
 import type { CatalogItemDetail } from "@/types/api";
 import { AddToList } from "./add-to-list";
@@ -30,11 +32,18 @@ export function CatalogItemComparison({
   if (!cityId) return <EmptyState title="Escolha a cidade" description="Os preços são comparados entre os mercados da cidade." />;
   if (detail.isPending) return <LoadingState label="Comparando mercados…" />;
   if (detail.isError) return <ErrorState message={detail.error.message} retry={() => void detail.refetch()} />;
-  return <ComparisonResult detail={detail.data} />;
+  return (
+    <>
+      <ComparisonResult detail={detail.data} />
+      {detail.data.offers.length ? <PriceHistoryPanel itemId={itemId} cityId={cityId} storeIds={storeIds} /> : null}
+    </>
+  );
 }
 
 function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
-  const { item, offers, storesWithoutPrice } = detail;
+  const { item, offers, storesWithoutPrice, access } = detail;
+  // Stores hidden by the plan still have a current price, so the headline counts them.
+  const pricedStores = offers.length + access.lockedStores;
   const cheapest = offers[0]?.price.unitPrice ?? null;
   const priciest = offers.at(-1)?.price.unitPrice ?? null;
 
@@ -47,16 +56,20 @@ function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
             {item.name}
           </h2>
           <p className="mt-1 text-sm text-muted">
-            {offers.length > 1
-              ? `Preço atual em ${offers.length} mercados`
-              : offers.length === 1
+            {pricedStores > 1
+              ? `Preço atual em ${pricedStores} mercados`
+              : pricedStores === 1
                 ? "Preço atual em 1 mercado"
                 : "Sem preço atual nos mercados"}
           </p>
+          <div className="mt-2">
+            <DailyComparisonsMeter access={access} />
+          </div>
         </div>
         <AddToList catalogItem={item} />
       </header>
 
+      <DailyLimitNotice access={access} />
       {!offers.length ? (
         <div className="p-5">
           <EmptyState
@@ -69,7 +82,8 @@ function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
           {cheapest !== null && priciest !== null && priciest > cheapest ? (
             <p className="border-b border-border bg-success-soft px-4 py-3 text-sm sm:px-5">
               Comprando no mais barato você economiza até{" "}
-              <strong className="tabular-nums">{formatCurrency(priciest - cheapest)}</strong> por unidade.
+              <strong className="tabular-nums">{formatCurrency(priciest - cheapest)}</strong> por unidade
+              {access.lockedStores > 0 ? " entre os mercados mostrados." : "."}
             </p>
           ) : null}
           <ol className="divide-y divide-border">
@@ -134,6 +148,7 @@ function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
               );
             })}
           </ol>
+          <LockedStores count={access.lockedStores} />
         </>
       )}
       {storesWithoutPrice > 0 && offers.length ? (

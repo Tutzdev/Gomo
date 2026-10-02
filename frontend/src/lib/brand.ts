@@ -1,7 +1,8 @@
 export const BRAND = {
   name: "Gomo",
   logoWordmark: "gomo",
-  monthlyPrice: 10.99,
+  monthlyPrice: 14.9,
+  annualPrice: 119.9,
   currency: "BRL",
   locale: "pt-BR",
 } as const;

@@ -25,6 +25,11 @@ import type {
   ShoppingListItem,
 } from "@/types/api";
 import { useDefaultCityId } from "@/lib/use-default-city";
+import { PlanLimitNotice } from "@/features/plan/plan-locks";
+import { useLimitUpsell } from "@/features/plan/use-limit-upsell";
+import { planLimitOf, usePlan } from "@/features/plan/use-plan";
+
+const FREE_LIST_ITEMS = 10;
 
 export function ShoppingListDetailPage() {
   const { id = "" } = useParams();
@@ -60,12 +65,18 @@ export function ShoppingListDetailPage() {
       }),
     ]);
   };
+  const { premium } = usePlan();
+  const itemLimit = useLimitUpsell();
   const addItem = useMutation({
     mutationFn: () =>
       shoppingListApi.addItem(id, {
         catalogItemId: catalogItem?.id,
         quantity: Number(quantity),
       }),
+    onMutate: () => itemLimit.clear(),
+    onError: (error) => {
+      if (planLimitOf(error) === "LIST_ITEMS") itemLimit.block("LIST_ITEMS");
+    },
     onSuccess: async (item) => {
       setAddedName(item.productName);
       setCatalogItem(null);
@@ -110,7 +121,14 @@ export function ShoppingListDetailPage() {
       <div className="grid items-start gap-6 xl:grid-cols-[1fr_0.65fr]">
         <section className="surface min-w-0">
           <div className="border-b border-border p-5">
-            <h2 className="font-bold">Itens da lista</h2>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-bold">Itens da lista</h2>
+              {!premium ? (
+                <p className="text-xs text-muted">
+                  {Math.min(list.data.items.length, FREE_LIST_ITEMS)} de {FREE_LIST_ITEMS} produtos no plano grátis
+                </p>
+              ) : null}
+            </div>
             <form
               className="mt-4 space-y-4"
               onSubmit={(event) => {
@@ -153,7 +171,8 @@ export function ShoppingListDetailPage() {
             <p role="status" className="mt-3 text-sm text-success">
               {addedName ? `${addedName} adicionado à lista.` : ""}
             </p>
-            <InlineError>{addItem.error?.message}</InlineError>
+            <InlineError>{planLimitOf(addItem.error) ? null : addItem.error?.message}</InlineError>
+            {itemLimit.notice ? <PlanLimitNotice>{itemLimit.notice}</PlanLimitNotice> : null}
           </div>
           {!list.data.items.length ? (
             <div className="p-5">

@@ -1,9 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
+import { Lock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Pagination, StatusBadge } from "@/components/page/page-elements";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { formatCurrency, formatDate } from "@/lib/brand";
 import { shoppingListApi } from "@/services/gomo-api";
+import { LockedStores } from "@/features/plan/plan-locks";
+import { ShoppingRoute } from "@/features/plan/shopping-route";
+import { SplitSavingsBanner } from "@/features/plan/split-savings-banner";
+import { useUpsell } from "@/features/plan/upsell-context";
 import { ComparisonItems } from "./comparison-items";
 import type { ShoppingListItem } from "@/types/api";
 
@@ -19,6 +24,7 @@ export function ListComparison({
   items: ShoppingListItem[];
 }) {
   const [page, setPage] = useState(0);
+  const { showUpsell } = useUpsell();
   const results = useRef<HTMLDivElement>(null);
   const scrolledToResults = useRef(false);
   const comparison = useQuery({
@@ -86,9 +92,10 @@ export function ListComparison({
       aria-busy={comparison.isFetching || recommendation.isFetching}
     >
       <p className="text-sm text-muted">
-        {comparedStores.length} mercado(s) com preços atuais ·{" "}
+        {comparedStores.length + comparison.data.access.lockedStores} mercado(s) com preços atuais ·{" "}
         {formatDate(recommendation.data.comparedAt)}
       </p>
+      <SplitSavingsBanner recommendation={recommendation.data} />
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="surface p-5">
           <h3 className="font-bold">Comprar em um mercado</h3>
@@ -171,7 +178,7 @@ export function ListComparison({
           </p>
           <p className="mt-2 text-sm text-muted">
             {combination.pricedItems} de {combination.requestedItems} itens em{" "}
-            {combination.stores.length} mercado(s).{" "}
+            {combination.storeCount} mercado(s).{" "}
             {!combination.completeShoppingList
               ? "Subtotal apenas dos itens encontrados."
               : ""}
@@ -182,6 +189,21 @@ export function ListComparison({
               {formatCurrency(combination.savingsAgainstCompleteStore)} em
               relação ao mercado mais barato com a lista completa.
             </p>
+          ) : null}
+          {combination.locked ? (
+            <button
+              type="button"
+              className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-primary/25 bg-primary-soft px-4 text-sm font-bold text-primary-dark hover:bg-[#ffe1de] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              onClick={() =>
+                showUpsell("SPLIT_PURCHASE", {
+                  savings: recommendation.data.splitSavings?.savings,
+                  storeCount: combination.storeCount,
+                })
+              }
+            >
+              <Lock className="size-4" aria-hidden />
+              Ver onde comprar cada item no Premium
+            </button>
           ) : null}
           {combination.missingProductIds.length ? (
             <p className="mt-3 text-sm">
@@ -215,6 +237,9 @@ export function ListComparison({
             </details>
           ))}
         </section>
+      ) : null}
+      {!combination.locked ? (
+        <ShoppingRoute cityId={cityId} combination={combination} splitSavings={recommendation.data.splitSavings} />
       ) : null}
       <h3 className="text-lg font-bold">Sua lista em cada mercado</h3>
       <p className="text-sm text-muted">
@@ -269,6 +294,11 @@ export function ListComparison({
           </section>
         ))
       )}
+      {comparison.data.access.lockedStores > 0 ? (
+        <div className="surface overflow-hidden">
+          <LockedStores count={comparison.data.access.lockedStores} className="border-t-0" />
+        </div>
+      ) : null}
       {comparison.data.stores.totalPages > 1 ? (
         <Pagination
           page={page}

@@ -7,7 +7,8 @@ import { NativeButton } from "@/components/ui/native-button";
 import { PageHeading, StatusBadge } from "@/components/page/page-elements";
 import { useAuth } from "@/features/auth/auth-context";
 import { ApiError } from "@/lib/api";
-import { authApi, catalogApi, preferenceApi } from "@/services/gomo-api";
+import { authApi, catalogApi, preferenceApi, subscriptionApi } from "@/services/gomo-api";
+import type { User } from "@/types/api";
 
 export function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -49,22 +50,47 @@ export function ProfilePage() {
             <p className="mt-4 text-sm text-muted">Lojas favoritas: <strong className="text-foreground">{preferences.data?.favoriteStoreIds.length ?? 0}</strong></p>
             <NativeButton type="submit" className="mt-5" loading={updateCity.isPending}>Salvar preferência</NativeButton>
           </form>
-          <div className="mt-8 border-t border-border pt-6">
-            <h3 className="font-bold">Assinatura</h3>
-            <div className="mt-3">
-              <StatusBadge tone={user.subscriber ? "success" : "neutral"}>
-                {user.subscriber ? "Assinatura ativa" : "Sem assinatura ativa"}
-              </StatusBadge>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-muted">
-              {user.subscriber
-                ? "Sua conta possui acesso de assinante aos recursos da Gomo."
-                : "Assine o plano Gomo para liberar os recursos destinados a assinantes."}
-            </p>
-          </div>
+          <PlanSection user={user} onChanged={async () => { await refreshUser(); await queryClient.invalidateQueries(); }} />
           <InlineError>{profileMessage}</InlineError>
         </section>
       </div>
     </>
+  );
+}
+
+function PlanSection({ user, onChanged }: { user: User; onChanged: () => Promise<void> }) {
+  const cancelTrial = useMutation({ mutationFn: subscriptionApi.cancelTrial, onSuccess: onChanged });
+  const trialEndsAt = user.trialEndsAt
+    ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long" }).format(new Date(user.trialEndsAt))
+    : null;
+
+  return (
+    <div className="mt-8 border-t border-border pt-6">
+      <h3 className="font-bold">Plano</h3>
+      <div className="mt-3">
+        <StatusBadge tone={user.premium ? "success" : "neutral"}>
+          {user.premiumSource === "TRIAL" ? "Teste Premium" : user.premium ? "Premium" : "Plano grátis"}
+        </StatusBadge>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-muted">
+        {user.premiumSource === "TRIAL"
+          ? `Seu teste vai até ${trialEndsAt}. Depois disso a conta volta ao plano grátis, sem cobrança.`
+          : user.premium
+            ? "Sua conta tem todos os recursos do Premium."
+            : "Compare os 3 mercados mais baratos, com 1 lista de até 10 produtos e 2 alertas."}
+      </p>
+      {user.premiumSource === "TRIAL" ? (
+        <>
+          <NativeButton variant="secondary" className="mt-4" loading={cancelTrial.isPending} onClick={() => cancelTrial.mutate()}>
+            Cancelar teste agora
+          </NativeButton>
+          <InlineError>{cancelTrial.error?.message}</InlineError>
+        </>
+      ) : !user.premium ? (
+        <NativeButton to="/assinar?origem=perfil" className="mt-4">
+          {user.trialAvailable ? "Testar o Premium por 7 dias" : "Conhecer o Premium"}
+        </NativeButton>
+      ) : null}
+    </div>
   );
 }

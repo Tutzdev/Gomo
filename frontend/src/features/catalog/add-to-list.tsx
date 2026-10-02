@@ -13,6 +13,9 @@ import { NativeButton } from "@/components/ui/native-button";
 import { Sheet } from "@/components/ui/sheet";
 import { shoppingListApi } from "@/services/gomo-api";
 import type { CatalogItem, Product } from "@/types/api";
+import { PlanLimitNotice } from "@/features/plan/plan-locks";
+import { useLimitUpsell } from "@/features/plan/use-limit-upsell";
+import { planLimitOf } from "@/features/plan/use-plan";
 
 /** Adds a generic catalog item, or a specific product when the screen is about one store's listing. */
 export function AddToList({
@@ -30,6 +33,7 @@ export function AddToList({
   const [listId, setListId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const client = useQueryClient();
+  const itemLimit = useLimitUpsell();
   const lists = useQuery({
     queryKey: ["shopping-lists", "picker", page],
     queryFn: () => shoppingListApi.list(page, 20),
@@ -43,6 +47,12 @@ export function AddToList({
           ? { catalogItemId: catalogItem.id, quantity }
           : { productId: product?.id, quantity },
       ),
+    onMutate: () => itemLimit.clear(),
+    onError: (error) => {
+      if (planLimitOf(error) !== "LIST_ITEMS") return;
+      // When the upgrade modal opens, the sheet closes so the two are not stacked.
+      if (itemLimit.block("LIST_ITEMS")) setOpen(false);
+    },
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ["shopping-list", listId] }),
@@ -138,7 +148,8 @@ export function AddToList({
               }}
               required
             />
-            <InlineError>{add.error?.message}</InlineError>
+            <InlineError>{planLimitOf(add.error) ? null : add.error?.message}</InlineError>
+            {itemLimit.notice ? <PlanLimitNotice>{itemLimit.notice}</PlanLimitNotice> : null}
             {add.isSuccess ? (
               <p role="status" className="text-sm text-success">
                 Produto adicionado.{" "}

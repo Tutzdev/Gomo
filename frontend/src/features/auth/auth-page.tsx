@@ -26,6 +26,11 @@ const registerSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 type RegisterValues = z.infer<typeof registerSchema>;
 
+/** Only same-site paths are accepted as a return destination, never another origin. */
+function internalPath(value: string | null) {
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+}
+
 export function AuthPage() {
   const { user, login, register } = useAuth();
   const navigate = useNavigate();
@@ -34,12 +39,13 @@ export function AuthPage() {
     searchParams.get("modo") === "cadastro" ? "register" : "login",
   );
   const [message, setMessage] = useState<string | null>(null);
+  const destination = internalPath(searchParams.get("depois")) ?? "/app";
 
-  if (user) return <Navigate to="/app" replace />;
+  if (user) return <Navigate to={destination} replace />;
 
   const handleLogin = async (values: LoginValues) => {
     await login(values.email, values.password);
-    navigate("/app", { replace: true });
+    navigate(destination, { replace: true });
   };
 
   const handleRegister = async (values: RegisterValues) => {

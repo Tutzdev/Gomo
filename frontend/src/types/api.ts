@@ -3,6 +3,10 @@ export type ShoppingType = "DAILY" | "WEEKLY" | "MONTHLY" | "CUSTOM";
 export type StockAvailability = "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN";
 export type ContributionStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type RecommendationStatus = "COMPLETE_STORE_FOUND" | "NO_COMPLETE_STORE";
+export type PremiumSource = "SUBSCRIPTION" | "TRIAL" | "ADMIN" | "NONE";
+export type BillingCycle = "MONTHLY" | "ANNUAL";
+/** Free-plan limits the API reports in a PLAN_LIMIT problem. */
+export type PlanLimit = "SHOPPING_LISTS" | "LIST_ITEMS" | "ACTIVE_ALERTS" | "PRICE_HISTORY";
 
 export interface PageResponse<T> {
   content: T[];
@@ -17,6 +21,7 @@ export interface ApiProblem {
   detail?: string;
   status?: number;
   code?: string;
+  limit?: PlanLimit;
   path?: string;
   timestamp?: string;
   errors?: Array<{ field: string; message: string }>;
@@ -29,8 +34,55 @@ export interface User {
   role: UserRole;
   emailVerified: boolean;
   subscriber: boolean;
+  premium: boolean;
+  premiumSource: PremiumSource;
+  trialEndsAt: string | null;
+  trialAvailable: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+/** How much of a comparison the plan shows. `visibleStoreLimit` null means every store. */
+export interface ComparisonAccess {
+  premium: boolean;
+  visibleStoreLimit: number | null;
+  lockedStores: number;
+  dailyComparisonsUsed: number | null;
+  dailyComparisonsLimit: number | null;
+  dailyLimitReached: boolean;
+}
+
+export interface SubscriptionStatus {
+  premium: boolean;
+  premiumSource: PremiumSource;
+  trialEndsAt: string | null;
+  trialAvailable: boolean;
+  preferredBillingCycle: BillingCycle | null;
+  freeLimits: {
+    shoppingLists: number;
+    listItems: number;
+    activeAlerts: number;
+    dailyComparisons: number;
+    visibleStores: number;
+  };
+  usage: { shoppingLists: number; activeAlerts: number; comparisonsToday: number };
+}
+
+/** Savings from splitting one of the person's lists between stores; fields are null when there is none. */
+export interface PremiumValue {
+  listName: string | null;
+  savings: number | null;
+  storeCount: number;
+}
+
+export interface CatalogItemHistory {
+  itemId: string;
+  since: string;
+  stores: Array<{
+    storeId: string;
+    storeName: string;
+    points: Array<{ day: string; price: number }>;
+  }>;
 }
 
 export interface AuthResponse {
@@ -134,6 +186,7 @@ export interface ProductComparison {
     matchedProduct: Product | null;
     priceSourceNote: string | null;
   }>;
+  access: ComparisonAccess;
 }
 
 export interface MeasurementPrice {
@@ -201,6 +254,7 @@ export interface CatalogItemDetail {
   }[];
   /** Stores in the comparison without a current price for this item. */
   storesWithoutPrice: number;
+  access: ComparisonAccess;
 }
 
 export interface ShoppingList extends ShoppingListSummary {
@@ -235,6 +289,7 @@ export interface ShoppingListComparison {
   currency: string;
   comparedAt: string;
   stores: PageResponse<ShoppingStoreComparison>;
+  access: ComparisonAccess;
 }
 
 export interface StoreRecommendationCandidate {
@@ -259,6 +314,13 @@ export interface ShoppingRecommendation {
   recommendation: StoreRecommendationCandidate | null;
   closestMatches: StoreRecommendationCandidate[];
   combination: ShoppingCombination;
+  /** Buying each item where it is cheapest versus everything at the best single store. */
+  splitSavings: {
+    storeId: string;
+    storeName: string;
+    comparedItems: number;
+    savings: number;
+  } | null;
 }
 
 export interface ProductSearchFacets {
@@ -281,6 +343,9 @@ export interface ShoppingCombination {
     subtotal: number;
     items: ShoppingComparisonItem[];
   }>;
+  /** On the free plan the stores are hidden; only totals and `storeCount` remain. */
+  locked: boolean;
+  storeCount: number;
 }
 
 export interface StoreProduct {

@@ -8,6 +8,7 @@ import { ComparisonStoreFilter } from "./comparison-store-filter";
 import { PossibleProductMatches } from "./possible-product-matches";
 import { StoreOffers } from "./store-offers";
 import { useDefaultCityId } from "@/lib/use-default-city";
+import { DailyComparisonsMeter, DailyLimitNotice, LockedStores } from "@/features/plan/plan-locks";
 
 export function ProductOffersPanel({ productId }: { productId: string }) {
   const [params] = useSearchParams();
@@ -72,7 +73,16 @@ export function ProductOffersPanel({ productId }: { productId: string }) {
         <LoadingState label="Comparando preços…" />
       ) : comparison.data ? (
         <>
+          <div className="mb-4 empty:hidden">
+            <DailyComparisonsMeter access={comparison.data.access} />
+          </div>
+          <DailyLimitNotice access={comparison.data.access} />
           <StoreOffers stores={comparison.data.stores.content} />
+          {comparison.data.access.lockedStores > 0 ? (
+            <div className="surface mt-4 overflow-hidden">
+              <LockedStores count={comparison.data.access.lockedStores} className="border-t-0" />
+            </div>
+          ) : null}
           <PossibleProductMatches products={comparison.data.possibleMatches} cityId={cityId} storeIds={storeIds} />
         </>
       ) : (
