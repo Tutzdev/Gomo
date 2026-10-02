@@ -55,6 +55,13 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
       ) : null}
       {observation ? (
         <>
+          {observation.salesChannel === "ONLINE" || observation.salesChannel === "PHYSICAL_FLYER" ? (
+            <p className="text-xs text-muted">
+              {observation.salesChannel === "ONLINE"
+                ? "Preço da loja online; pode diferir do preço na loja física."
+                : "Oferta de encarte da loja física."}
+            </p>
+          ) : null}
           <p className="flex items-center gap-2 text-xs text-muted">
             <Clock3 className="size-3.5" aria-hidden />
             Coletado em {formatDate(observation.collectedAt)}
@@ -72,6 +79,10 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
               {observation.originType === "USER_CONTRIBUTION"
                 ? "Preço enviado pela comunidade."
                 : "Preço obtido de uma fonte pública da loja."}
+            </p>
+            <p className="mt-2">
+              A coleta indica quando consultamos a fonte. A data de alteração do
+              preço pela loja não foi informada.
             </p>
             {observation.sourceProductReference ? (
               <p className="mt-2 break-all">

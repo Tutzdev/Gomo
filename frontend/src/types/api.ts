@@ -90,6 +90,7 @@ export interface Store {
 export interface PriceRecord {
   sourceProductReference: string | null;
   sourceProductName: string | null;
+  salesChannel: "ONLINE" | "PHYSICAL_FLYER" | "UNSPECIFIED";
   id: string;
   productId: string;
   storeId: string;
@@ -167,6 +168,39 @@ export interface ShoppingListItem {
   productId: string;
   productName: string;
   quantity: number;
+  catalogItemId: string | null;
+  imageUrl: string | null;
+}
+
+/** A real-world product ("Coca-Cola 2 L") grouped across every store that sells it. */
+export interface CatalogItem {
+  id: string;
+  name: string;
+  brand: string | null;
+  sizeLabel: string;
+  category: string | null;
+  imageUrl: string | null;
+  productId: string;
+  storeCount: number;
+  pricedStores: number;
+  lowestPrice: number | null;
+  highestPrice: number | null;
+  lowestPriceStore: string | null;
+  pricesCollectedAt: string | null;
+}
+
+export interface CatalogItemDetail {
+  item: CatalogItem;
+  offers: {
+    storeId: string;
+    storeName: string;
+    productId: string | null;
+    storeProductName: string | null;
+    originUrl: string | null;
+    price: PriceQuote;
+  }[];
+  /** Stores in the comparison without a current price for this item. */
+  storesWithoutPrice: number;
 }
 
 export interface ShoppingList extends ShoppingListSummary {

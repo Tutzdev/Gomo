@@ -3,6 +3,8 @@ import type {
   AdminAudit,
   AlertNotification,
   AuthResponse,
+  CatalogItem,
+  CatalogItemDetail,
   City,
   PageResponse,
   PriceAlert,
@@ -79,6 +81,19 @@ export const authApi = {
 };
 
 export const catalogApi = {
+  catalogItems: (
+    filters: { query?: string; cityId?: string; storeIds?: string[]; page?: number; size?: number },
+    signal?: AbortSignal,
+  ) =>
+    apiRequest<PageResponse<CatalogItem>>(
+      `/catalog/items?${queryString({ ...filters, storeIds: filters.storeIds?.join(",") })}`,
+      { authenticated: false, signal },
+    ),
+  catalogItem: (id: string, cityId?: string, storeIds?: string[]) =>
+    apiRequest<CatalogItemDetail>(
+      `/catalog/items/${id}?${queryString({ cityId, storeIds: storeIds?.join(",") })}`,
+      { authenticated: false },
+    ),
   discoverProducts: (filters: ProductFilters & { cityId?: string; storeIds?: string[] } = {}, signal?: AbortSignal) =>
     apiRequest<PageResponse<ProductDiscoveryResult>>(
       `/products/discovery?${queryString({ ...filters, storeIds: filters.storeIds?.join(",") })}`,
@@ -238,7 +253,10 @@ export const shoppingListApi = {
     }),
   remove: (id: string) =>
     apiRequest<void>(`/shopping-lists/${id}`, { method: "DELETE" }),
-  addItem: (id: string, input: { productId: string; quantity: number }) =>
+  addItem: (
+    id: string,
+    input: { productId?: string; catalogItemId?: string; quantity: number },
+  ) =>
     apiRequest<ShoppingListItem>(`/shopping-lists/${id}/items`, {
       method: "POST",
       body: input,

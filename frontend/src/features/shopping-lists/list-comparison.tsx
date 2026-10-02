@@ -23,7 +23,7 @@ export function ListComparison({
   const scrolledToResults = useRef(false);
   const comparison = useQuery({
     queryKey: ["shopping-list-comparison", id, cityId, storeIds, page],
-    queryFn: () => shoppingListApi.compare(id, cityId, page, 10, storeIds),
+    queryFn: () => shoppingListApi.compare(id, cityId, page, 50, storeIds),
   });
   const recommendation = useQuery({
     queryKey: ["shopping-list-recommendation", id, cityId, storeIds],
@@ -60,6 +60,15 @@ export function ListComparison({
     closestMatches,
     combination,
   } = recommendation.data;
+  // Stores with no current price for any item add nothing to a real comparison.
+  const comparedStores = comparison.data.stores.content
+    .filter((store) => store.pricedItems > 0)
+    .sort(
+      (a, b) =>
+        b.pricedItems - a.pricedItems ||
+        (a.subtotalKnown ?? Number.POSITIVE_INFINITY) -
+          (b.subtotalKnown ?? Number.POSITIVE_INFINITY),
+    );
   const bestTotals = new Map(
     combination.stores.flatMap((store) =>
       store.items.flatMap((item) =>
@@ -77,7 +86,7 @@ export function ListComparison({
       aria-busy={comparison.isFetching || recommendation.isFetching}
     >
       <p className="text-sm text-muted">
-        {recommendation.data.evaluatedStores} mercado(s) avaliado(s) ·{" "}
+        {comparedStores.length} mercado(s) com preços atuais ·{" "}
         {formatDate(recommendation.data.comparedAt)}
       </p>
       <div className="grid gap-5 lg:grid-cols-2">
@@ -212,13 +221,13 @@ export function ListComparison({
         A economia por item considera a quantidade da lista e o menor preço
         encontrado entre os mercados.
       </p>
-      {!comparison.data.stores.content.length ? (
+      {!comparedStores.length ? (
         <EmptyState
-          title="Nenhum mercado nesta cidade"
-          description="Escolha outra cidade para consultar lojas cadastradas."
+          title="Nenhum mercado com preço atual para estes itens"
+          description="Os preços são atualizados várias vezes ao dia. Volte em alguns minutos."
         />
       ) : (
-        comparison.data.stores.content.map((store) => (
+        comparedStores.map((store) => (
           <section key={store.storeId} className="surface overflow-hidden">
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border p-5">
               <div>
@@ -229,15 +238,19 @@ export function ListComparison({
                   </p>
                 ) : null}
                 <p className="mt-2 text-sm text-muted">
-                  {store.pricedItems} de {store.requestedItems} itens ·
-                  cobertura{" "}
-                  {store.requestedItems
-                    ? Math.round(
-                        (store.pricedItems / store.requestedItems) * 100,
-                      )
-                    : 0}
-                  % · {store.missingItems} faltante(s)
+                  {store.completeShoppingList
+                    ? `Tem os ${store.requestedItems} itens da lista`
+                    : `Tem ${store.pricedItems} de ${store.requestedItems} itens`}
                 </p>
+                {!store.completeShoppingList ? (
+                  <p className="mt-1 text-xs text-muted">
+                    Sem preço atual aqui:{" "}
+                    {store.items
+                      .filter((item) => item.price.unitPrice === null)
+                      .map((item) => item.productName)
+                      .join(", ")}
+                  </p>
+                ) : null}
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted">
@@ -256,11 +269,13 @@ export function ListComparison({
           </section>
         ))
       )}
-      <Pagination
-        page={page}
-        totalPages={comparison.data.stores.totalPages}
-        onChange={setPage}
-      />
+      {comparison.data.stores.totalPages > 1 ? (
+        <Pagination
+          page={page}
+          totalPages={comparison.data.stores.totalPages}
+          onChange={setPage}
+        />
+      ) : null}
     </div>
   );
 }

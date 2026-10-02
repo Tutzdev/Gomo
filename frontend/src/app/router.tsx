@@ -65,6 +65,12 @@ export const router = createBrowserRouter([
         })),
       },
       {
+        path: "comparar/:id",
+        lazy: () => import("@/routes/app/comparison-page").then(({ ComparisonPage }) => ({
+          Component: ComparisonPage,
+        })),
+      },
+      {
         path: "produtos",
         lazy: () => import("@/routes/app/products-page").then(({ ProductsPage }) => ({ Component: ProductsPage })),
       },

@@ -12,20 +12,24 @@ import { SelectField, TextField } from "@/components/ui/form-field";
 import { NativeButton } from "@/components/ui/native-button";
 import { PageHeading } from "@/components/page/page-elements";
 import { ComparisonStoreFilter } from "@/features/catalog/comparison-store-filter";
-import { ProductPicker } from "@/features/catalog/product-picker";
+import {
+  CatalogItemPicker,
+  CatalogItemThumbnail,
+} from "@/features/catalog/catalog-item-picker";
 import { ListComparison } from "@/features/shopping-lists/list-comparison";
 import { formatDate } from "@/lib/brand";
-import {
-  catalogApi,
-  preferenceApi,
-  shoppingListApi,
-} from "@/services/gomo-api";
-import type { ShoppingList, ShoppingListItem } from "@/types/api";
+import { catalogApi, shoppingListApi } from "@/services/gomo-api";
+import type {
+  CatalogItem,
+  ShoppingList,
+  ShoppingListItem,
+} from "@/types/api";
+import { useDefaultCityId } from "@/lib/use-default-city";
 
 export function ShoppingListDetailPage() {
   const { id = "" } = useParams();
   const queryClient = useQueryClient();
-  const [productId, setProductId] = useState("");
+  const [catalogItem, setCatalogItem] = useState<CatalogItem | null>(null);
   const [quantity, setQuantity] = useState("1");
   const [storeIds, setStoreIds] = useState<string[]>([]);
   const [comparedStoreIds, setComparedStoreIds] = useState<string[]>([]);
@@ -42,15 +46,8 @@ export function ShoppingListDetailPage() {
     queryKey: ["cities", "list-compare"],
     queryFn: () => catalogApi.cities(),
   });
-  const preferences = useQuery({
-    queryKey: ["preferences"],
-    queryFn: preferenceApi.get,
-  });
-  const selectedCity =
-    cityId ||
-    preferences.data?.preferredCityId ||
-    cities.data?.content[0]?.id ||
-    "";
+  const defaultCityId = useDefaultCityId();
+  const selectedCity = cityId || defaultCityId;
   const invalidate = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["shopping-list", id] }),
@@ -65,10 +62,13 @@ export function ShoppingListDetailPage() {
   };
   const addItem = useMutation({
     mutationFn: () =>
-      shoppingListApi.addItem(id, { productId, quantity: Number(quantity) }),
+      shoppingListApi.addItem(id, {
+        catalogItemId: catalogItem?.id,
+        quantity: Number(quantity),
+      }),
     onSuccess: async (item) => {
       setAddedName(item.productName);
-      setProductId("");
+      setCatalogItem(null);
       setQuantity("1");
       await invalidate();
     },
@@ -115,16 +115,18 @@ export function ShoppingListDetailPage() {
               className="mt-4 space-y-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (productId && Number(quantity) > 0) addItem.mutate();
+                if (catalogItem && Number(quantity) > 0) addItem.mutate();
               }}
             >
-              <ProductPicker
+              <CatalogItemPicker
+                id="list-product"
                 cityId={selectedCity}
                 storeIds={storeIds}
-                id="list-product"
-                value={productId}
-                onChange={setProductId}
-                excludedIds={list.data.items.map((item) => item.productId)}
+                value={catalogItem}
+                onChange={setCatalogItem}
+                excludedIds={list.data.items.flatMap((item) =>
+                  item.catalogItemId ? [item.catalogItemId] : [],
+                )}
               />
               <div className="flex items-end gap-3">
                 <TextField
@@ -141,7 +143,7 @@ export function ShoppingListDetailPage() {
                 <NativeButton
                   type="submit"
                   loading={addItem.isPending}
-                  disabled={!productId}
+                  disabled={!catalogItem}
                 >
                   <Plus className="size-4" aria-hidden />
                   Adicionar
@@ -157,7 +159,7 @@ export function ShoppingListDetailPage() {
             <div className="p-5">
               <EmptyState
                 title="Lista vazia"
-                description="Busque produtos de qualquer parte do catálogo para começar."
+                description="Busque pelo nome do produto, como “coca cola 2 litros”. Comparamos o mesmo item em todos os mercados."
               />
             </div>
           ) : (
@@ -275,12 +277,19 @@ function ListItemRow({
   });
   return (
     <li className="p-5">
-      <Link
-        to={`/app/produtos/${item.productId}`}
-        className="font-semibold hover:text-primary"
-      >
-        {item.productName}
-      </Link>
+      <div className="flex items-center gap-3">
+        <CatalogItemThumbnail imageUrl={item.imageUrl} size="sm" />
+        <Link
+          to={
+            item.catalogItemId
+              ? `/app/comparar/${item.catalogItemId}`
+              : `/app/produtos/${item.productId}`
+          }
+          className="min-w-0 font-semibold hover:text-primary"
+        >
+          {item.productName}
+        </Link>
+      </div>
       <form
         className="mt-3 flex flex-wrap items-end gap-3"
         onSubmit={(event) => {

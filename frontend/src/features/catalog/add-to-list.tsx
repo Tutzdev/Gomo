@@ -12,9 +12,19 @@ import { SelectField, TextField } from "@/components/ui/form-field";
 import { NativeButton } from "@/components/ui/native-button";
 import { Sheet } from "@/components/ui/sheet";
 import { shoppingListApi } from "@/services/gomo-api";
-import type { Product } from "@/types/api";
+import type { CatalogItem, Product } from "@/types/api";
 
-export function AddToList({ product }: { product: Product }) {
+/** Adds a generic catalog item, or a specific product when the screen is about one store's listing. */
+export function AddToList({
+  product,
+  catalogItem,
+}: {
+  product?: Product;
+  catalogItem?: CatalogItem;
+}) {
+  const target = catalogItem
+    ? { id: catalogItem.id, name: catalogItem.name }
+    : { id: product?.id ?? "", name: product?.name ?? "" };
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [listId, setListId] = useState("");
@@ -27,7 +37,12 @@ export function AddToList({ product }: { product: Product }) {
   });
   const add = useMutation({
     mutationFn: () =>
-      shoppingListApi.addItem(listId, { productId: product.id, quantity }),
+      shoppingListApi.addItem(
+        listId,
+        catalogItem
+          ? { catalogItemId: catalogItem.id, quantity }
+          : { productId: product?.id, quantity },
+      ),
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ["shopping-list", listId] }),
@@ -58,7 +73,7 @@ export function AddToList({ product }: { product: Product }) {
         open={open}
         onOpenChange={setOpen}
         title="Adicionar à lista"
-        description={product.name}
+        description={target.name}
       >
         {lists.isPending ? (
           <LoadingState label="Carregando suas listas…" />
@@ -84,7 +99,7 @@ export function AddToList({ product }: { product: Product }) {
             }}
           >
             <SelectField
-              id={`add-list-${product.id}`}
+              id={`add-list-${target.id}`}
               label="Sua lista"
               value={listId}
               onChange={(event) => {
@@ -111,7 +126,7 @@ export function AddToList({ product }: { product: Product }) {
               />
             ) : null}
             <TextField
-              id={`add-quantity-${product.id}`}
+              id={`add-quantity-${target.id}`}
               label="Quantidade"
               type="number"
               min={1}

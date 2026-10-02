@@ -7,6 +7,7 @@ import { catalogApi } from "@/services/gomo-api";
 import { ComparisonStoreFilter } from "./comparison-store-filter";
 import { PossibleProductMatches } from "./possible-product-matches";
 import { StoreOffers } from "./store-offers";
+import { useDefaultCityId } from "@/lib/use-default-city";
 
 export function ProductOffersPanel({ productId }: { productId: string }) {
   const [params] = useSearchParams();
@@ -20,10 +21,8 @@ export function ProductOffersPanel({ productId }: { productId: string }) {
     queryKey: ["cities", "product-offers"],
     queryFn: () => catalogApi.cities(),
   });
-  const cityId =
-    selectedCity ||
-    cities.data?.content.find((city) => city.name === "Volta Redonda")?.id ||
-    "";
+  const defaultCityId = useDefaultCityId();
+  const cityId = selectedCity || defaultCityId;
   const comparison = useQuery({
     queryKey: ["comparison", productId, cityId, storeIds],
     queryFn: () =>

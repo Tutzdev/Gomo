@@ -1,13 +1,5 @@
-import { Link } from "react-router-dom";
 import { formatCurrency, formatDate } from "@/lib/brand";
 import type { ShoppingComparisonItem } from "@/types/api";
-
-const statusLabels = {
-  KNOWN: "Preço atual",
-  EXPIRED: "Preço desatualizado",
-  OUT_OF_STOCK: "Indisponível",
-  NO_OBSERVATION: "Sem preço nesta loja",
-};
 
 export function ComparisonItems({
   items,
@@ -16,12 +8,14 @@ export function ComparisonItems({
   items: ShoppingComparisonItem[];
   bestTotals?: Map<string, number>;
 }) {
+  // Only real, current prices are compared; items this store lacks are named once by the caller.
+  const priced = items.filter((item) => item.price.unitPrice !== null);
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-border text-muted">
-            <th className="p-3 font-medium">Produto e situação</th>
+            <th className="p-3 font-medium">Produto</th>
             <th className="p-3 text-right font-medium">Qtd.</th>
             <th className="p-3 text-right font-medium">Unitário</th>
             <th className="p-3 text-right font-medium">Subtotal</th>
@@ -31,7 +25,7 @@ export function ComparisonItems({
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
+          {priced.map((item) => (
             <tr
               key={item.productId}
               className="border-b border-border last:border-0"
@@ -44,26 +38,19 @@ export function ComparisonItems({
                     Nesta loja: {item.price.observation?.sourceProductName ?? item.matchedProduct?.name}
                   </p>
                 ) : null}
-                {item.hasPossibleMatches ? (
-                  <Link
-                    className="mt-1 inline-block text-xs text-primary underline"
-                    to={`/app/produtos/${item.productId}`}
-                  >
-                    Conferir cadastros com variante ou embalagem não confirmada
-                  </Link>
+                {item.price.promotionApplied ? (
+                  <p className="mt-1 text-xs font-semibold text-success">Em promoção</p>
                 ) : null}
-                <p className="mt-1 text-xs text-muted">
-                  {statusLabels[item.price.status]}
-                  {item.price.status === "KNOWN" &&
-                  item.price.availability === "UNKNOWN"
-                    ? " · estoque não informado"
-                    : ""}
-                </p>
                 {item.price.observation ? (
                   <details className="mt-1 text-xs text-muted">
                     <summary className="cursor-pointer">
                       Coleta: {formatDate(item.price.observation.collectedAt)}
                     </summary>
+                    {item.price.observation.salesChannel === "ONLINE" ? (
+                      <p className="mt-1">Preço da loja online; pode diferir da loja física.</p>
+                    ) : item.price.observation.salesChannel === "PHYSICAL_FLYER" ? (
+                      <p className="mt-1">Oferta de encarte da loja física.</p>
+                    ) : null}
                     {item.price.observation.sourceProductReference ? (
                       <p className="mt-1 break-all">
                         Código na fonte:{" "}
