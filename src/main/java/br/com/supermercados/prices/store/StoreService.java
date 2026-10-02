@@ -37,7 +37,7 @@ public class StoreService {
             return withPriceUpdates(storeRepository.findByActiveTrue(pageable));
         }
         locationService.requireCity(cityId);
-        return withPriceUpdates(storeRepository.findByCityIdAndActiveTrue(cityId, pageable));
+        return withPriceUpdates(storeRepository.findPricedActiveStores(cityId, pageable));
     }
 
     public StoreResponse findStore(UUID storeId) {
@@ -60,7 +60,7 @@ public class StoreService {
     public List<StoreResponse> findAllActiveStores(UUID cityId, int maximumStores) {
         locationService.requireCity(cityId);
         PageRequest request = PageRequest.of(0, maximumStores, Sort.by("name", "id"));
-        Page<Store> page = storeRepository.findByCityIdAndActiveTrue(cityId, request);
+        Page<Store> page = storeRepository.findPricedActiveStores(cityId, request);
         if (page.getTotalElements() > maximumStores) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT,
                     "A cidade possui mais lojas elegíveis que o limite seguro para uma recomendação completa.");

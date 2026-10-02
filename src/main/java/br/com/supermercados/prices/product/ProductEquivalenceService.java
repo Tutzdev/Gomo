@@ -2,6 +2,9 @@ package br.com.supermercados.prices.product;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,9 +12,11 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.com.supermercados.prices.catalog.CatalogItemRepository;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -21,6 +26,12 @@ public class ProductEquivalenceService {
 
     private final ProductRepository products;
     private final ProductComparisonEvidence evidence;
+    private CatalogItemRepository catalog;
+
+    @Autowired(required = false)
+    void setCatalog(CatalogItemRepository catalog) {
+        this.catalog = catalog;
+    }
 
     public Map<UUID, Matches> find(Collection<UUID> requestedIds) {
         return find(requestedIds, true);
@@ -86,7 +97,30 @@ public class ProductEquivalenceService {
             }
             matches.put(selected.getId(), new Matches(List.copyOf(confirmed), List.copyOf(possible), identity.confirmed()));
         }
-        return matches;
+        return withCatalogLinks(matches);
+    }
+
+    /** SKUs grouped under the same generic catalog item are confirmed equivalents of each other. */
+    private Map<UUID, Matches> withCatalogLinks(Map<UUID, Matches> matches) {
+        if (catalog == null || matches.isEmpty()) return matches;
+        Map<UUID, Set<UUID>> linked = new HashMap<>();
+        for (Object[] row : catalog.findEquivalentProductIds(matches.keySet())) {
+            linked.computeIfAbsent(UUID.fromString((String) row[0]), ignored -> new LinkedHashSet<>())
+                    .add(UUID.fromString((String) row[1]));
+        }
+        if (linked.isEmpty()) return matches;
+        Map<UUID, Product> members = products.findAllById(linked.values().stream().flatMap(Set::stream).distinct().toList())
+                .stream().collect(Collectors.toMap(Product::getId, product -> product));
+        Map<UUID, Matches> merged = new LinkedHashMap<>(matches);
+        linked.forEach((requestedId, ids) -> {
+            Matches current = matches.get(requestedId);
+            Map<UUID, Product> confirmed = new LinkedHashMap<>();
+            current.confirmed().forEach(product -> confirmed.put(product.getId(), product));
+            ids.stream().map(members::get).filter(Objects::nonNull).forEach(product -> confirmed.putIfAbsent(product.getId(), product));
+            List<Product> possible = current.possible().stream().filter(product -> !confirmed.containsKey(product.getId())).toList();
+            merged.put(requestedId, new Matches(List.copyOf(confirmed.values()), possible, true));
+        });
+        return merged;
     }
 
     private String familyKey(Product product) {

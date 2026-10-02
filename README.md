@@ -59,6 +59,8 @@ O checkout e o paywall visual não simulam pagamento. Enquanto a integração de
 * Controle de acesso para administradores
 * Auditoria de operações administrativas
 
+A busca, as listas e as comparações usam o catálogo genérico: um item por produto real ("Coca-Cola 2 L"), vinculado aos anúncios equivalentes de cada mercado. Veja [`docs/generic-catalog.md`](docs/generic-catalog.md).
+
 As fontes comerciais atualmente verificadas, suas limitações e a operação dos coletores estão descritas em [`docs/data-sources.md`](docs/data-sources.md).
 
 O MVP coleta os departamentos públicos de Nagumo Ponte Alta e Royal Retiro, com vínculos explícitos entre produtos revisados. A busca da lista percorre todo o catálogo por páginas; cada mercado possui seu catálogo com preços e datas. A comparação mostra cobertura, faltantes, total completo ou subtotal parcial e a menor combinação por item. O roteiro inicial está em [`docs/mvp-data-check.md`](docs/mvp-data-check.md), e a ampliação com validação de 20 produtos em [`docs/catalog-list-validation.md`](docs/catalog-list-validation.md). Se a porta 8080 estiver ocupada por outro serviço, use `PORT=8081` no backend e `VITE_API_BASE_URL=http://localhost:8081/api/v1` em `frontend/.env.local`.

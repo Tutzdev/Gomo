@@ -39,7 +39,9 @@ class ShoppingListServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ShoppingListService(lists, items, products, Clock.fixed(now, ZoneOffset.UTC));
+        service = new ShoppingListService(lists, items, products,
+                org.mockito.Mockito.mock(br.com.supermercados.prices.catalog.CatalogItemRepository.class),
+                Clock.fixed(now, ZoneOffset.UTC));
     }
 
     @Test

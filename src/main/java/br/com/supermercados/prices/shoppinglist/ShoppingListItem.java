@@ -25,13 +25,22 @@ public class ShoppingListItem {
     @Column(nullable = false, updatable = false)
     private UUID productId;
 
+    /** Generic product chosen by the shopper; null for items added by a specific retailer SKU. */
+    @Column(updatable = false)
+    private UUID catalogItemId;
+
     @Column(nullable = false, precision = 12, scale = 3)
     private BigDecimal quantity;
 
     ShoppingListItem(UUID shoppingListId, UUID productId, BigDecimal quantity) {
+        this(shoppingListId, productId, null, quantity);
+    }
+
+    ShoppingListItem(UUID shoppingListId, UUID productId, UUID catalogItemId, BigDecimal quantity) {
         this.id = UUID.randomUUID();
         this.shoppingListId = shoppingListId;
         this.productId = productId;
+        this.catalogItemId = catalogItemId;
         this.quantity = quantity;
     }
 

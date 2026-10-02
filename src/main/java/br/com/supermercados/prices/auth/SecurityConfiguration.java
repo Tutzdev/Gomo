@@ -60,6 +60,7 @@ public class SecurityConfiguration {
                                 "/api/v1/chains", "/api/v1/chains/**",
                                 "/api/v1/stores", "/api/v1/stores/**",
                                 "/api/v1/products", "/api/v1/products/**",
+                                "/api/v1/catalog/items", "/api/v1/catalog/items/**",
                                 "/api/v1/prices", "/api/v1/prices/**",
                                 "/api/v1/comparisons/products", "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())

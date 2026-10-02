@@ -1,5 +1,6 @@
 package br.com.supermercados.prices.shoppinglist;
 
+import br.com.supermercados.prices.catalog.CatalogItemRepository;
 import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.product.ProductService;
 import java.time.Clock;
@@ -18,13 +19,15 @@ public class ShoppingListService {
     private final ShoppingListRepository lists;
     private final ShoppingListItemRepository items;
     private final ProductService products;
+    private final CatalogItemRepository catalog;
     private final Clock clock;
 
     public ShoppingListService(ShoppingListRepository lists, ShoppingListItemRepository items,
-            ProductService products, Clock clock) {
+            ProductService products, CatalogItemRepository catalog, Clock clock) {
         this.lists = lists;
         this.items = items;
         this.products = products;
+        this.catalog = catalog;
         this.clock = clock;
     }
 
@@ -60,18 +63,31 @@ public class ShoppingListService {
     @Transactional
     public ShoppingListItemResponse addItem(UUID userId, UUID listId, AddItemRequest request) {
         var list = lockOwnedList(userId, listId);
-        var product = products.requireProduct(request.productId());
+        // A specific SKU that belongs to a generic item is stored as that item, so the list reads "Coca-Cola 2 L".
+        var catalogItem = request.catalogItemId() == null
+                ? catalog.findActiveByProductId(request.productId()).orElse(null)
+                : catalog.findById(request.catalogItemId()).filter(found -> found.isActive())
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Produto não encontrado."));
+        // A generic item is compared through every equivalent SKU; its representative anchors the list row.
+        var product = products.requireProduct(catalogItem == null
+                ? request.productId() : catalogItem.getRepresentativeProductId());
 
-        if (items.existsByShoppingListIdAndProductId(listId, product.getId())) {
+        if (items.existsByShoppingListIdAndProductId(listId, product.getId()) || catalogItem != null
+                && items.existsByShoppingListIdAndCatalogItemId(listId, catalogItem.getId())) {
             throw new ApiException(HttpStatus.CONFLICT, "Produto já está na lista; altere sua quantidade.");
         }
         if (items.countByShoppingListId(listId) >= MAX_ITEMS) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Uma lista pode conter até 200 produtos.");
         }
-        var item = items.save(new ShoppingListItem(listId, product.getId(), request.quantity()));
+        var item = items.save(new ShoppingListItem(listId, product.getId(),
+                catalogItem == null ? null : catalogItem.getId(), request.quantity()));
         list.touch(clock.instant());
 
-        return new ShoppingListItemResponse(item.getId(), product.getId(), product.getName(), item.getQuantity());
+        return catalogItem == null
+                ? new ShoppingListItemResponse(item.getId(), product.getId(), product.getName(), item.getQuantity(),
+                        null, product.getImageUrl())
+                : new ShoppingListItemResponse(item.getId(), product.getId(), catalogItem.getDisplayName(),
+                        item.getQuantity(), catalogItem.getId(), catalogItem.getImageUrl());
     }
 
     @Transactional
@@ -83,8 +99,11 @@ public class ShoppingListService {
         list.touch(clock.instant());
 
         var product = products.requireProduct(item.getProductId());
+        var catalogItem = item.getCatalogItemId() == null ? null : catalog.findById(item.getCatalogItemId()).orElse(null);
 
-        return new ShoppingListItemResponse(item.getId(), product.getId(), product.getName(), item.getQuantity());
+        return new ShoppingListItemResponse(item.getId(), product.getId(),
+                catalogItem == null ? product.getName() : catalogItem.getDisplayName(), item.getQuantity(),
+                item.getCatalogItemId(), catalogItem == null ? product.getImageUrl() : catalogItem.getImageUrl());
     }
 
     @Transactional

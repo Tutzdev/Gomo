@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.com.supermercados.prices.catalog.CatalogItem;
+import br.com.supermercados.prices.catalog.CatalogItemRepository;
 import br.com.supermercados.prices.common.ApiException;
 import lombok.RequiredArgsConstructor;
 
@@ -19,6 +21,7 @@ public class ProductService {
     private final ProductRepository repository;
     private final ProductSearchRepository searchRepository;
     private final ProductComparisonEvidence evidence;
+    private final CatalogItemRepository catalog;
 
     public Page<ProductResponse> search(ProductSearch search, Pageable pageable) {
         return searchRepository.search(search, pageable);
@@ -33,8 +36,10 @@ public class ProductService {
         return ProductResponse.from(product, comparisonName(product));
     }
 
+    /** The generic catalog name ("Coca-Cola 2 L") when the SKU belongs to one, else a cleaned retailer name. */
     public String comparisonName(Product product) {
-        return evidence.displayName(product);
+        return catalog.findActiveByProductId(product.getId()).map(CatalogItem::getDisplayName)
+                .orElseGet(() -> evidence.displayName(product));
     }
 
     public Page<ProductResponse> searchInStore(UUID storeId, ProductSearch search, Pageable pageable) {
