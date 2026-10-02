@@ -28,9 +28,9 @@ class SubscriptionProvisioningRunnerTest {
 
     @Test
     void configuredAccountReceivesSubscriberAccess() throws Exception {
-        User user = new User("Arthur Amaral", "arthurasw05@gmail.com", "not-used-by-test", NOW.minusSeconds(60));
-        when(users.findByEmail("arthurasw05@gmail.com")).thenReturn(Optional.of(user));
-        var runner = new SubscriptionProvisioningRunner(users, CLOCK, " ARTHURASW05@GMAIL.COM ");
+        User user = new User("Synthetic Subscriber", "subscriber@example.test", "not-used-by-test", NOW.minusSeconds(60));
+        when(users.findByEmail("subscriber@example.test")).thenReturn(Optional.of(user));
+        var runner = new SubscriptionProvisioningRunner(users, CLOCK, " SUBSCRIBER@EXAMPLE.TEST ");
 
         runner.run(new DefaultApplicationArguments());
 
@@ -49,8 +49,8 @@ class SubscriptionProvisioningRunnerTest {
 
     @Test
     void missingConfiguredAccountPreventsSilentProvisioningFailure() {
-        when(users.findByEmail("arthurasw05@gmail.com")).thenReturn(Optional.empty());
-        var runner = new SubscriptionProvisioningRunner(users, CLOCK, "arthurasw05@gmail.com");
+        when(users.findByEmail("subscriber@example.test")).thenReturn(Optional.empty());
+        var runner = new SubscriptionProvisioningRunner(users, CLOCK, "subscriber@example.test");
 
         assertThatThrownBy(() -> runner.run(new DefaultApplicationArguments()))
                 .isInstanceOf(IllegalStateException.class)

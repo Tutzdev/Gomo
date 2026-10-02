@@ -81,3 +81,25 @@ Desktop.ini
 .playwright-cli/
 
 /output/playwright/
+
+### AI assistants and agent tooling (local only, never published) ###
+AGENTS*.md
+CLAUDE.md
+CLAUDE.local.md
+GEMINI.md
+.claude/
+.codex/
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.aider*
+.continue/
+.github/copilot-instructions.md
+.github/modernize/
+.playwright-mcp/
+
+### Local outputs ###
+/output/
+*.tmp
+npm-debug.log*
