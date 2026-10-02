@@ -18,15 +18,15 @@ class ReviewedAtacadaoFlyerCollectorTest {
     void importsOnlyReviewedOffersForBothExplicitlyCoveredStoresWithoutRefreshingTheReviewDate() {
         var configuration = new ReviewedFlyerConfiguration();
         var mapper = JsonMapper.builder().findAndAddModules().build();
-        var clock = Clock.fixed(Instant.parse("2026-09-19T12:00:00Z"), ZoneOffset.UTC);
+        var clock = Clock.fixed(Instant.parse("2026-09-20T23:30:00Z"), ZoneOffset.UTC);
 
         var first = configuration.atacadaoSaoGeraldo(mapper, clock).collect();
         var second = configuration.atacadaoVilaRica(mapper, clock).collect();
 
-        assertThat(first.products()).hasSize(45).containsExactlyElementsOf(second.products());
+        assertThat(first.products()).hasSize(96).containsExactlyElementsOf(second.products());
         assertThat(first.store().address()).contains("1085");
         assertThat(second.store().address()).contains("Avenida Dois, 10");
-        assertThat(first.collectedAt()).isEqualTo(Instant.parse("2026-09-19T00:20:00Z"));
+        assertThat(first.collectedAt()).isEqualTo(Instant.parse("2026-09-20T23:00:50.829142Z"));
         assertThat(first.products()).allSatisfy(product -> {
             assertThat(product.availability()).isEqualTo(StockAvailability.UNKNOWN);
             assertThat(product.gtin()).isNull();

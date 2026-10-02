@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import br.com.supermercados.prices.collection.CatalogCheckpoint;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ class NagumoClient {
         validateProperties();
     }
 
-    List<NagumoCatalogResponse> fetch() {
+    List<NagumoCatalogResponse> fetch(CatalogCheckpoint checkpoint, List<String> warnings) {
         CookieManager cookies = new CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER);
         HttpClient httpClient = HttpClient.newBuilder()
                 .cookieHandler(cookies)
@@ -63,9 +64,16 @@ class NagumoClient {
         categories.addAll(properties.getAdditionalCategoryIds());
         List<NagumoCatalogResponse> catalogs = new ArrayList<>();
         for (String category : categories.stream().distinct().toList()) {
-            catalogs.add(fetchCatalog(session, store, category));
+            try {
+                catalogs.add(checkpoint.category(category, NagumoCatalogResponse.class,
+                        () -> fetchCatalog(session, store, category)));
+            } catch (RuntimeException exception) {
+                warnings.add("Categoria Nagumo " + category + " incompleta: " + exception.getMessage());
+            }
         }
         requireExpectedStore(session.get(resolve(STORES_PATH), true), true);
+        if (catalogs.isEmpty()) throw new IllegalStateException("Nenhuma categoria Nagumo foi coletada: " + String.join("; ", warnings));
+        if (warnings.isEmpty()) checkpoint.complete();
         return List.copyOf(catalogs);
     }
 
@@ -187,8 +195,8 @@ class NagumoClient {
                 || "https".equalsIgnoreCase(baseUrl.getScheme()))) {
             throw new IllegalArgumentException("URL base da Nagumo inválida");
         }
-        if (properties.getPageSize() < 1 || properties.getPageSize() > 100) {
-            throw new IllegalArgumentException("Tamanho de página da Nagumo deve estar entre 1 e 100");
+        if (properties.getPageSize() < 1 || properties.getPageSize() > 250) {
+            throw new IllegalArgumentException("Tamanho de página da Nagumo deve estar entre 1 e 250");
         }
         if (properties.getMaxAttempts() < 1 || properties.getMaxAttempts() > 3) {
             throw new IllegalArgumentException("Quantidade de tentativas da Nagumo deve estar entre 1 e 3");
@@ -223,7 +231,7 @@ class NagumoClient {
         private JsonNode get(URI uri, boolean jsonExpected) {
             RuntimeException lastFailure = null;
             for (int attempt = 1; attempt <= properties.getMaxAttempts(); attempt++) {
-                waitBeforeRequest();
+                waitBeforeRequest(attempt);
                 try {
                     HttpRequest request = HttpRequest.newBuilder(uri)
                             .timeout(properties.getRequestTimeout())
@@ -277,13 +285,13 @@ class NagumoClient {
             }
         }
 
-        private void waitBeforeRequest() {
+        private void waitBeforeRequest(int attempt) {
             if (!requested) {
                 requested = true;
                 return;
             }
             try {
-                Thread.sleep(delay.toMillis());
+                Thread.sleep(delay.toMillis() * attempt);
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("Coleta da Nagumo interrompida", exception);

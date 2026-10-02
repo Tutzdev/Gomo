@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import br.com.supermercados.prices.collection.CollectedCatalog;
+import br.com.supermercados.prices.collection.CatalogCheckpoint;
 import br.com.supermercados.prices.collection.CollectedStore;
 import br.com.supermercados.prices.collection.CollectorMetadata;
 import br.com.supermercados.prices.collection.PublicCatalogHttp;
@@ -81,10 +82,18 @@ public final class VipStoreCollector implements SupermarketCollector {
         JsonNode departments = get(http, headers, catalogPath + "/classificacoes_mercadologicas/departamentos/arvore").path("data");
         if (!departments.isArray() || departments.isEmpty()) throw new IllegalStateException("Fonte sem departamentos");
         List<JsonNode> entries = new ArrayList<>();
+        List<String> failures = new ArrayList<>();
+        CatalogCheckpoint checkpoint = new CatalogCheckpoint(definition.code(), clock, mapper);
         for (JsonNode department : departments) {
             int id = department.path("classificacao_mercadologica_id").asInt(-1);
             if (id < 1) throw new IllegalStateException("Departamento sem identidade");
-            entries.addAll(paginate(http, headers, catalogPath + "/classificacoes_mercadologicas/departamentos/" + id + "/produtos"));
+            String path = catalogPath + "/classificacoes_mercadologicas/departamentos/" + id + "/produtos";
+            try {
+                entries.addAll(checkpoint.category(path, CatalogCheckpoint.Entries.class,
+                        () -> new CatalogCheckpoint.Entries(paginate(http, headers, path))).products());
+            } catch (RuntimeException exception) {
+                failures.add("Categoria " + id + " incompleta: " + exception.getMessage());
+            }
         }
         var parsed = parser.parse(entries, "vip:" + definition.organizationId(), definition.chain(), definition.website());
         if (parsed.products().isEmpty()) throw new IllegalStateException("Fonte não retornou produtos válidos");
@@ -94,7 +103,9 @@ public final class VipStoreCollector implements SupermarketCollector {
                         + " - " + address.path("bairro").asString() + " - Volta Redonda/RJ",
                 new BigDecimal(store.path("coordenada_geografica").path("latitude").asString()).setScale(7, RoundingMode.HALF_UP),
                 new BigDecimal(store.path("coordenada_geografica").path("longitude").asString()).setScale(7, RoundingMode.HALF_UP), true);
-        return new CollectedCatalog(collectedStore, parsed.products(), entries.size(), clock.instant(), parsed.warnings());
+        if (failures.isEmpty()) checkpoint.complete();
+        failures.addAll(parsed.warnings());
+        return new CollectedCatalog(collectedStore, parsed.products(), entries.size(), checkpoint.startedAt(), List.copyOf(failures));
     }
 
     private List<JsonNode> paginate(PublicCatalogHttp http, Map<String, String> headers, String path) {

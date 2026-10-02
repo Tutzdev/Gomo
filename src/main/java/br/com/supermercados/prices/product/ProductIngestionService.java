@@ -24,6 +24,27 @@ public class ProductIngestionService {
     private final Clock clock;
     private final VerifiedProductMappings verifiedMappings;
     private final ExactProductMatcher exactMatcher;
+    private final ExistingProductMatcher existingMatcher;
+
+    @Transactional
+    public Optional<ProductIngestionResult> linkExisting(ProductObservation observation) {
+        validator.validate(observation);
+        dataSourceService.verifyObservation(observation.source());
+        String gtin = Gtin.normalize(observation.gtin());
+        var reference = referenceRepository.findBySourceIdAndSourceReference(
+                observation.source().sourceId(), observation.source().sourceReference());
+        if (reference.isPresent()) {
+            return Optional.of(updateReferencedProduct(reference.orElseThrow(), observation, gtin));
+        }
+        var matched = existingMatcher.find(observation, gtin);
+        if (matched.isEmpty()) return Optional.empty();
+        Product product = matched.orElseThrow();
+        validateIdentity(product, gtin);
+        product.assignGtin(gtin);
+        product.enrichMedia(observation);
+        referenceRepository.save(new ProductSourceReference(product.getId(), observation.source()));
+        return Optional.of(new ProductIngestionResult(ProductResponse.from(product), ProductIngestionOutcome.LINKED));
+    }
 
     @Transactional
     public ProductResponse ingest(ProductObservation observation) {

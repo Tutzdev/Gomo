@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import br.com.supermercados.prices.collection.CollectedCatalog;
+import br.com.supermercados.prices.collection.CatalogCheckpoint;
 import br.com.supermercados.prices.collection.CollectedProduct;
 import br.com.supermercados.prices.collection.CollectedStore;
 import br.com.supermercados.prices.collection.CollectorMetadata;
@@ -92,28 +93,44 @@ public class HortifrutiCollector implements SupermarketCollector {
         Map<String, CollectedProduct> products = new LinkedHashMap<>();
         List<String> warnings = new ArrayList<>();
         int found = 0;
+        CatalogCheckpoint checkpoint = new CatalogCheckpoint(metadata().code(), clock, mapper);
+        boolean complete = true;
         // Public category pages provide the actual facets; the API refuses offsets above 2500.
         for (String path : List.of("/hortifruti-variedades", "/nossos-organicos", "/acougue-e-peixaria",
                 "/nossos-prontinhos", "/nossa-padaria", "/bebidas", "/nossa-mercearia", "/matinais",
                 "/frios-queijos-e-laticinios", "/emporio", "/congelados", "/nao-alimentar", "/suplementos-e-vitaminas")) {
-            var document = Jsoup.parse(http.get(website.resolve(path)));
-            var script = document.selectFirst("script#__NEXT_DATA__");
-            if (script == null) throw new IllegalStateException("Categoria Hortifruti sem metadados públicos");
-            JsonNode category = mapper.readTree(script.data()).path("props").path("pageProps").path("data")
-                    .path("collection").path("meta").path("selectedFacets");
-            if (!category.isArray() || category.isEmpty()) throw new IllegalStateException("Categoria Hortifruti não identificada: " + path);
-            List<Map<String, String>> categoryFacets = new ArrayList<>(facets);
-            for (JsonNode facet : category) {
-                categoryFacets.add(Map.of("key", facet.path("key").asString(), "value", facet.path("value").asString()));
+            try {
+                var document = Jsoup.parse(http.get(website.resolve(path)));
+                var script = document.selectFirst("script#__NEXT_DATA__");
+                if (script == null) throw new IllegalStateException("Categoria Hortifruti sem metadados públicos");
+                JsonNode category = mapper.readTree(script.data()).path("props").path("pageProps").path("data")
+                        .path("collection").path("meta").path("selectedFacets");
+                if (!category.isArray() || category.isEmpty()) throw new IllegalStateException("Categoria Hortifruti não identificada: " + path);
+                List<Map<String, String>> categoryFacets = new ArrayList<>(facets);
+                for (JsonNode facet : category) {
+                    categoryFacets.add(Map.of("key", facet.path("key").asString(), "value", facet.path("value").asString()));
+                }
+                var collected = checkpoint.category(path, CatalogCheckpoint.Category.class, () -> {
+                    Map<String, CollectedProduct> categoryProducts = new LinkedHashMap<>();
+                    List<String> categoryWarnings = new ArrayList<>();
+                    int count = collectCategory(http, categoryFacets, categoryProducts, categoryWarnings);
+                    return new CatalogCheckpoint.Category(List.copyOf(categoryProducts.values()), count, categoryWarnings);
+                });
+                collected.products().forEach(product -> products.putIfAbsent(product.sourceReference(), product));
+                warnings.addAll(collected.warnings());
+                int received = collected.found();
+                found += received;
+                LOGGER.info("Hortifruti Aterrado: categoria {} concluída, {} registros recebidos", path, received);
+            } catch (RuntimeException exception) {
+                complete = false;
+                warnings.add("Categoria Hortifruti " + path + " incompleta: " + exception.getMessage());
             }
-            int received = collectCategory(http, categoryFacets, products, warnings);
-            found += received;
-            LOGGER.info("Hortifruti Aterrado: categoria {} concluída, {} registros recebidos", path, received);
         }
         if (products.isEmpty()) throw new IllegalStateException("Hortifruti não forneceu preços utilizáveis");
+        if (complete) checkpoint.complete();
         return new CollectedCatalog(new CollectedStore("Hortifruti Aterrado",
                 "Avenida Paulo de Frontin, 874 - Aterrado - Volta Redonda/RJ", null, null, true),
-                List.copyOf(products.values()), found, clock.instant(), warnings);
+                List.copyOf(products.values()), found, checkpoint.startedAt(), warnings);
     }
 
     private int collectCategory(PublicCatalogHttp http, List<Map<String, String>> facets,

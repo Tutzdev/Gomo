@@ -61,6 +61,30 @@ class CollectionCoordinatorTest {
         verify(ingestion).ingest(successful.metadata(), successful.catalog());
     }
 
+    @Test
+    void parallelCollectionKeepsCollectorOrderAndIsolatesFailures() {
+        TestCollector failing = new TestCollector("failing", true);
+        TestCollector first = new TestCollector("first", false);
+        TestCollector second = new TestCollector("second", false);
+        CollectionRunResponse startedFailing = response(failing.metadata(), CollectionStatus.RUNNING);
+        when(runs.start(failing.metadata())).thenReturn(startedFailing);
+        when(runs.start(first.metadata())).thenReturn(response(first.metadata(), CollectionStatus.RUNNING));
+        when(runs.start(second.metadata())).thenReturn(response(second.metadata(), CollectionStatus.RUNNING));
+        when(runs.fail(startedFailing.id(), "falha controlada"))
+                .thenReturn(response(failing.metadata(), CollectionStatus.FAILED));
+        when(ingestion.ingest(any(), any())).thenReturn(new CollectionResult(
+                UUID.randomUUID(), UUID.randomUUID(), 0, 0, 0, 0, 0, null));
+        when(runs.finish(any(), any())).thenReturn(response(first.metadata(), CollectionStatus.SUCCESS));
+
+        List<CollectionRunResponse> results = new CollectionCoordinator(List.of(failing, first, second), ingestion,
+                runs, mock(CollectedCatalogArchive.class), Duration.ZERO, 3).collectAll();
+
+        assertThat(results).extracting(CollectionRunResponse::status)
+                .containsExactly(CollectionStatus.FAILED, CollectionStatus.SUCCESS, CollectionStatus.SUCCESS);
+        assertThat(first.collected).isTrue();
+        assertThat(second.collected).isTrue();
+    }
+
     private CollectionRunResponse response(CollectorMetadata metadata, CollectionStatus status) {
         Instant now = Instant.parse("2026-09-17T12:00:00Z");
         return new CollectionRunResponse(UUID.randomUUID(), metadata.code(), metadata.supermarketName(),
@@ -75,7 +99,7 @@ class CollectionCoordinatorTest {
         private final CollectorMetadata metadata;
         private final boolean fail;
         private final CollectedCatalog catalog;
-        private boolean collected;
+        private volatile boolean collected;
 
         private TestCollector(String code, boolean fail) {
             this.fail = fail;

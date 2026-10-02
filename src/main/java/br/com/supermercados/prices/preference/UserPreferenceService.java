@@ -31,6 +31,7 @@ public class UserPreferenceService {
         UUID preferredCityId = preferences.findById(userId)
                 .map(UserPreference::getPreferredCityId)
                 .orElse(null);
+
         return response(userId, preferredCityId);
     }
 
@@ -41,6 +42,7 @@ public class UserPreferenceService {
                 .orElseGet(() -> new UserPreference(userId, cityId, clock.instant()));
         preference.changePreferredCity(cityId, clock.instant());
         preferences.save(preference);
+
         return response(userId, cityId);
     }
 
@@ -50,6 +52,7 @@ public class UserPreferenceService {
                 .orElseGet(() -> new UserPreference(userId, null, clock.instant()));
         preference.changePreferredCity(null, clock.instant());
         preferences.save(preference);
+
         return response(userId, null);
     }
 
@@ -62,6 +65,7 @@ public class UserPreferenceService {
         UUID preferredCityId = preferences.findById(userId)
                 .map(UserPreference::getPreferredCityId)
                 .orElse(null);
+
         return response(userId, preferredCityId);
     }
 
@@ -71,6 +75,7 @@ public class UserPreferenceService {
         UUID preferredCityId = preferences.findById(userId)
                 .map(UserPreference::getPreferredCityId)
                 .orElse(null);
+
         return response(userId, preferredCityId);
     }
 
@@ -78,6 +83,7 @@ public class UserPreferenceService {
         List<UUID> storeIds = favoriteStores.findByUserIdOrderByCreatedAtAscIdAsc(userId).stream()
                 .map(FavoriteStore::getStoreId)
                 .toList();
+                
         return new UserPreferenceResponse(preferredCityId, storeIds);
     }
 }

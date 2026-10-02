@@ -45,7 +45,7 @@ public final class PublicCatalogHttp {
     public String request(URI uri, Map<String, String> headers, String body) {
         for (int attempt = 1; attempt <= 2; attempt++) {
             try {
-                if (requested) Thread.sleep(delay.toMillis());
+                if (requested) Thread.sleep(delay.toMillis() * attempt);
                 requested = true;
                 HttpRequest.Builder builder = HttpRequest.newBuilder(uri).timeout(timeout)
                         .header("User-Agent", "Gomo/1.0 public-price-collector")

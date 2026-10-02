@@ -73,7 +73,8 @@ public final class ReviewedAtacadaoFlyerCollector implements SupermarketCollecto
             for (FlyerProduct product : document.products()) {
                 products.add(new CollectedProduct("atacadao:flyer-product:" + product.reference(),
                         product.name(), null, product.brand(),
-                        "Oferta de encarte para loja física; estoque sujeito à confirmação. Revisado em 18/09/2026.",
+                        "Oferta de encarte para loja física; estoque sujeito à confirmação. Revisão da fonte: "
+                                + reviewed.reviewedAt().atZone(LOCAL_ZONE).toLocalDate() + ".",
                         product.category(), product.price(), product.appPrice(), product.appPrice() == null ? null
                                 : "Ativar a oferta no aplicativo Meu Atacadão; consulte o limite por cliente. Não aplicado ao total.",
                         end, product.appPrice() == null ? null : end, StockAvailability.UNKNOWN, null, document.url()));

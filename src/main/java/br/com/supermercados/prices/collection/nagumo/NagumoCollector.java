@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.core.annotation.Order;
 
 import br.com.supermercados.prices.collection.CollectedCatalog;
+import br.com.supermercados.prices.collection.CatalogCheckpoint;
 import br.com.supermercados.prices.collection.CollectedStore;
 import br.com.supermercados.prices.collection.CollectedProduct;
 import br.com.supermercados.prices.collection.CollectorMetadata;
@@ -64,11 +65,12 @@ public class NagumoCollector implements SupermarketCollector {
 
     @Override
     public CollectedCatalog collect() {
-        List<NagumoCatalogResponse> externalCatalogs = client.fetch();
-        Instant collectedAt = clock.instant();
+        List<String> warnings = new ArrayList<>();
+        CatalogCheckpoint checkpoint = new CatalogCheckpoint(metadata().code(), clock, new tools.jackson.databind.ObjectMapper());
+        List<NagumoCatalogResponse> externalCatalogs = client.fetch(checkpoint, warnings);
+        Instant collectedAt = checkpoint.startedAt();
         Instant validUntil = null;
         Map<String, CollectedProduct> products = new LinkedHashMap<>();
-        List<String> warnings = new ArrayList<>();
         int foundCount = 0;
         for (NagumoCatalogResponse externalCatalog : externalCatalogs) {
             NagumoProductParser.ParsedProducts parsed = parser.parse(externalCatalog, validUntil);

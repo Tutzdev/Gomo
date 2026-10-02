@@ -133,4 +133,33 @@ class PublicCollectionIntegrationTests {
         assertThat(jdbc.queryForObject("select count(*) from price_records where source_product_name is not null", Integer.class))
                 .isGreaterThan(0);
     }
+
+    @Test
+    void refreshLinksNewRetailerReferenceAndKeepsIncompatibleOffersForReview() {
+        var snapshot = nagumo.collect();
+        var original = collectedProduct("original-a", "Coca Cola Original PET 2L");
+        var first = ingestion.ingest(nagumo.metadata(), new CollectedCatalog(snapshot.store(),
+                java.util.List.of(original), 1, Instant.now(), java.util.List.of()));
+        var equivalent = collectedProduct("different-local-code", "Refrigerante Coca Cola Original PET 2000 ML");
+        var incompatible = collectedProduct("zero-local-code", "Coca Cola Zero PET 2L");
+        var secondSnapshot = new CollectedCatalog(royal.collect().store(),
+                java.util.List.of(equivalent, incompatible), 2, Instant.now(), java.util.List.of());
+        var second = ingestion.refreshExisting(royal.metadata(), secondSnapshot);
+
+        assertThat(first.createdCount()).isEqualTo(1);
+        assertThat(second.createdCount()).isZero();
+        assertThat(second.updatedCount()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from products", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(distinct store_id) from price_records", Integer.class)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("select count(*) from collection_review_items", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select offer->>'name' from collection_review_items", String.class)).contains("Zero");
+        assertThat(ingestion.refreshExisting(royal.metadata(), secondSnapshot).updatedCount()).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from price_records", Integer.class)).isEqualTo(2);
+    }
+
+    private br.com.supermercados.prices.collection.CollectedProduct collectedProduct(String reference, String name) {
+        return new br.com.supermercados.prices.collection.CollectedProduct(reference, name, null, "Coca Cola",
+                null, "Bebidas", new java.math.BigDecimal("8.99"), null, null, null, null,
+                br.com.supermercados.prices.price.StockAvailability.AVAILABLE);
+    }
 }

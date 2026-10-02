@@ -32,7 +32,7 @@ public class CollectedCatalogIngestionService {
 
     private final CollectionCatalogService catalogs;
     private final ProductIngestionService products;
-    private final br.com.supermercados.prices.product.ProductSourceReferenceRepository productReferences;
+    private final CollectionReviewRepository reviews;
     private final PriceService prices;
     private final PriceRecordRepository priceRecords;
     private final PriceChangeGuard priceChangeGuard;
@@ -61,7 +61,7 @@ public class CollectedCatalogIngestionService {
         collectedCatalog.warnings().forEach(result::addSkippedError);
 
         List<ProductPrice> collectedPrices = ingestProducts(
-                metadata, collectedCatalog, catalog.sourceId(), result, existingOnly);
+                metadata, collectedCatalog, catalog, result, existingOnly);
         ingestPrices(metadata, collectedCatalog, catalog, collectedPrices, result);
 
         return result.toResult(catalog.sourceId(), catalog.storeId());
@@ -70,24 +70,28 @@ public class CollectedCatalogIngestionService {
     private List<ProductPrice> ingestProducts(
             CollectorMetadata metadata,
             CollectedCatalog catalog,
-            UUID sourceId,
+            CollectionCatalog collection,
             MutableResult result, boolean existingOnly) {
         List<ProductPrice> collectedPrices = new ArrayList<>();
 
         for (CollectedProduct collectedProduct : catalog.products()) {
-            if (existingOnly && productReferences.findBySourceIdAndSourceReference(
-                    sourceId, collectedProduct.sourceReference()).isEmpty()) {
-                result.skippedCount++;
-                continue;
-            }
             try {
                 SourceObservation source = new SourceObservation(
-                        sourceId, collectedProduct.sourceReference(), catalog.collectedAt());
+                        collection.sourceId(), collectedProduct.sourceReference(), catalog.collectedAt());
                 ProductObservation observation = new ProductObservation(
                         collectedProduct.gtin(), collectedProduct.name(), collectedProduct.brand(),
                         collectedProduct.description(), null, null, collectedProduct.category(), source,
                         collectedProduct.imageUrl(), collectedProduct.originUrl());
-                ProductIngestionResult ingestion = products.ingestWithOutcome(observation);
+                var matched = existingOnly ? products.linkExisting(observation)
+                        : java.util.Optional.of(products.ingestWithOutcome(observation));
+                if (matched.isEmpty()) {
+                    reviews.record(collection.sourceId(), collection.storeId(), collectedProduct, catalog.collectedAt(),
+                            "Sem correspondência confirmada no catálogo existente; revisar identidade e apresentação.");
+                    result.skippedCount++;
+                    continue;
+                }
+                ProductIngestionResult ingestion = matched.orElseThrow();
+                reviews.resolve(collection.sourceId(), collection.storeId(), collectedProduct.sourceReference());
                 if (ingestion.outcome() == ProductIngestionOutcome.CREATED) {
                     result.createdCount++;
                 } else if (ingestion.outcome() == ProductIngestionOutcome.UPDATED) {
@@ -95,6 +99,7 @@ public class CollectedCatalogIngestionService {
                 }
                 collectedPrices.add(new ProductPrice(ingestion.product().id(), collectedProduct));
             } catch (RuntimeException exception) {
+                reviews.record(collection.sourceId(), collection.storeId(), collectedProduct, catalog.collectedAt(), safeMessage(exception));
                 result.addSkippedError("Produto " + collectedProduct.sourceReference() + " ignorado: "
                         + safeMessage(exception));
                 LOGGER.warn("Coletor {} ignorou produto {}: {}", metadata.code(),
@@ -132,6 +137,8 @@ public class CollectedCatalogIngestionService {
                     && priceChangeGuard.isSuspicious(product.regularPrice(), previous)) {
                 result.skippedCount++;
                 result.addError("Variação suspeita no produto " + product.sourceReference());
+                reviews.record(catalog.sourceId(), catalog.storeId(), product, collectedCatalog.collectedAt(),
+                        "Variação de preço exige revisão antes da publicação.");
                 LOGGER.warn("Coletor {} rejeitou variação suspeita do produto {}",
                         metadata.code(), product.sourceReference());
                 continue;
@@ -153,6 +160,7 @@ public class CollectedCatalogIngestionService {
             } catch (RuntimeException exception) {
                 result.addSkippedError("Preço do produto " + product.sourceReference() + " ignorado: "
                         + safeMessage(exception));
+                reviews.record(catalog.sourceId(), catalog.storeId(), product, collectedCatalog.collectedAt(), safeMessage(exception));
                 LOGGER.warn("Coletor {} ignorou preço do produto {}: {}", metadata.code(),
                         product.sourceReference(), safeMessage(exception));
             }

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import br.com.supermercados.prices.collection.CollectedCatalog;
+import br.com.supermercados.prices.collection.CatalogCheckpoint;
 import br.com.supermercados.prices.collection.CollectedProduct;
 import br.com.supermercados.prices.collection.CollectedStore;
 import br.com.supermercados.prices.collection.CollectorMetadata;
@@ -43,14 +44,29 @@ public final class MercafacilCollector implements SupermarketCollector {
         if (departments.isEmpty()) throw new IllegalStateException("Loja sem categorias públicas");
         Map<String, CollectedProduct> products = new LinkedHashMap<>();
         List<String> warnings = new ArrayList<>();
+        CatalogCheckpoint checkpoint = new CatalogCheckpoint(store.code(), clock, mapper);
+        boolean complete = true;
         for (JsonNode department : departments) {
             if ("99999".equals(department.path("id").asString())) continue;
-            collectDepartment(http, department, products, warnings);
+            try {
+                var category = checkpoint.category(department.path("id").asString(), CatalogCheckpoint.Category.class, () -> {
+                    Map<String, CollectedProduct> categoryProducts = new LinkedHashMap<>();
+                    List<String> categoryWarnings = new ArrayList<>();
+                    collectDepartment(http, department, categoryProducts, categoryWarnings);
+                    return new CatalogCheckpoint.Category(List.copyOf(categoryProducts.values()), categoryProducts.size(), categoryWarnings);
+                });
+                category.products().forEach(product -> products.putIfAbsent(product.sourceReference(), product));
+                warnings.addAll(category.warnings());
+            } catch (RuntimeException exception) {
+                complete = false;
+                warnings.add("Categoria " + department.path("id").asString() + " incompleta: " + exception.getMessage());
+            }
         }
         if (products.isEmpty()) throw new IllegalStateException("Catálogo sem produtos válidos");
         CollectedStore collectedStore = new CollectedStore(store.name(), store.address(), null, null, true);
+        if (complete) checkpoint.complete();
         return new CollectedCatalog(collectedStore, List.copyOf(products.values()),
-                products.size() + warnings.size(), clock.instant(), warnings);
+                products.size() + warnings.size(), checkpoint.startedAt(), warnings);
     }
 
     private void collectDepartment(PublicCatalogHttp http, JsonNode department,

@@ -11,6 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.time.Clock;
+import java.time.Instant;
+
+import br.com.supermercados.prices.collection.CatalogCheckpoint;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +49,7 @@ class RoyalClient {
         }
     }
 
-    Catalog fetch() {
+    Catalog fetch(Clock clock) {
         Session session = new Session();
         JsonNode organization = session.get("/api-admin/v1/organizacoes/filiais/dominio/royalsupermercados.com.br")
                 .path("data");
@@ -87,6 +91,8 @@ class RoyalClient {
         validateStore(matches.getFirst());
         JsonNode store = selectedStore(session);
         List<JsonNode> products = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+        CatalogCheckpoint checkpoint = new CatalogCheckpoint("royal_retiro", clock, mapper);
         if (properties.isFullCatalog()) {
             JsonNode departments = session.get(STORE_PATH + "/classificacoes_mercadologicas/departamentos/arvore")
                     .path("data");
@@ -98,8 +104,13 @@ class RoyalClient {
                 if (id <= 0) {
                     throw new IllegalStateException("Departamento Royal sem identificador válido");
                 }
-                products.addAll(paginate(session, STORE_PATH
-                        + "/classificacoes_mercadologicas/departamentos/" + id + "/produtos"));
+                String path = STORE_PATH + "/classificacoes_mercadologicas/departamentos/" + id + "/produtos";
+                try {
+                    products.addAll(checkpoint.category(path, CatalogCheckpoint.Entries.class,
+                            () -> new CatalogCheckpoint.Entries(paginate(session, path))).products());
+                } catch (RuntimeException exception) {
+                    warnings.add("Categoria Royal " + id + " incompleta: " + exception.getMessage());
+                }
             }
         } else {
             for (String term : properties.getSearchTerms()) {
@@ -108,7 +119,11 @@ class RoyalClient {
             }
         }
         selectedStore(session);
-        return new Catalog(store, List.copyOf(products));
+        if (warnings.isEmpty()) checkpoint.complete();
+        if (products.isEmpty() && !warnings.isEmpty()) {
+            throw new IllegalStateException("Nenhuma categoria Royal foi coletada: " + String.join("; ", warnings));
+        }
+        return new Catalog(store, List.copyOf(products), checkpoint.startedAt(), List.copyOf(warnings));
     }
 
     private JsonNode selectedStore(Session session) {
@@ -177,7 +192,7 @@ class RoyalClient {
         return matcher.group(1);
     }
 
-    record Catalog(JsonNode store, List<JsonNode> products) {
+    record Catalog(JsonNode store, List<JsonNode> products, Instant collectedAt, List<String> warnings) {
     }
 
     private final class Session {
@@ -213,7 +228,7 @@ class RoyalClient {
             for (int attempt = 1; attempt <= properties.getMaxAttempts(); attempt++) {
                 try {
                     if (requested) {
-                        Thread.sleep(properties.getRequestDelay().toMillis());
+                        Thread.sleep(properties.getRequestDelay().toMillis() * attempt);
                     }
                     requested = true;
                     HttpRequest.Builder request = HttpRequest.newBuilder(uri)

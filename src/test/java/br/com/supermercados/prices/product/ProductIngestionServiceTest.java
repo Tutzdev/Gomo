@@ -42,7 +42,7 @@ class ProductIngestionServiceTest {
     void setUp() {
         service = new ProductIngestionService(products, references, sources,
                 new ObservationValidator(VALIDATOR_FACTORY.getValidator()), Clock.fixed(NOW, ZoneOffset.UTC),
-                mock(VerifiedProductMappings.class), mock(ExactProductMatcher.class));
+                mock(VerifiedProductMappings.class), mock(ExactProductMatcher.class), mock(ExistingProductMatcher.class));
     }
 
     @AfterAll

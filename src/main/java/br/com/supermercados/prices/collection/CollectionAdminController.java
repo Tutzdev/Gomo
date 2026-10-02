@@ -25,14 +25,17 @@ public class CollectionAdminController {
     private final CollectionCoordinator coordinator;
     private final CollectionRunService runs;
     private final AdminAuditService audit;
+    private final CollectionReviewRepository reviews;
 
     public CollectionAdminController(
             CollectionCoordinator coordinator,
             CollectionRunService runs,
-            AdminAuditService audit) {
+            AdminAuditService audit,
+            CollectionReviewRepository reviews) {
         this.coordinator = coordinator;
         this.runs = runs;
         this.audit = audit;
+        this.reviews = reviews;
     }
 
     @PostMapping
@@ -58,5 +61,12 @@ public class CollectionAdminController {
     @GetMapping("/{id}")
     public CollectionRunResponse find(@PathVariable UUID id) {
         return runs.find(id);
+    }
+
+    @GetMapping("/reviews")
+    public PageResponse<CollectionReviewResponse> findReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return reviews.findAll(PageRequests.create(page, size, Sort.unsorted()));
     }
 }

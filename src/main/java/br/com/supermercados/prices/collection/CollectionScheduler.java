@@ -25,10 +25,10 @@ public class CollectionScheduler {
     }
 
     @Scheduled(
-            cron = "${app.collection.cron:0 30 5 * * *}",
+            cron = "${app.collection.cron:0 0 6,11,16,21 * * *}",
             zone = "${app.collection.zone:America/Sao_Paulo}")
     public void collectDaily() {
-        if (!enabled) {
+        if (!enabled || coordinator.isRunning()) {
             return;
         }
         try {

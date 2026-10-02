@@ -1,5 +1,5 @@
 {
-  "reviewedAt": "2026-09-19T00:20:00Z",
+  "reviewedAt": "2026-09-20T23:00:50.829142Z",
   "method": "MANUALLY_REVIEWED_PUBLIC_FLYERS",
   "storeIds": [
     289,
@@ -391,6 +391,391 @@
           "category": "Salgadinhos",
           "price": "1.99",
           "appPrice": null
+        }
+      ]
+    },
+    {
+      "id": "1SO0PxW4L3OUq5kUDUw9lQsYCJtfK_aFF",
+      "url": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/?id=1SO0PxW4L3OUq5kUDUw9lQsYCJtfK_aFF",
+      "sha256": "365938d52351d3ea8eea702039f56c05d94fa3bd24f8b4f32313f2228c308153",
+      "validFrom": "2026-09-19",
+      "validThrough": "2026-09-20",
+      "products": [
+        {
+          "reference": "banana-nanica-preco-de-1-kg",
+          "name": "Banana Nanica (preço de 1 kg)",
+          "brand": null,
+          "category": "Hortifruti",
+          "price": "4.99",
+          "appPrice": "3.99"
+        },
+        {
+          "reference": "carne-bovina-contra-file-friboi-resfriada-peca-preco-de-1-kg",
+          "name": "Carne Bovina Contra Filé Friboi Resfriada Peça (preço de 1 kg)",
+          "brand": "Friboi",
+          "category": "Carnes",
+          "price": "47.90"
+        },
+        {
+          "reference": "cafe-pilao-almofada-tradicional-500g",
+          "name": "Café Pilão Almofada Tradicional 500g",
+          "brand": "Pilão",
+          "category": "Mercearia",
+          "price": "25.79"
+        },
+        {
+          "reference": "cerveja-heineken-sleek-lata-350ml",
+          "name": "Cerveja Heineken Sleek Lata 350ml",
+          "brand": "Heineken",
+          "category": "Bebidas",
+          "price": "4.89"
+        },
+        {
+          "reference": "cerveja-antarctica-pilsen-lata-550ml",
+          "name": "Cerveja Antarctica Pilsen Lata 550ml",
+          "brand": "Antarctica",
+          "category": "Bebidas",
+          "price": "4.49"
+        }
+      ]
+    },
+    {
+      "id": "1EI6mvafErZXbpNgAPh-Y71vavQOivraM",
+      "url": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/?id=1EI6mvafErZXbpNgAPh-Y71vavQOivraM",
+      "sha256": "eb203d51eaa7529fbd283542548e4e4d8d9ba585e6442485d537525c511aa401",
+      "validFrom": "2026-09-14",
+      "validThrough": "2026-09-20",
+      "products": [
+        {
+          "reference": "fralda-descartavel-looping-looney-tunes-jumbinho-p-18-unidades",
+          "name": "Fralda Descartável Looping Looney Tunes Jumbinho P 18 unidades",
+          "brand": "Looping",
+          "category": "Higiene",
+          "price": "10.99"
+        },
+        {
+          "reference": "fralda-descartavel-looping-looney-tunes-jumbinho-m-16-unidades",
+          "name": "Fralda Descartável Looping Looney Tunes Jumbinho M 16 unidades",
+          "brand": "Looping",
+          "category": "Higiene",
+          "price": "10.99"
+        },
+        {
+          "reference": "fralda-descartavel-looping-looney-tunes-jumbinho-g-14-unidades",
+          "name": "Fralda Descartável Looping Looney Tunes Jumbinho G 14 unidades",
+          "brand": "Looping",
+          "category": "Higiene",
+          "price": "10.99"
+        },
+        {
+          "reference": "fralda-descartavel-looping-looney-tunes-jumbinho-xg-12-unidades",
+          "name": "Fralda Descartável Looping Looney Tunes Jumbinho XG 12 unidades",
+          "brand": "Looping",
+          "category": "Higiene",
+          "price": "10.99"
+        },
+        {
+          "reference": "fralda-descartavel-looping-looney-tunes-jumbinho-xxg-12-unidades",
+          "name": "Fralda Descartável Looping Looney Tunes Jumbinho XXG 12 unidades",
+          "brand": "Looping",
+          "category": "Higiene",
+          "price": "10.99"
+        },
+        {
+          "reference": "fralda-descartavel-bulnez-baby-m-34-unidades",
+          "name": "Fralda Descartável Bulnez Baby M 34 unidades",
+          "brand": "Bulnez",
+          "category": "Higiene",
+          "price": "17.49"
+        },
+        {
+          "reference": "fralda-descartavel-bulnez-baby-g-30-unidades",
+          "name": "Fralda Descartável Bulnez Baby G 30 unidades",
+          "brand": "Bulnez",
+          "category": "Higiene",
+          "price": "17.49"
+        },
+        {
+          "reference": "fralda-descartavel-bulnez-baby-xg-24-unidades",
+          "name": "Fralda Descartável Bulnez Baby XG 24 unidades",
+          "brand": "Bulnez",
+          "category": "Higiene",
+          "price": "17.49"
+        },
+        {
+          "reference": "fralda-descartavel-bulnez-baby-xxg-20-unidades",
+          "name": "Fralda Descartável Bulnez Baby XXG 20 unidades",
+          "brand": "Bulnez",
+          "category": "Higiene",
+          "price": "17.49"
+        },
+        {
+          "reference": "fralda-descartavel-babysec-mega-ultra-sec-p-42-unidades",
+          "name": "Fralda Descartável Babysec Mega Ultra Sec P 42 unidades",
+          "brand": "Babysec",
+          "category": "Higiene",
+          "price": "32.90"
+        },
+        {
+          "reference": "fralda-descartavel-babysec-mega-ultra-sec-m-38-unidades",
+          "name": "Fralda Descartável Babysec Mega Ultra Sec M 38 unidades",
+          "brand": "Babysec",
+          "category": "Higiene",
+          "price": "32.90"
+        },
+        {
+          "reference": "fralda-descartavel-babysec-mega-ultra-sec-g-32-unidades",
+          "name": "Fralda Descartável Babysec Mega Ultra Sec G 32 unidades",
+          "brand": "Babysec",
+          "category": "Higiene",
+          "price": "32.90"
+        },
+        {
+          "reference": "fralda-descartavel-babysec-mega-ultra-sec-xg-30-unidades",
+          "name": "Fralda Descartável Babysec Mega Ultra Sec XG 30 unidades",
+          "brand": "Babysec",
+          "category": "Higiene",
+          "price": "32.90"
+        },
+        {
+          "reference": "fralda-descartavel-babysec-mega-ultra-sec-xxg-28-unidades",
+          "name": "Fralda Descartável Babysec Mega Ultra Sec XXG 28 unidades",
+          "brand": "Babysec",
+          "category": "Higiene",
+          "price": "32.90"
+        },
+        {
+          "reference": "fralda-descartavel-turma-da-monica-baby-giga-m-80-unidades",
+          "name": "Fralda Descartável Turma da Mônica Baby Giga M 80 unidades",
+          "brand": "Turma da Mônica",
+          "category": "Higiene",
+          "price": "47.98"
+        },
+        {
+          "reference": "fralda-descartavel-turma-da-monica-baby-giga-g-68-unidades",
+          "name": "Fralda Descartável Turma da Mônica Baby Giga G 68 unidades",
+          "brand": "Turma da Mônica",
+          "category": "Higiene",
+          "price": "47.98"
+        },
+        {
+          "reference": "fralda-descartavel-turma-da-monica-baby-giga-xg-60-unidades",
+          "name": "Fralda Descartável Turma da Mônica Baby Giga XG 60 unidades",
+          "brand": "Turma da Mônica",
+          "category": "Higiene",
+          "price": "47.98"
+        },
+        {
+          "reference": "fralda-descartavel-turma-da-monica-baby-giga-xxg-50-unidades",
+          "name": "Fralda Descartável Turma da Mônica Baby Giga XXG 50 unidades",
+          "brand": "Turma da Mônica",
+          "category": "Higiene",
+          "price": "47.98"
+        },
+        {
+          "reference": "fralda-descartavel-babysec-ultra-sec-m-62-unidades",
+          "name": "Fralda Descartável Babysec Ultra Sec M 62 unidades",
+          "brand": "Babysec",
+          "category": "Higiene",
+          "price": "45.98"
+        },
+        {
+          "reference": "fralda-descartavel-babysec-ultra-sec-g-54-unidades",
+          "name": "Fralda Descartável Babysec Ultra Sec G 54 unidades",
+          "brand": "Babysec",
+          "category": "Higiene",
+          "price": "45.98"
+        },
+        {
+          "reference": "fralda-descartavel-babysec-ultra-sec-xg-50-unidades",
+          "name": "Fralda Descartável Babysec Ultra Sec XG 50 unidades",
+          "brand": "Babysec",
+          "category": "Higiene",
+          "price": "45.98"
+        },
+        {
+          "reference": "fralda-descartavel-babysec-ultra-sec-xxg-44-unidades",
+          "name": "Fralda Descartável Babysec Ultra Sec XXG 44 unidades",
+          "brand": "Babysec",
+          "category": "Higiene",
+          "price": "45.98"
+        },
+        {
+          "reference": "fralda-descartavel-huggies-maxima-protecao-m-66-unidades",
+          "name": "Fralda Descartável Huggies Máxima Proteção M 66 unidades",
+          "brand": "Huggies",
+          "category": "Higiene",
+          "price": "67.90"
+        },
+        {
+          "reference": "fralda-descartavel-huggies-maxima-protecao-g-58-unidades",
+          "name": "Fralda Descartável Huggies Máxima Proteção G 58 unidades",
+          "brand": "Huggies",
+          "category": "Higiene",
+          "price": "67.90"
+        },
+        {
+          "reference": "fralda-descartavel-huggies-maxima-protecao-xg-58-unidades",
+          "name": "Fralda Descartável Huggies Máxima Proteção XG 58 unidades",
+          "brand": "Huggies",
+          "category": "Higiene",
+          "price": "67.90"
+        },
+        {
+          "reference": "fralda-descartavel-huggies-maxima-protecao-xxg-54-unidades",
+          "name": "Fralda Descartável Huggies Máxima Proteção XXG 54 unidades",
+          "brand": "Huggies",
+          "category": "Higiene",
+          "price": "67.90"
+        },
+        {
+          "reference": "fralda-descartavel-huggies-maxima-protecao-xxxg-46-unidades",
+          "name": "Fralda Descartável Huggies Máxima Proteção XXXG 46 unidades",
+          "brand": "Huggies",
+          "category": "Higiene",
+          "price": "67.90"
+        },
+        {
+          "reference": "toalha-umedecida-johnson-s-baby-leve-4-pague-3-pack-4x44-unidades",
+          "name": "Toalha Umedecida Johnson's Baby Leve 4 Pague 3 Pack 4x44 unidades",
+          "brand": "Johnson's",
+          "category": "Higiene",
+          "price": "18.98"
+        },
+        {
+          "reference": "toalha-umedecida-cottondela-baby-50-unidades",
+          "name": "Toalha Umedecida Cottondela Baby 50 unidades",
+          "brand": "Cottondela",
+          "category": "Higiene",
+          "price": "5.99"
+        },
+        {
+          "reference": "mamadeira-neopan-ref-2661-azul-300ml",
+          "name": "Mamadeira Neopan Ref 2661 Azul 300ml",
+          "brand": "Neopan",
+          "category": "Bebês",
+          "price": "23.90"
+        },
+        {
+          "reference": "mamadeira-neopan-ref-2662-rosa-300ml",
+          "name": "Mamadeira Neopan Ref 2662 Rosa 300ml",
+          "brand": "Neopan",
+          "category": "Bebês",
+          "price": "23.90"
+        },
+        {
+          "reference": "copo-com-canudo-neopan-azul-360ml",
+          "name": "Copo com Canudo Neopan Azul 360ml",
+          "brand": "Neopan",
+          "category": "Bebês",
+          "price": "25.90"
+        },
+        {
+          "reference": "copo-com-canudo-neopan-rosa-360ml",
+          "name": "Copo com Canudo Neopan Rosa 360ml",
+          "brand": "Neopan",
+          "category": "Bebês",
+          "price": "25.90"
+        },
+        {
+          "reference": "creme-para-assaduras-hipoglos-transparente-30g",
+          "name": "Creme para Assaduras Hipoglós Transparente 30g",
+          "brand": "Hipoglós",
+          "category": "Higiene",
+          "price": "21.98"
+        },
+        {
+          "reference": "sabonete-johnson-s-baby-glicerinado-regular-80g",
+          "name": "Sabonete Johnson's Baby Glicerinado Regular 80g",
+          "brand": "Johnson's",
+          "category": "Higiene",
+          "price": "4.39"
+        },
+        {
+          "reference": "shampoo-infantil-palmolive-kids-todo-tipo-de-cabelo-315ml",
+          "name": "Shampoo Infantil Palmolive Kids Todo Tipo de Cabelo 315ml",
+          "brand": "Palmolive",
+          "category": "Higiene",
+          "price": "10.98"
+        },
+        {
+          "reference": "shampoo-infantil-tra-la-la-sem-embaraco-480ml",
+          "name": "Shampoo Infantil Trá Lá Lá Sem Embaraço 480ml",
+          "brand": "Trá Lá Lá",
+          "category": "Higiene",
+          "price": "13.90"
+        }
+      ]
+    },
+    {
+      "id": "1HpC0MPTzrKyaoldcSCCwIBl1kFKkBZRx",
+      "url": "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/?id=1HpC0MPTzrKyaoldcSCCwIBl1kFKkBZRx",
+      "sha256": "62070754979071ed30e96665c5cba52ebac84d4cb926a2d8e2107f9ce1d8df21",
+      "validFrom": "2026-09-17",
+      "validThrough": "2026-09-20",
+      "products": [
+        {
+          "reference": "amaryllis-p14-1-unidade",
+          "name": "Amaryllis P14 1 unidade",
+          "brand": null,
+          "category": "Jardinagem",
+          "price": "29.90"
+        },
+        {
+          "reference": "anthurium-p12-1-unidade",
+          "name": "Anthurium P12 1 unidade",
+          "brand": null,
+          "category": "Jardinagem",
+          "price": "25.90"
+        },
+        {
+          "reference": "bambu-da-sorte-p6-1-unidade",
+          "name": "Bambu da Sorte P6 1 unidade",
+          "brand": null,
+          "category": "Jardinagem",
+          "price": "15.90"
+        },
+        {
+          "reference": "calandiva-p6-1-unidade",
+          "name": "Calandiva P6 1 unidade",
+          "brand": null,
+          "category": "Jardinagem",
+          "price": "2.99"
+        },
+        {
+          "reference": "suculentas-mini-p6-1-unidade",
+          "name": "Suculentas Mini P6 1 unidade",
+          "brand": null,
+          "category": "Jardinagem",
+          "price": "2.90"
+        },
+        {
+          "reference": "ervas-medicinais-e-temperos-1-unidade",
+          "name": "Ervas Medicinais e Temperos 1 unidade",
+          "brand": null,
+          "category": "Jardinagem",
+          "price": "15.90"
+        },
+        {
+          "reference": "buxinho-p24-1-unidade",
+          "name": "Buxinho P24 1 unidade",
+          "brand": null,
+          "category": "Jardinagem",
+          "price": "57.90"
+        },
+        {
+          "reference": "flor-de-maio-p11-1-unidade",
+          "name": "Flor de Maio P11 1 unidade",
+          "brand": null,
+          "category": "Jardinagem",
+          "price": "12.90"
+        },
+        {
+          "reference": "jiboia-verde-c21-1-unidade",
+          "name": "Jiboia Verde C21 1 unidade",
+          "brand": null,
+          "category": "Jardinagem",
+          "price": "23.90"
         }
       ]
     }
