@@ -3,6 +3,9 @@ package br.com.supermercados.prices.shoppinglist;
 import br.com.supermercados.prices.catalog.CatalogItemRepository;
 import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.product.ProductService;
+import br.com.supermercados.prices.subscription.FreePlan;
+import br.com.supermercados.prices.subscription.PlanLimit;
+import br.com.supermercados.prices.subscription.PlanLimitException;
 import java.time.Clock;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -35,12 +38,20 @@ public class ShoppingListService {
         return lists.findByUserId(userId, pageable).map(ShoppingListSummary::from);
     }
 
+    public long countOwnedLists(UUID userId) {
+        return lists.countByUserId(userId);
+    }
+
     public ShoppingListResponse getOwnedList(UUID userId, UUID listId) {
         return response(lists.findByIdAndUserId(listId, userId).orElseThrow(this::notFound));
     }
 
     @Transactional
-    public ShoppingListResponse create(UUID userId, ShoppingListRequest request) {
+    public ShoppingListResponse create(UUID userId, boolean premium, ShoppingListRequest request) {
+        if (!premium && lists.countByUserId(userId) >= FreePlan.MAX_SHOPPING_LISTS) {
+            throw new PlanLimitException(PlanLimit.SHOPPING_LISTS,
+                    "No plano grátis você mantém 1 lista por vez. Exclua a atual ou assine o Premium.");
+        }
         var list = new ShoppingList(userId, request.name(), request.shoppingType(), clock.instant());
 
         return response(lists.saveAndFlush(list));
@@ -61,7 +72,7 @@ public class ShoppingListService {
     }
 
     @Transactional
-    public ShoppingListItemResponse addItem(UUID userId, UUID listId, AddItemRequest request) {
+    public ShoppingListItemResponse addItem(UUID userId, boolean premium, UUID listId, AddItemRequest request) {
         var list = lockOwnedList(userId, listId);
         // A specific SKU that belongs to a generic item is stored as that item, so the list reads "Coca-Cola 2 L".
         var catalogItem = request.catalogItemId() == null
@@ -76,7 +87,12 @@ public class ShoppingListService {
                 && items.existsByShoppingListIdAndCatalogItemId(listId, catalogItem.getId())) {
             throw new ApiException(HttpStatus.CONFLICT, "Produto já está na lista; altere sua quantidade.");
         }
-        if (items.countByShoppingListId(listId) >= MAX_ITEMS) {
+        long itemCount = items.countByShoppingListId(listId);
+        if (!premium && itemCount >= FreePlan.MAX_LIST_ITEMS) {
+            throw new PlanLimitException(PlanLimit.LIST_ITEMS,
+                    "No plano grátis cada lista tem até 10 produtos.");
+        }
+        if (itemCount >= MAX_ITEMS) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Uma lista pode conter até 200 produtos.");
         }
         var item = items.save(new ShoppingListItem(listId, product.getId(),

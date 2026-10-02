@@ -13,6 +13,8 @@ public interface ShoppingListRepository extends JpaRepository<ShoppingList, UUID
 
     Page<ShoppingList> findByUserId(UUID userId, Pageable pageable);
 
+    long countByUserId(UUID userId);
+
     Optional<ShoppingList> findByIdAndUserId(UUID id, UUID userId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

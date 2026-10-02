@@ -5,6 +5,9 @@ import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.common.PageResponse;
 import br.com.supermercados.prices.location.LocationService;
 import br.com.supermercados.prices.product.ProductService;
+import br.com.supermercados.prices.subscription.FreePlan;
+import br.com.supermercados.prices.subscription.PlanLimit;
+import br.com.supermercados.prices.subscription.PlanLimitException;
 import java.time.Clock;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -32,11 +35,20 @@ public class PriceAlertService {
     public PriceAlertResponse create(AuthenticatedUser user, CreatePriceAlertRequest request) {
         if (!user.emailVerified()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Confirme o e-mail antes de criar alertas.");}
-            
+        if (!user.premium() && alerts.countByUserIdAndActiveTrue(user.id()) >= FreePlan.MAX_ACTIVE_ALERTS) {
+            throw new PlanLimitException(PlanLimit.ACTIVE_ALERTS,
+                    "No plano grátis você mantém até 2 alertas ativos. Desative um ou assine o Premium.");
+        }
+
         products.requireProduct(request.productId());
         locations.requireCity(request.cityId());
 
         return PriceAlertResponse.from(alerts.save(new PriceAlert(user.id(), request, clock.instant())));
+    }
+
+    @Transactional(readOnly = true)
+    public long countActive(UUID userId) {
+        return alerts.countByUserIdAndActiveTrue(userId);
     }
 
     @Transactional(readOnly = true)

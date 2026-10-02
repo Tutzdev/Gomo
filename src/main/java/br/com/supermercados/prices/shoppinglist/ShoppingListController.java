@@ -44,7 +44,7 @@ public class ShoppingListController {
     @PostMapping
     public ResponseEntity<ShoppingListResponse> create(@AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody ShoppingListRequest request) {
-        var list = service.create(user.id(), request);
+        var list = service.create(user.id(), user.premium(), request);
         return ResponseEntity.created(URI.create("/api/v1/shopping-lists/" + list.id())).body(list);
     }
 
@@ -63,7 +63,7 @@ public class ShoppingListController {
     @PostMapping("/{id}/items")
     public ResponseEntity<ShoppingListItemResponse> addItem(@AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID id, @Valid @RequestBody AddItemRequest request) {
-        var item = service.addItem(user.id(), id, request);
+        var item = service.addItem(user.id(), user.premium(), id, request);
         return ResponseEntity.created(URI.create("/api/v1/shopping-lists/" + id + "/items/" + item.id())).body(item);
     }
 

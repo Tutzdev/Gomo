@@ -1,5 +1,6 @@
 package br.com.supermercados.prices.common;
 
+import br.com.supermercados.prices.subscription.PlanLimitException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -34,6 +35,15 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ApiException.class)
     ProblemDetail handleApiException(ApiException exception, HttpServletRequest request) {
         return problems.create(exception.getStatus(), exception.getMessage(), request);
+    }
+
+    /** The frontend reads {@code limit} to explain what the free plan blocked and what Premium unlocks. */
+    @ExceptionHandler(PlanLimitException.class)
+    ProblemDetail handlePlanLimit(PlanLimitException exception, HttpServletRequest request) {
+        var response = problems.create(exception.getStatus(), exception.getMessage(), request);
+        response.setProperty("code", "PLAN_LIMIT");
+        response.setProperty("limit", exception.getLimit());
+        return response;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

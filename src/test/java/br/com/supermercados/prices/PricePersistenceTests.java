@@ -151,9 +151,9 @@ class PricePersistenceTests {
         prices.appendObservation(observation(STORE_A, PRODUCT_B, "regular-b", "0.10", collected));
         prices.appendObservation(observation(STORE_B, PRODUCT_A, "partial-a", "1.00", collected));
         UUID userId = createTestUser();
-        var list = lists.create(userId, new ShoppingListRequest("Lista fictícia", ShoppingType.WEEKLY));
-        lists.addItem(userId, list.id(), new AddItemRequest(PRODUCT_A, new BigDecimal("2.5")));
-        lists.addItem(userId, list.id(), new AddItemRequest(PRODUCT_B, new BigDecimal("3")));
+        var list = lists.create(userId, true, new ShoppingListRequest("Lista fictícia", ShoppingType.WEEKLY));
+        lists.addItem(userId, true, list.id(), new AddItemRequest(PRODUCT_A, new BigDecimal("2.5")));
+        lists.addItem(userId, true, list.id(), new AddItemRequest(PRODUCT_B, new BigDecimal("3")));
         var result = comparisons.compareShoppingList(userId, list.id(), cityId(), storePage());
         var complete = result.stores().content().getFirst();
         assertThat(complete.subtotalKnown()).isEqualByComparingTo("6.18");
@@ -169,13 +169,13 @@ class PricePersistenceTests {
     @Test
     void emptyListAndStoresWithoutPricesNeverHaveAFreeTotal() {
         UUID userId = createTestUser();
-        var list = lists.create(userId, new ShoppingListRequest("Lista fictícia vazia", ShoppingType.CUSTOM));
+        var list = lists.create(userId, true, new ShoppingListRequest("Lista fictícia vazia", ShoppingType.CUSTOM));
         var result = comparisons.compareShoppingList(userId, list.id(), cityId(), storePage());
         assertThat(result.stores().content()).allSatisfy(store -> {
             assertThat(store.subtotalKnown()).isNull();
             assertThat(store.completeShoppingList()).isFalse();
         });
-        lists.addItem(userId, list.id(), new AddItemRequest(PRODUCT_A, BigDecimal.ONE));
+        lists.addItem(userId, true, list.id(), new AddItemRequest(PRODUCT_A, BigDecimal.ONE));
         assertThat(comparisons.compareShoppingList(userId, list.id(), cityId(), storePage()).stores().content())
                 .allSatisfy(store -> {
                     assertThat(store.subtotalKnown()).isNull();
@@ -187,8 +187,8 @@ class PricePersistenceTests {
     void deletingAListPreservesAllPriceHistory() {
         prices.appendObservation(observation(STORE_A, PRODUCT_A, "historical", "0.10", Instant.now().minusSeconds(5)));
         UUID userId = createTestUser();
-        var list = lists.create(userId, new ShoppingListRequest("Lista fictícia", ShoppingType.DAILY));
-        lists.addItem(userId, list.id(), new AddItemRequest(PRODUCT_A, BigDecimal.ONE));
+        var list = lists.create(userId, true, new ShoppingListRequest("Lista fictícia", ShoppingType.DAILY));
+        lists.addItem(userId, true, list.id(), new AddItemRequest(PRODUCT_A, BigDecimal.ONE));
         lists.delete(userId, list.id());
         assertThat(jdbc.queryForObject("select count(*) from price_records", Integer.class)).isEqualTo(1);
     }

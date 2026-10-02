@@ -6,6 +6,7 @@ import java.util.List;
 
 import br.com.supermercados.prices.common.PageResponse;
 import br.com.supermercados.prices.product.ProductResponse;
+import br.com.supermercados.prices.subscription.ComparisonAccess;
 
 public record ProductComparisonResponse(
         UUID productId,
@@ -14,5 +15,6 @@ public record ProductComparisonResponse(
         String currency,
         Instant comparedAt,
         PageResponse<ProductStoreComparison> stores,
-        List<ProductResponse> possibleMatches) {
+        List<ProductResponse> possibleMatches,
+        ComparisonAccess access) {
 }

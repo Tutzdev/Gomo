@@ -158,6 +158,34 @@ class ShoppingComparisonServiceTest {
         assertThat(response.recommendation().storeId()).isEqualTo(completeStore);
         assertThat(response.recommendation().total()).isEqualByComparingTo("20.00");
         assertThat(response.recommendation().completeShoppingList()).isTrue();
+        assertThat(response.splitSavings().storeId()).isEqualTo(completeStore);
+        assertThat(response.splitSavings().savings()).isEqualByComparingTo("8.00");
+    }
+
+    @Test
+    void freePlanSeesTheSplitSavingsButNotWhereToBuyEachItem() {
+        UUID firstProduct = UUID.randomUUID();
+        UUID secondProduct = UUID.randomUUID();
+        UUID cheapStore = UUID.randomUUID();
+        UUID completeStore = UUID.randomUUID();
+        when(shoppingLists.getOwnedList(userId, listId))
+                .thenReturn(shoppingList(List.of(item(firstProduct), item(secondProduct))));
+        when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(List.of(
+                store(cheapStore, "Cheap"), store(completeStore, "Complete")));
+        when(prices.findLatestForStoresAndProducts(
+                List.of(cheapStore, completeStore), List.of(firstProduct, secondProduct)))
+                .thenReturn(List.of(
+                        PriceFixtures.regular(firstProduct, cheapStore, "1.00", now),
+                        PriceFixtures.regular(firstProduct, completeStore, "5.00", now),
+                        PriceFixtures.regular(secondProduct, completeStore, "5.00", now)));
+
+        ShoppingRecommendationResponse response =
+                comparisons.recommendShoppingList(userId, listId, cityId, null, false);
+
+        assertThat(response.combination().locked()).isTrue();
+        assertThat(response.combination().stores()).isEmpty();
+        assertThat(response.combination().storeCount()).isEqualTo(2);
+        assertThat(response.splitSavings().savings()).isEqualByComparingTo("8.00");
     }
 
     @Test

@@ -17,6 +17,8 @@ interface PriceAlertRepository extends JpaRepository<PriceAlert, UUID> {
 
     Optional<PriceAlert> findByIdAndUserId(UUID id, UUID userId);
 
+    long countByUserIdAndActiveTrue(UUID userId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select alert from PriceAlert alert

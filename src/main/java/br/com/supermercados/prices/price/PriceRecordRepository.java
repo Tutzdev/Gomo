@@ -1,5 +1,6 @@
 package br.com.supermercados.prices.price;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,9 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
     List<StorePriceUpdate> findStoreUpdates(@Param("storeIds") Collection<UUID> storeIds);
 
     Page<PriceRecord> findByProductIdAndStoreId(UUID productId, UUID storeId, Pageable pageable);
+
+    Page<PriceRecord> findByProductIdAndStoreIdAndCollectedAtGreaterThanEqual(
+            UUID productId, UUID storeId, Instant since, Pageable pageable);
 
     Optional<PriceRecord> findBySourceIdAndSourceReference(UUID sourceId, String sourceReference);
 

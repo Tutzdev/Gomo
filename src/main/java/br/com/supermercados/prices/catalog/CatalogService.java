@@ -1,14 +1,17 @@
 package br.com.supermercados.prices.catalog;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -31,6 +34,10 @@ import br.com.supermercados.prices.product.Product;
 import br.com.supermercados.prices.product.ProductRepository;
 import br.com.supermercados.prices.store.StoreResponse;
 import br.com.supermercados.prices.store.StoreService;
+import br.com.supermercados.prices.subscription.ComparisonAccess;
+import br.com.supermercados.prices.subscription.FreePlan;
+import br.com.supermercados.prices.subscription.PlanLimit;
+import br.com.supermercados.prices.subscription.PlanLimitException;
 
 @Service
 @Transactional(readOnly = true)
@@ -129,16 +136,83 @@ public class CatalogService {
                 + (requirePrice ? "priced_stores > 0" : "TRUE");
     }
 
-    public CatalogItemDetailResponse find(UUID itemId, UUID cityId, List<UUID> storeIds) {
+    /**
+     * Stores with a current price for the item, cheapest first. A free plan sees only the cheapest stores of the
+     * whole city: a store filter narrows that view but never reveals a store outside it.
+     */
+    public CatalogItemDetailResponse find(UUID itemId, UUID cityId, List<UUID> storeIds, ComparisonAccess access) {
         CatalogItem item = require(itemId);
         List<StoreResponse> selected = comparisonStores(cityId, storeIds);
+        List<StoreResponse> ranked = access.premium() ? selected : comparisonStores(cityId, null);
+        List<CatalogItemDetailResponse.StoreOffer> rankedOffers = rankOffers(itemId, ranked);
+
+        Set<UUID> selectedIds = selected.stream().map(StoreResponse::id).collect(Collectors.toSet());
+        List<CatalogItemDetailResponse.StoreOffer> selectedOffers = rankedOffers.stream()
+                .filter(offer -> selectedIds.contains(offer.storeId())).toList();
+        List<CatalogItemDetailResponse.StoreOffer> visibleOffers = access.visibleOf(rankedOffers).stream()
+                .filter(offer -> selectedIds.contains(offer.storeId())).toList();
+
+        return new CatalogItemDetailResponse(respond(List.of(item), selected).getFirst(), visibleOffers,
+                selected.size() - selectedOffers.size(),
+                access.withLockedStores(selectedOffers.size() - visibleOffers.size()));
+    }
+
+    /**
+     * Daily lowest price per store over the Premium history window, for the price-variation chart. A promotion
+     * counts under the same rule as {@link PricePolicy}: unconditional and valid when it was collected.
+     */
+    public CatalogItemHistoryResponse history(UUID itemId, UUID cityId, List<UUID> storeIds, boolean premium) {
+        if (!premium) {
+            throw new PlanLimitException(PlanLimit.PRICE_HISTORY, "O histórico de preços faz parte do Premium.");
+        }
+        require(itemId);
+        Instant since = clock.instant().minus(FreePlan.PREMIUM_HISTORY);
+        List<StoreResponse> selected = comparisonStores(cityId, storeIds);
+        List<UUID> productIds = items.findProductIds(itemId);
+        if (selected.isEmpty() || productIds.isEmpty()) {
+            return new CatalogItemHistoryResponse(itemId, since, List.of());
+        }
+
+        Map<UUID, List<CatalogItemHistoryResponse.PricePoint>> pointsByStore = new LinkedHashMap<>();
+        jdbc.query("""
+                SELECT store_id,
+                       CAST(collected_at AT TIME ZONE 'America/Sao_Paulo' AS DATE) AS price_day,
+                       MIN(CASE
+                               WHEN promotional_price IS NOT NULL AND promotion_condition IS NULL
+                                    AND promotion_valid_until > collected_at THEN promotional_price
+                               ELSE regular_price
+                           END) AS lowest_price
+                FROM price_records
+                WHERE product_id IN (:productIds) AND store_id IN (:storeIds) AND collected_at >= :since
+                  AND availability <> 'UNAVAILABLE'
+                GROUP BY store_id, price_day
+                ORDER BY store_id, price_day
+                """, new MapSqlParameterSource()
+                .addValue("productIds", productIds)
+                .addValue("storeIds", selected.stream().map(StoreResponse::id).toList())
+                .addValue("since", Timestamp.from(since)), row -> {
+            pointsByStore.computeIfAbsent(row.getObject("store_id", UUID.class), ignored -> new ArrayList<>())
+                    .add(new CatalogItemHistoryResponse.PricePoint(
+                            row.getObject("price_day", LocalDate.class), row.getBigDecimal("lowest_price")));
+        });
+
+        List<CatalogItemHistoryResponse.StoreSeries> series = selected.stream()
+                .filter(store -> pointsByStore.containsKey(store.id()))
+                .sorted(Comparator.comparing(StoreResponse::name, String.CASE_INSENSITIVE_ORDER))
+                .map(store -> new CatalogItemHistoryResponse.StoreSeries(store.id(), store.name(),
+                        pointsByStore.get(store.id())))
+                .toList();
+        return new CatalogItemHistoryResponse(itemId, since, series);
+    }
+
+    // Only real, current prices are compared; a store without one is counted, never listed as a fake row.
+    private List<CatalogItemDetailResponse.StoreOffer> rankOffers(UUID itemId, List<StoreResponse> stores) {
         Instant now = clock.instant();
         List<UUID> productIds = items.findProductIds(itemId);
         Map<UUID, Product> byId = products.findAllById(productIds).stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
-        Map<UUID, PriceRecord> best = bestByStore(productIds, selected, now);
-        // Only real, current prices are compared; a store without one is counted, never listed as a fake row.
-        List<CatalogItemDetailResponse.StoreOffer> offers = selected.stream()
+        Map<UUID, PriceRecord> best = bestByStore(productIds, stores, now);
+        return stores.stream()
                 .filter(store -> policy.quote(best.get(store.id()), now).unitPrice() != null).map(store -> {
             PriceRecord record = best.get(store.id());
             PriceQuote quote = policy.quote(record, now);
@@ -152,8 +226,6 @@ public class CatalogService {
         }).sorted(Comparator.comparing((CatalogItemDetailResponse.StoreOffer offer) -> offer.price().unitPrice(),
                 Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(CatalogItemDetailResponse.StoreOffer::storeName))
                 .toList();
-        return new CatalogItemDetailResponse(respond(List.of(item), selected).getFirst(), offers,
-                selected.size() - offers.size());
     }
 
     public CatalogItem require(UUID itemId) {

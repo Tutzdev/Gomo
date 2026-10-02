@@ -45,7 +45,7 @@ public class AuthService {
         User user = new User(request.name(), email, passwordEncoder.encode(request.password()), clock.instant());
         User savedUser = users.saveAndFlush(user);
         accounts.issueEmailVerification(savedUser);
-        return UserResponse.from(savedUser);
+        return UserResponse.from(savedUser, clock.instant());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -60,7 +60,7 @@ public class AuthService {
         }
         User authenticatedUser = user.orElseThrow();
         TokenService.IssuedToken token = tokens.issue(authenticatedUser.getId());
-        return new AuthResponse(token.value(), "Bearer", token.expiresAt(), UserResponse.from(authenticatedUser));
+        return new AuthResponse(token.value(), "Bearer", token.expiresAt(), UserResponse.from(authenticatedUser, clock.instant()));
     }
 
     private ApiException invalidCredentials() {

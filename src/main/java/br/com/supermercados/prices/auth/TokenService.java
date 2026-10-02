@@ -44,11 +44,12 @@ public class TokenService {
                 || !rawToken.matches("[A-Za-z0-9_-]{43}")) {
             return Optional.empty();
         }
-        return tokens.findByTokenHashAndExpiresAtAfter(SecureTokenValues.hash(rawToken), clock.instant())
+        Instant now = clock.instant();
+        return tokens.findByTokenHashAndExpiresAtAfter(SecureTokenValues.hash(rawToken), now)
                 .map(token -> token.getUser() == null
                         ? new AuthenticatedUser(token.getUserId())
                         : new AuthenticatedUser(token.getUserId(), token.getUser().getRole(),
-                                token.getUser().isEmailVerified()));
+                                token.getUser().isEmailVerified(), token.getUser().hasPremiumAccess(now)));
     }
 
     @Transactional

@@ -20,14 +20,14 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserResponse findCurrentUser(UUID userId) {
-        return UserResponse.from(requireUser(userId));
+        return UserResponse.from(requireUser(userId), clock.instant());
     }
 
     @Transactional
     public UserResponse updateCurrentUser(UUID userId, UpdateUserRequest request) {
         User user = requireUser(userId);
         user.rename(request.name(), clock.instant());
-        return UserResponse.from(user);
+        return UserResponse.from(user, clock.instant());
     }
 
     private User requireUser(UUID userId) {

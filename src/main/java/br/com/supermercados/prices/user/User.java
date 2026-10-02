@@ -7,6 +7,9 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import br.com.supermercados.prices.subscription.BillingCycle;
+import br.com.supermercados.prices.subscription.PremiumSource;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
@@ -36,6 +39,16 @@ public class User {
 
     @Column(nullable = false)
     private boolean subscriber;
+
+    @Column(name = "premium_trial_started_at")
+    private Instant premiumTrialStartedAt;
+
+    @Column(name = "premium_trial_ends_at")
+    private Instant premiumTrialEndsAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preferred_billing_cycle", length = 16)
+    private BillingCycle preferredBillingCycle;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -88,6 +101,50 @@ public class User {
         }
     }
 
+    /** The trial is offered once per account and never to someone who already has Premium. */
+    public boolean isTrialAvailable(Instant now) {
+        return premiumTrialStartedAt == null && premiumSource(now) == PremiumSource.NONE;
+    }
+
+    public void startPremiumTrial(Duration length, BillingCycle billingCycle, Instant now) {
+        if (!isTrialAvailable(now)) {
+            throw new IllegalStateException("Premium trial is not available for this account");
+        }
+        premiumTrialStartedAt = now;
+        premiumTrialEndsAt = now.plus(length);
+        preferredBillingCycle = billingCycle;
+        updatedAt = now;
+    }
+
+    /** Ends an active trial right away; the account returns to the free plan. */
+    public void cancelPremiumTrial(Instant now) {
+        if (isTrialActive(now)) {
+            premiumTrialEndsAt = now;
+            updatedAt = now;
+        }
+    }
+
+    public PremiumSource premiumSource(Instant now) {
+        if (role == UserRole.ADMIN) {
+            return PremiumSource.ADMIN;
+        }
+        if (subscriber) {
+            return PremiumSource.SUBSCRIPTION;
+        }
+        if (isTrialActive(now)) {
+            return PremiumSource.TRIAL;
+        }
+        return PremiumSource.NONE;
+    }
+
+    public boolean hasPremiumAccess(Instant now) {
+        return premiumSource(now) != PremiumSource.NONE;
+    }
+
+    private boolean isTrialActive(Instant now) {
+        return premiumTrialEndsAt != null && premiumTrialEndsAt.isAfter(now);
+    }
+
     public void changePassword(String passwordHash, Instant now) {
         this.passwordHash = passwordHash;
         updatedAt = now;
@@ -123,6 +180,14 @@ public class User {
 
     public boolean isSubscriber() {
         return subscriber;
+    }
+
+    public Instant getPremiumTrialEndsAt() {
+        return premiumTrialEndsAt;
+    }
+
+    public BillingCycle getPreferredBillingCycle() {
+        return preferredBillingCycle;
     }
 
     public Instant getCreatedAt() {

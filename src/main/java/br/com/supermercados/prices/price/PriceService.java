@@ -6,6 +6,9 @@ import br.com.supermercados.prices.common.PageResponse;
 import br.com.supermercados.prices.datasource.DataSourceService;
 import br.com.supermercados.prices.product.ProductService;
 import br.com.supermercados.prices.store.StoreRepository;
+import br.com.supermercados.prices.subscription.FreePlan;
+import br.com.supermercados.prices.subscription.PlanLimit;
+import br.com.supermercados.prices.subscription.PlanLimitException;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import java.time.Clock;
@@ -46,6 +49,18 @@ public class PriceService {
         requireProductAndStore(productId, storeId);
         return PageResponse.from(prices.findByProductIdAndStoreId(productId, storeId, pageable)
                 .map(PriceRecordResponse::from));
+    }
+
+    /** The history people see in the app: Premium only, limited to the Premium history window. */
+    public PageResponse<PriceRecordResponse> findRecentHistory(UUID productId, UUID storeId, Pageable pageable,
+            boolean premium) {
+        if (!premium) {
+            throw new PlanLimitException(PlanLimit.PRICE_HISTORY, "O histórico de preços faz parte do Premium.");
+        }
+        requireProductAndStore(productId, storeId);
+        Instant since = clock.instant().minus(FreePlan.PREMIUM_HISTORY);
+        return PageResponse.from(prices.findByProductIdAndStoreIdAndCollectedAtGreaterThanEqual(
+                productId, storeId, since, pageable).map(PriceRecordResponse::from));
     }
 
     /** Internal ingestion boundary. Reusing a source reference with changed content is a conflict. */
