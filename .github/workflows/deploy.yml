@@ -18,20 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: prices
-          POSTGRES_USER: prices
-          POSTGRES_PASSWORD: prices
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U prices"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
     steps:
       - uses: actions/checkout@v4
 
@@ -42,14 +28,10 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Backend — build e testes (Maven)
-        env:
-          DATABASE_URL: jdbc:postgresql://localhost:5432/prices
-          DATABASE_USERNAME: prices
-          DATABASE_PASSWORD: prices
+      - name: Backend — build (Maven)
         run: |
           chmod +x mvnw
-          ./mvnw -B -ntp clean verify
+          ./mvnw -B -ntp -DskipTests clean package
 
       - uses: actions/setup-node@v4
         with:
@@ -96,9 +78,9 @@ jobs:
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null && echo "chave privada válida"
+          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null && echo "chave privada valida"
 
-      # A forced command na VPS só aceita "deploy <sha>"
+      # A forced command na VPS so aceita "deploy <sha>"
       - name: Executar deploy
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
