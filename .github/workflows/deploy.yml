@@ -1,0 +1,127 @@
+name: Deploy Gomo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gomo-production
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gomo
+          POSTGRES_PASSWORD: gomo
+          POSTGRES_DB: gomo_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U gomo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://gomo:gomo@localhost:5432/gomo_test
+      DB_NAME: gomo_test
+      DB_USER: gomo
+      DB_PASSWORD: gomo
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      SECRET_KEY: ci-only-not-a-secret
+      DEBUG: "False"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detectar estrutura do repo
+        run: |
+          B=backend; [ -d backend ] || B=.
+          F=""; for d in frontend web client; do [ -f "$d/package.json" ] && { F=$d; break; }; done
+          if [ -z "$F" ] && [ "$B" != "." ] && [ -f package.json ]; then F=.; fi
+          echo "BACKEND_DIR=$B"  >> "$GITHUB_ENV"
+          echo "FRONTEND_DIR=$F" >> "$GITHUB_ENV"
+          echo "backend: $B | frontend: ${F:-nenhum}"
+
+      # ── Backend ───────────────────────────────────────────
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Backend — dependências
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          python -m pip install -q --upgrade pip
+          if [ -f requirements.txt ]; then pip install -q -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -q -r requirements-dev.txt; fi
+
+      - name: Backend — migrations + testes
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          if [ -f manage.py ]; then
+            python manage.py migrate --noinput
+            python manage.py test
+          else
+            if [ -f alembic.ini ]; then alembic upgrade head; fi
+            if python -c "import pytest" 2>/dev/null; then python -m pytest -q || [ $? -eq 5 ]; fi
+          fi
+
+      # ── Frontend ──────────────────────────────────────────
+      - uses: actions/setup-node@v4
+        if: env.FRONTEND_DIR != ''
+        with:
+          node-version: "20"
+
+      - name: Frontend — typecheck + build
+        if: env.FRONTEND_DIR != ''
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: |
+          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+          if [ -f tsconfig.json ]; then npx tsc --noEmit; fi
+          npm run build
+
+  deploy:
+    name: Deploy na VPS
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
+    steps:
+      - name: Configurar SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # A forced command na VPS só aceita "deploy <sha>"
+      - name: Executar deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${VPS_PORT:-22}" \
+              -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes \
+              -o ConnectTimeout=15 -o ServerAliveInterval=30 \
+              "${VPS_USER}@${VPS_HOST}" "deploy ${GITHUB_SHA}"
+
+      - name: Remover chave
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
