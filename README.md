@@ -11,23 +11,16 @@
   <img src="https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white" alt="Java 21">
   <img src="https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1">
   <img src="https://img.shields.io/badge/PostgreSQL-31_migrações_Flyway-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + Flyway">
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19">
-  <img src="https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind 4">
+  <img src="https://img.shields.io/badge/Spring_Security-tokens_opacos-6DB33F?logo=springsecurity&logoColor=white" alt="Spring Security">
   <img src="https://img.shields.io/badge/testes-248-success" alt="248 testes">
   <img src="https://img.shields.io/badge/deploy-GitHub_Actions_→_VPS-2088FF?logo=githubactions&logoColor=white" alt="Deploy contínuo">
 </p>
 
-![Landing do Gomo com a comparação de preços desenhada a partir de dados reais](docs/screenshots/landing.png)
-
 ## O que é
 
-O Gomo é um **SaaS completo**, do scraping ao deploy: **9 supermercados** de Volta Redonda e região, coletados **4 vezes por dia**, num catálogo de **~9,3 mil produtos comparáveis**. Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
+O Gomo é um **SaaS com backend em Java/Spring Boot**, do scraping ao deploy: **9 supermercados** de Volta Redonda e região, coletados **4 vezes por dia**, num catálogo de **~9,3 mil produtos comparáveis**. Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
 
 O valor do produto está numa regra simples e difícil de cumprir: **a busca devolve um produto genérico ("Coca-Cola 2 L"), nunca o anúncio de cada loja, e a comparação mostra só mercados com preço real e atual.** Nada de linha "indisponível" ou preço vencido.
-
-<p align="center">
-  <img src="docs/screenshots/landing-mobile.png" alt="Gomo no celular" width="280">
-</p>
 
 ## Os problemas difíceis
 
@@ -81,14 +74,14 @@ flowchart LR
     GUARD --> DB[(PostgreSQL)]
     DB --> CAT[CatalogBuilder<br/>catálogo genérico]
     CAT --> DB
-    WEB[React SPA] -->|/api/v1| NG[Nginx]
+    WEB[Cliente web] -->|/api/v1| NG[Nginx]
     NG --> API[Spring Boot API]
     API --> DB
 ```
 
 O backend é organizado **por funcionalidade**: `auth`, `catalog`, `collection`, `comparison`, `shoppinglist`, `subscription`, `alert`, `contribution`, `admin`, `price`, `product`, `store`, `location` e `user`. Cada pacote tem seus controllers, services, repositories e DTOs. As entidades nunca são expostas pela API.
 
-O frontend (`frontend/`) usa React 19, TypeScript, Vite, Tailwind CSS 4, TanStack Query e Zod, organizado em `features/` (auth, catalog, shopping-lists, plan, landing).
+A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publicada junto no mesmo domínio.
 
 ## Segurança
 
