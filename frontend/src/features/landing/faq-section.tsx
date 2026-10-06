@@ -30,8 +30,8 @@ const faq = [
 
 export function FaqSection() {
   return (
-    <section id="duvidas" className="landing-section scroll-mt-24" aria-labelledby="faq-title">
-      <div className="landing-container landing-faq">
+    <section id="duvidas" className="landing-band scroll-mt-20" aria-labelledby="faq-title">
+      <div className="landing-frame landing-faq">
         <div className="landing-heading">
           <h2 id="faq-title" className="landing-heading__title">Dúvidas frequentes</h2>
           <p className="landing-heading__text">O que costumam perguntar antes de assinar.</p>
