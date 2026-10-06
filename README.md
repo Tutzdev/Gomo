@@ -1,121 +1,137 @@
-# Gomo
+<p align="center">
+  <img src="gomo-logo.png" alt="Gomo" height="64">
+</p>
 
-API REST desenvolvida para comparar preços de produtos entre supermercados e ajudar o usuário a encontrar a melhor opção de compra com base na sua cidade e lista de compras.
+<p align="center">
+  <strong>Comparador de preços de supermercado em produção.</strong><br>
+  Você monta a lista de compras e o Gomo mostra, com os preços de hoje, em qual mercado da cidade ela sai mais barata.
+</p>
 
-O projeto foi construído com foco em organização, segurança, regras de negócio bem definidas e facilidade de manutenção.
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white" alt="Java 21">
+  <img src="https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1">
+  <img src="https://img.shields.io/badge/PostgreSQL-31_migrações_Flyway-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + Flyway">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19">
+  <img src="https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind 4">
+  <img src="https://img.shields.io/badge/testes-248-success" alt="248 testes">
+  <img src="https://img.shields.io/badge/deploy-GitHub_Actions_→_VPS-2088FF?logo=githubactions&logoColor=white" alt="Deploy contínuo">
+</p>
 
-Stack do backend: Java 21, Spring Boot 4.1.1, Maven Wrapper, Spring MVC, Data JPA, Security, Bean Validation, Actuator, PostgreSQL, Flyway e OpenAPI. A autenticação usa tokens opacos persistidos somente por hash. A interface Gomo fica em `frontend/` e utiliza React, TypeScript, Vite, Tailwind CSS e TanStack Query.
+![Landing do Gomo com a comparação de preços desenhada a partir de dados reais](docs/screenshots/landing.png)
 
-## Reiniciar o ambiente local existente
+## O que é
 
-Para o uso diário nesta máquina Windows, use a configuração persistente em `.local/runtime.json`. Ela aponta para o mesmo PostgreSQL que contém as contas, assinaturas e coletas. O exemplo de formato está em `scripts/local-runtime.example.json`; caminhos e portas devem corresponder ao banco existente. A senha fica no arquivo local indicado por `passwordFile`, nunca no Git.
+O Gomo é um **SaaS completo**, do scraping ao deploy: **9 supermercados** de Volta Redonda e região, coletados **4 vezes por dia**, num catálogo de **~9,3 mil produtos comparáveis**. Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
 
-Em dois terminais na raiz do repositório:
+O valor do produto está numa regra simples e difícil de cumprir: **a busca devolve um produto genérico ("Coca-Cola 2 L"), nunca o anúncio de cada loja, e a comparação mostra só mercados com preço real e atual.** Nada de linha "indisponível" ou preço vencido.
 
-```powershell
-.\scripts\start-local.ps1 -Service Backend
-```
+<p align="center">
+  <img src="docs/screenshots/landing-mobile.png" alt="Gomo no celular" width="280">
+</p>
 
-```powershell
-.\scripts\start-local.ps1 -Service Frontend
-```
+## Os problemas difíceis
 
-Abra `http://localhost:5173`. O script inicia o PostgreSQL já configurado se estiver parado e mantém a API na porta configurada (8081 nesta máquina). Ele não cria banco novo nem redefine contas/assinaturas. O frontend exige a porta 5173 livre para evitar trocar a origem que armazena a sessão. Pare a instância anterior antes de iniciar outra. O SMTP de desenvolvimento continua em `localhost:1025` para os fluxos de confirmação/recuperação por e-mail.
+### 1. Cada mercado escreve o mesmo produto de um jeito
 
-**Ao receber um pedido para iniciar ou reiniciar a aplicação, reutilize esse ambiente.** O roteiro de banco limpo em `docs/mvp-data-check.md` serve para validação isolada; não deve substituir o banco de uso diário. Uma falha temporária de rede permite tentar novamente sem apagar a sessão; um token efetivamente expirado continua exigindo novo login. Contas e assinaturas permanecem no banco, independentemente da duração do token.
+`Refr. Coca-cola 2lt Pet`, `REF COCA COLA 2L` e `Coca-Cola 2 Litros` são o mesmo item. O **catálogo genérico** reduz cada anúncio a uma chave de identidade (marca + variante + tamanho normalizado) e une as descrições equivalentes:
 
-O inicializador Windows usa os certificados confiáveis do sistema para validar HTTPS nas fontes públicas, mantendo a verificação TLS. O reinício automático do Java fica desativado nesse ambiente persistente: após alterar o backend, reinicie seu processo pelo mesmo script. Isso evita interromper uma coleta quando o Maven compila testes.
+| Anúncio do mercado | Chave |
+| --- | --- |
+| `Refr. Coca-cola 2lt Pet` | `COCA COLA\|1x2000ML` |
+| `Coca-Cola Sem Açúcar 2L` | `COCA COLA ZERO\|1x2000ML` |
+| `Acucar Granulado Uniao 1kg Pre` (cortado em 30 caracteres) | une com `Açúcar Granulado União Premium 1kg` |
 
-## Frontend Gomo
+- **Expande abreviações de ERP** (`IOG`, `REQ`, `ACHOC`, `DESOD`...), lê tamanhos repetidos ("200M 0.2 lt") e reconhece marcas com número ("3 Corações").
+- **Nunca une** sabor, variante ou embalagem diferente (zero, light, refil, sachê) e **descarta** kits, combos e "leve X pague Y".
+- **Trava de segurança:** se a mesma loja vende SKUs com as duas descrições, elas são produtos diferentes e não são unidas.
+- **IDs estáveis:** um item que perde mercados é desativado, nunca apagado, e as listas dos usuários migram sozinhas quando uma regra nova muda a chave.
 
-Com a API disponível em `http://localhost:8080`, execute:
+Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/product-equivalence.md`](docs/product-equivalence.md).
 
-```powershell
-cd frontend
-Copy-Item .env.example .env
-npm install
-npm run dev
-```
+### 2. Coletar preço de sites que não foram feitos para isso
 
-A interface fica em `http://localhost:5173`. Para permitir as chamadas locais, configure `CORS_ALLOWED_ORIGINS=http://localhost:5173` no backend. A URL da API pode ser alterada em `frontend/.env` por meio de `VITE_API_BASE_URL`.
+- **7 tipos de coletor** (`nagumo`, `royal`, `vip`, `mercafacil`, `atacadao`, `hortifruti`, `flyer`), cada um com timeout, número de tentativas, limite de tamanho de resposta e intervalo entre requisições configuráveis.
+- **Coleta paralela** (3 lojas ao mesmo tempo) com gravação sequencial no banco.
+- **`PriceChangeGuard`:** um preço que varia fora da faixa esperada em relação ao anterior (ex.: erro de digitação do mercado) não é publicado e vai para uma fila de revisão.
+- **Agendamento** 4x ao dia. Na subida, só os coletores com mais de 8 h sem coleta concluída rodam de novo.
+- **Servidor novo pronto sozinho:** com o banco vazio, a aplicação carrega snapshots comprimidos dos 9 mercados e monta o catálogo (~15 min, cabe em 512 MB de heap).
 
-O checkout e o paywall visual não simulam pagamento. Enquanto a integração de cobrança não estiver disponível, uma conta existente pode receber acesso de assinante por meio de `SUBSCRIBER_BOOTSTRAP_EMAIL`; o Docker Compose encaminha essa variável ao backend. Checkout, portal, cancelamento e confirmação de pagamentos por webhook ainda precisam ser integrados.
+### 3. Comparar uma lista inteira, não um produto
+
+`ShoppingComparisonService` calcula para cada lista o total por mercado, a cobertura (quantos itens cada um tem), o subtotal parcial quando falta item e a **melhor combinação dividindo a compra entre lojas** (`SplitSavings`).
 
 ## Funcionalidades
 
-* Cadastro e autenticação de usuários
-* Verificação de e-mail e recuperação de senha
-* Catálogo de produtos, redes e supermercados
-* Histórico e comparação de preços
-* Coleta automática diária de fontes públicas verificadas
-* Criação e gerenciamento de listas de compras
-* Comparação completa de uma lista entre supermercados
-* Recomendação da melhor opção de compra
-* Preferência de cidade e lojas favoritas
-* Alertas de preço
-* Notificações internas
-* Envio de preços pela comunidade
-* Moderação de contribuições
-* Controle de acesso para administradores
-* Auditoria de operações administrativas
-
-A busca, as listas e as comparações usam o catálogo genérico: um item por produto real ("Coca-Cola 2 L"), vinculado aos anúncios equivalentes de cada mercado. Veja [`docs/generic-catalog.md`](docs/generic-catalog.md).
-
-As fontes comerciais atualmente verificadas, suas limitações e a operação dos coletores estão descritas em [`docs/data-sources.md`](docs/data-sources.md).
-
-### Coleta de preços em produção
-
-* **Servidor novo:** se o banco não tem nenhum preço, o backend carrega na subida as coletas incluídas no app (`src/main/resources/seed/catalog-snapshots`, uma por mercado) e monta o catálogo de comparação. Leva uns 15 minutos e cabe em 512 MB de heap; o site já abre enquanto isso. Desligue com `PRICE_COLLECTION_SEED_WHEN_EMPTY=false`.
-* **Depois:** 4 vezes por dia (`PRICE_COLLECTION_CRON`, padrão 6h, 11h, 16h e 21h) a coleta atualiza os preços dos produtos que já existem. Produto novo nos mercados só entra numa coleta completa (`PRICE_COLLECTION_EXISTING_ONLY=false` ou `POST /api/v1/admin/collections` como administrador).
-* **Atualizar as sementes:** depois de uma coleta completa local com `APP_COLLECTION_ARCHIVE_DIRECTORY` configurado, comprima cada `.local/catalog-snapshots/<mercado>.json` para `<mercado>.json.gz` nessa pasta.
-* **Atacadão:** as unidades revisadas (São Geraldo e Vila Rica) são registradas na subida, então a coleta online funciona mesmo com os encartes revisados vencidos; os coletores de encarte só voltam a publicar ofertas depois de uma nova revisão.
-
-O MVP coleta os departamentos públicos de Nagumo Ponte Alta e Royal Retiro, com vínculos explícitos entre produtos revisados. A busca da lista percorre todo o catálogo por páginas; cada mercado possui seu catálogo com preços e datas. A comparação mostra cobertura, faltantes, total completo ou subtotal parcial e a menor combinação por item. O roteiro inicial está em [`docs/mvp-data-check.md`](docs/mvp-data-check.md), e a ampliação com validação de 20 produtos em [`docs/catalog-list-validation.md`](docs/catalog-list-validation.md). Se a porta 8080 estiver ocupada por outro serviço, use `PORT=8081` no backend e `VITE_API_BASE_URL=http://localhost:8081/api/v1` em `frontend/.env.local`.
-
-## Tecnologias
-
-* Java 21
-* Spring Boot 4
-* Spring MVC
-* Spring Data JPA
-* Spring Security
-* PostgreSQL
-* Flyway
-* Maven
-* Docker
-* OpenAPI
-* Bean Validation
-* Spring Boot Actuator
+- **Contas:** cadastro com verificação de e-mail, recuperação de senha com token de uso único e revogação de sessões.
+- **Busca** que entende tamanho ("coca 1 litro") e só devolve itens com preço atual na cidade.
+- **Comparação** por produto e por lista, do mais barato ao mais caro, com histórico de preços.
+- **Listas de compras**, cidade preferida, lojas favoritas e **alertas de preço** com notificações internas.
+- **Contribuições da comunidade** com moderação, e área administrativa com auditoria.
+- **Freemium** aplicado no backend: plano gratuito com limites (3 mercados mais baratos, 5 comparações completas por dia, 1 lista) que respondem `403 PLAN_LIMIT`, e trial de 7 dias sem cartão.
 
 ## Arquitetura
 
-O projeto é organizado por funcionalidades, mantendo responsabilidades bem definidas entre as diferentes camadas da aplicação.
-
-```text
-Controller
-    |
-Service
-    |
-Repository
-    |
-PostgreSQL
+```mermaid
+flowchart LR
+    subgraph Fontes [Sites dos mercados]
+        N[Nagumo] & R[Royal / VIP] & A[Atacadão] & O[...]
+    end
+    Fontes -->|HTTP agendado| COL[Coletores<br/>paralelos]
+    COL --> GUARD[PriceChangeGuard]
+    GUARD --> DB[(PostgreSQL)]
+    DB --> CAT[CatalogBuilder<br/>catálogo genérico]
+    CAT --> DB
+    WEB[React SPA] -->|/api/v1| NG[Nginx]
+    NG --> API[Spring Boot API]
+    API --> DB
 ```
 
-Os controllers são responsáveis pela comunicação HTTP, os services concentram as regras de negócio e transações, enquanto os repositories realizam a persistência dos dados.
+O backend é organizado **por funcionalidade**: `auth`, `catalog`, `collection`, `comparison`, `shoppinglist`, `subscription`, `alert`, `contribution`, `admin`, `price`, `product`, `store`, `location` e `user`. Cada pacote tem seus controllers, services, repositories e DTOs. As entidades nunca são expostas pela API.
 
-DTOs são utilizados para evitar a exposição direta das entidades da aplicação.
+O frontend (`frontend/`) usa React 19, TypeScript, Vite, Tailwind CSS 4, TanStack Query e Zod, organizado em `features/` (auth, catalog, shopping-lists, plan, landing).
 
 ## Segurança
 
-A API possui autenticação baseada em tokens opacos.
+- **Tokens opacos** guardados no banco **só como hash**, com expiração e revogação. Nada de JWT impossível de invalidar.
+- Senhas com **BCrypt** e política de tamanho (12 a 72 caracteres).
+- **Rate limiting** de tentativas de login e de fluxos sensíveis (`AttemptRateLimiter`, `AbuseProtectionService`).
+- Tokens de **uso único** para verificação de e-mail e redefinição de senha.
+- Controle de acesso por papéis e **auditoria** das operações administrativas.
+- Em produção, a API fica no **mesmo domínio** do site (`/api/v1` via Nginx), com `forward-headers-strategy=native` e CORS restrito.
+- Segredos só por variáveis de ambiente. Veja [`.env.example`](.env.example).
 
-Os tokens são armazenados somente através de hash e possuem tempo de expiração.
+## Qualidade e entrega
 
-Também estão implementados:
+- **248 testes** (JUnit 5, Spring Boot Test e MockMvc): parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência.
+- **31 migrações Flyway** versionadas, com o Hibernate só validando o schema.
+- **Deploy contínuo:** push na `main` → GitHub Actions (build do backend e do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`. A chave do deploy só aceita esse comando.
+- **Docker Compose** com API, PostgreSQL e Mailpit para rodar o ambiente completo.
 
-* BCrypt para armazenamento de senhas
-* Controle de acesso por roles
-* Rate limiting
-* Revogação de sessões
-* Tokens de uso único para recuperação de senha
-* Verificação de e-ma
+## Como rodar
+
+Com Docker:
+
+```bash
+cp .env.example .env        # ajuste DATABASE_USERNAME e DATABASE_PASSWORD
+docker compose up --build
+```
+
+Sem Docker (JDK 21, Node 20+ e PostgreSQL):
+
+```bash
+./mvnw spring-boot:run                  # API, com as variáveis de .env.example
+
+cd frontend
+cp .env.example .env
+npm install && npm run dev              # http://localhost:5173
+```
+
+O guia completo do ambiente local, da coleta e das sementes está em [`docs/local-development.md`](docs/local-development.md). As fontes de dados e suas limitações estão em [`docs/data-sources.md`](docs/data-sources.md).
+
+## Status
+
+Em produção. Já estão no ar: coleta, catálogo, comparação, listas, alertas e plano gratuito. A cobrança do plano pago (checkout e webhooks) **ainda não está integrada**: hoje o acesso premium vem do trial.
+
+---
+
+Desenvolvido por **[Tutzdev](https://github.com/Tutzdev)**.
