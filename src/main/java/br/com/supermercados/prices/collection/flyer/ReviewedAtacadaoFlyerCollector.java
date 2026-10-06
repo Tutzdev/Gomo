@@ -46,6 +46,11 @@ public final class ReviewedAtacadaoFlyerCollector implements SupermarketCollecto
                 "atacadao:store:" + storeId, UUID.fromString("5c4cb935-52e1-4bf8-8d17-902dc0837c66"));
     }
 
+    /** The reviewed unit, registered at startup even when no flyer is valid (see {@link ReviewedStoreDirectory}). */
+    public CollectedStore store() {
+        return store;
+    }
+
     @Override
     public CollectedCatalog collect() {
         ReviewedFlyers reviewed;

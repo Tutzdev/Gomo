@@ -3,6 +3,7 @@ package br.com.supermercados.prices.collection;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +84,30 @@ class CollectionCoordinatorTest {
                 .containsExactly(CollectionStatus.FAILED, CollectionStatus.SUCCESS, CollectionStatus.SUCCESS);
         assertThat(first.collected).isTrue();
         assertThat(second.collected).isTrue();
+    }
+
+    @Test
+    void seedLoadsOnlyMarketsWithABundledSnapshotWithoutDownloadingOrArchiving() {
+        TestCollector seeded = new TestCollector("seeded", false);
+        TestCollector withoutSeed = new TestCollector("without_seed", false);
+        CollectedCatalogArchive archive = mock(CollectedCatalogArchive.class);
+        when(archive.hasSeed(seeded.metadata())).thenReturn(true);
+        when(archive.readSeed(seeded.metadata())).thenReturn(seeded.catalog());
+        when(runs.start(seeded.metadata())).thenReturn(response(seeded.metadata(), CollectionStatus.RUNNING));
+        when(ingestion.ingest(any(), any())).thenReturn(new CollectionResult(
+                UUID.randomUUID(), UUID.randomUUID(), 0, 0, 0, 0, 0, null));
+        when(runs.finish(any(), any())).thenReturn(response(seeded.metadata(), CollectionStatus.SUCCESS));
+        CollectionCompletedListener listener = mock(CollectionCompletedListener.class);
+        var coordinator = new CollectionCoordinator(List.of(seeded, withoutSeed), ingestion, runs, archive, Duration.ZERO, 3);
+        coordinator.setListeners(List.of(listener));
+
+        assertThat(coordinator.seedFromBundledSnapshots()).extracting(CollectionRunResponse::status)
+                .containsExactly(CollectionStatus.SUCCESS);
+        assertThat(seeded.collected).isFalse();
+        assertThat(withoutSeed.collected).isFalse();
+        verify(ingestion).ingest(seeded.metadata(), seeded.catalog());
+        verify(archive, never()).save(any(), any());
+        verify(listener).collectionCompleted();
     }
 
     private CollectionRunResponse response(CollectorMetadata metadata, CollectionStatus status) {

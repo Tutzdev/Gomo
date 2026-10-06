@@ -75,46 +75,70 @@ public class CollectionCoordinator {
     }
 
     public List<CollectionRunResponse> collectSelected(String collectorCode) {
-        return collectSelected(collectorCode, false, false);
+        return collectSelected(collectorCode, CatalogOrigin.LIVE, false);
     }
 
     public List<CollectionRunResponse> refreshExisting(String collectorCode) {
-        return collectSelected(collectorCode, false, true);
+        return collectSelected(collectorCode, CatalogOrigin.LIVE, true);
     }
 
     /** Refreshes only the collectors whose code is not in {@code upToDate}, e.g. after the machine was off. */
     public List<CollectionRunResponse> refreshExistingExcept(java.util.Set<String> upToDate) {
         List<SupermarketCollector> stale = collectors.stream()
                 .filter(collector -> !upToDate.contains(collector.metadata().code())).toList();
-        return stale.isEmpty() ? List.of() : run(stale, false, true);
+        return stale.isEmpty() ? List.of() : run(stale, CatalogOrigin.LIVE, true);
     }
 
     public List<CollectionRunResponse> replayArchived(String collectorCode) {
-        return collectSelected(collectorCode, true, false);
+        return collectSelected(collectorCode, CatalogOrigin.ARCHIVE, false);
     }
 
     public List<CollectionRunResponse> replayExisting(String collectorCode) {
-        return collectSelected(collectorCode, true, true);
+        return collectSelected(collectorCode, CatalogOrigin.ARCHIVE, true);
     }
 
-    private List<CollectionRunResponse> collectSelected(String collectorCode, boolean replay, boolean existingOnly) {
+    /**
+     * Fills an empty database with the collections bundled in the application, one market at a time
+     * (reading every snapshot at once would need several times the memory). Live collections then keep
+     * the prices current.
+     */
+    public List<CollectionRunResponse> seedFromBundledSnapshots() {
+        List<SupermarketCollector> seeded = collectors.stream()
+                .filter(collector -> archive.hasSeed(collector.metadata())).toList();
+        if (seeded.isEmpty()) return List.of();
+        if (!running.compareAndSet(false, true)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Já existe uma coleta em andamento");
+        }
+        try {
+            List<CollectionRunResponse> results = new ArrayList<>();
+            for (SupermarketCollector collector : seeded) {
+                results.add(collect(collector, CatalogOrigin.SEED, false));
+            }
+            notifyListeners();
+            return List.copyOf(results);
+        } finally {
+            running.set(false);
+        }
+    }
+
+    private List<CollectionRunResponse> collectSelected(String collectorCode, CatalogOrigin origin, boolean existingOnly) {
         List<SupermarketCollector> selected = collectorCode == null ? collectors : collectors.stream()
                 .filter(collector -> collector.metadata().code().equals(collectorCode)).toList();
         if (selected.isEmpty() && collectorCode != null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Coletor não encontrado");
         }
-        return run(selected, replay, existingOnly);
+        return run(selected, origin, existingOnly);
     }
 
-    private List<CollectionRunResponse> run(List<SupermarketCollector> selected, boolean replay, boolean existingOnly) {
+    private List<CollectionRunResponse> run(List<SupermarketCollector> selected, CatalogOrigin origin, boolean existingOnly) {
         if (!running.compareAndSet(false, true)) {
             throw new ApiException(HttpStatus.CONFLICT, "Já existe uma coleta em andamento");
         }
 
         try {
             List<CollectionRunResponse> results = parallelism > 1 && selected.size() > 1
-                    ? collectInParallel(selected, replay, existingOnly)
-                    : collectInSequence(selected, replay, existingOnly);
+                    ? collectInParallel(selected, origin, existingOnly)
+                    : collectInSequence(selected, origin, existingOnly);
             notifyListeners();
             return List.copyOf(results);
         } finally {
@@ -123,25 +147,25 @@ public class CollectionCoordinator {
     }
 
     private List<CollectionRunResponse> collectInSequence(
-            List<SupermarketCollector> selected, boolean replay, boolean existingOnly) {
+            List<SupermarketCollector> selected, CatalogOrigin origin, boolean existingOnly) {
         List<CollectionRunResponse> results = new ArrayList<>();
         for (int index = 0; index < selected.size(); index++) {
             if (index > 0 && !waitBeforeNextCollector()) {
                 break;
             }
-            results.add(collect(selected.get(index), replay, existingOnly));
+            results.add(collect(selected.get(index), origin, existingOnly));
         }
         return results;
     }
 
     /** Results keep the collectors' order; one collector failing never stops the others. */
     private List<CollectionRunResponse> collectInParallel(
-            List<SupermarketCollector> selected, boolean replay, boolean existingOnly) {
+            List<SupermarketCollector> selected, CatalogOrigin origin, boolean existingOnly) {
         var pool = java.util.concurrent.Executors.newFixedThreadPool(Math.min(parallelism, selected.size()),
                 Thread.ofPlatform().name("collector-", 1).daemon().factory());
         try {
             List<java.util.concurrent.Future<CollectionRunResponse>> futures = selected.stream()
-                    .map(collector -> pool.submit(() -> collect(collector, replay, existingOnly))).toList();
+                    .map(collector -> pool.submit(() -> collect(collector, origin, existingOnly))).toList();
             List<CollectionRunResponse> results = new ArrayList<>();
             for (var future : futures) {
                 try {
@@ -161,16 +185,20 @@ public class CollectionCoordinator {
         }
     }
 
-    private CollectionRunResponse collect(SupermarketCollector collector, boolean replay, boolean existingOnly) {
+    private CollectionRunResponse collect(SupermarketCollector collector, CatalogOrigin origin, boolean existingOnly) {
         CollectorMetadata metadata = collector.metadata();
         CollectionRunResponse run = runs.start(metadata);
         LOGGER.info("Coleta {} iniciada para {}", run.id(), metadata.code());
 
         try {
-            CollectedCatalog catalog = replay ? archive.read(metadata) : collector.collect();
+            CollectedCatalog catalog = switch (origin) {
+                case LIVE -> collector.collect();
+                case ARCHIVE -> archive.read(metadata);
+                case SEED -> archive.readSeed(metadata);
+            };
             CollectionRunResponse completed;
             synchronized (ingestionLock) {
-                if (!replay) {
+                if (origin == CatalogOrigin.LIVE) {
                     try {
                         archive.save(metadata, catalog);
                     } catch (RuntimeException exception) {
@@ -214,5 +242,10 @@ public class CollectionCoordinator {
             LOGGER.warn("Execução de coletores interrompida antes da próxima integração");
             return false;
         }
+    }
+
+    /** Where a collection's catalog comes from: the market's site, the local archive or the snapshots bundled in the app. */
+    private enum CatalogOrigin {
+        LIVE, ARCHIVE, SEED
     }
 }

@@ -1,16 +1,23 @@
 package br.com.supermercados.prices.collection;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.zip.GZIPInputStream;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import tools.jackson.databind.ObjectMapper;
 
-/** Optional public-data archive for retrying persistence without recollecting or changing timestamps. */
+/**
+ * Optional public-data archive for retrying persistence without recollecting or changing timestamps.
+ * The application also bundles one gzipped snapshot per market ({@code seed/catalog-snapshots}) to fill
+ * an empty database.
+ */
 @Component
 public class CollectedCatalogArchive {
 
@@ -43,15 +50,34 @@ public class CollectedCatalogArchive {
         Path source = path(metadata.code());
         try {
             if (Files.size(source) > 64_000_000) throw new IllegalStateException("Arquivo de coleta excessivamente grande");
-            ArchivedCatalog archived = mapper.readValue(Files.readString(source), ArchivedCatalog.class);
-            if (!metadata.sourceCode().equals(archived.metadata().sourceCode())
-                    || !metadata.storeSourceReference().equals(archived.metadata().storeSourceReference())) {
-                throw new IllegalStateException("Arquivo pertence a outra fonte ou unidade");
-            }
-            return archived.catalog();
+            return matching(metadata, mapper.readValue(Files.readString(source), ArchivedCatalog.class));
         } catch (IOException exception) {
             throw new IllegalStateException("Arquivo de coleta não encontrado ou ilegível", exception);
         }
+    }
+
+    public boolean hasSeed(CollectorMetadata metadata) {
+        return metadata.code().matches("[a-z0-9_]+") && seed(metadata.code()).exists();
+    }
+
+    public CollectedCatalog readSeed(CollectorMetadata metadata) {
+        try (InputStream input = new GZIPInputStream(seed(metadata.code()).getInputStream())) {
+            return matching(metadata, mapper.readValue(input, ArchivedCatalog.class));
+        } catch (IOException exception) {
+            throw new IllegalStateException("Coleta incluída na aplicação não encontrada ou ilegível", exception);
+        }
+    }
+
+    private static CollectedCatalog matching(CollectorMetadata metadata, ArchivedCatalog archived) {
+        if (!metadata.sourceCode().equals(archived.metadata().sourceCode())
+                || !metadata.storeSourceReference().equals(archived.metadata().storeSourceReference())) {
+            throw new IllegalStateException("Arquivo pertence a outra fonte ou unidade");
+        }
+        return archived.catalog();
+    }
+
+    private static ClassPathResource seed(String code) {
+        return new ClassPathResource("seed/catalog-snapshots/" + code + ".json.gz");
     }
 
     private Path path(String code) {

@@ -63,6 +63,13 @@ A busca, as listas e as comparações usam o catálogo genérico: um item por pr
 
 As fontes comerciais atualmente verificadas, suas limitações e a operação dos coletores estão descritas em [`docs/data-sources.md`](docs/data-sources.md).
 
+### Coleta de preços em produção
+
+* **Servidor novo:** se o banco não tem nenhum preço, o backend carrega na subida as coletas incluídas no app (`src/main/resources/seed/catalog-snapshots`, uma por mercado) e monta o catálogo de comparação. Leva uns 15 minutos e cabe em 512 MB de heap; o site já abre enquanto isso. Desligue com `PRICE_COLLECTION_SEED_WHEN_EMPTY=false`.
+* **Depois:** 4 vezes por dia (`PRICE_COLLECTION_CRON`, padrão 6h, 11h, 16h e 21h) a coleta atualiza os preços dos produtos que já existem. Produto novo nos mercados só entra numa coleta completa (`PRICE_COLLECTION_EXISTING_ONLY=false` ou `POST /api/v1/admin/collections` como administrador).
+* **Atualizar as sementes:** depois de uma coleta completa local com `APP_COLLECTION_ARCHIVE_DIRECTORY` configurado, comprima cada `.local/catalog-snapshots/<mercado>.json` para `<mercado>.json.gz` nessa pasta.
+* **Atacadão:** as unidades revisadas (São Geraldo e Vila Rica) são registradas na subida, então a coleta online funciona mesmo com os encartes revisados vencidos; os coletores de encarte só voltam a publicar ofertas depois de uma nova revisão.
+
 O MVP coleta os departamentos públicos de Nagumo Ponte Alta e Royal Retiro, com vínculos explícitos entre produtos revisados. A busca da lista percorre todo o catálogo por páginas; cada mercado possui seu catálogo com preços e datas. A comparação mostra cobertura, faltantes, total completo ou subtotal parcial e a menor combinação por item. O roteiro inicial está em [`docs/mvp-data-check.md`](docs/mvp-data-check.md), e a ampliação com validação de 20 produtos em [`docs/catalog-list-validation.md`](docs/catalog-list-validation.md). Se a porta 8080 estiver ocupada por outro serviço, use `PORT=8081` no backend e `VITE_API_BASE_URL=http://localhost:8081/api/v1` em `frontend/.env.local`.
 
 ## Tecnologias

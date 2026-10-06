@@ -19,7 +19,9 @@ import br.com.supermercados.prices.collection.CollectionCoordinator;
 /**
  * Keeps the generic catalog in step with collected prices: rebuilt after every collection and at startup,
  * and when the newest price is older than {@code app.collection.refresh-when-older-than} a refresh starts
- * in the background, so a machine that was off does not serve expired prices all day.
+ * in the background, so a machine that was off does not serve expired prices all day. A database without
+ * any price (a new server) is first filled with the collections bundled in the application, because the
+ * scheduled refresh only updates products that already exist.
  */
 @Component
 public class CatalogLifecycle implements CollectionCompletedListener {
@@ -34,11 +36,13 @@ public class CatalogLifecycle implements CollectionCompletedListener {
     private final boolean rebuildOnStart;
     private final boolean collectionEnabled;
     private final Duration refreshWhenOlderThan;
+    private final boolean seedWhenEmpty;
 
     public CatalogLifecycle(CatalogBuilder builder, ObjectProvider<CollectionCoordinator> coordinator, JdbcTemplate jdbc, Clock clock,
             @Value("${app.catalog.rebuild-on-start:true}") boolean rebuildOnStart,
             @Value("${app.collection.enabled:true}") boolean collectionEnabled,
-            @Value("${app.collection.refresh-when-older-than:PT8H}") Duration refreshWhenOlderThan) {
+            @Value("${app.collection.refresh-when-older-than:PT8H}") Duration refreshWhenOlderThan,
+            @Value("${app.collection.seed-when-empty:true}") boolean seedWhenEmpty) {
         this.builder = builder;
         this.coordinator = coordinator;
         this.jdbc = jdbc;
@@ -46,6 +50,7 @@ public class CatalogLifecycle implements CollectionCompletedListener {
         this.rebuildOnStart = rebuildOnStart;
         this.collectionEnabled = collectionEnabled;
         this.refreshWhenOlderThan = refreshWhenOlderThan;
+        this.seedWhenEmpty = seedWhenEmpty;
     }
 
     @Override
@@ -65,7 +70,10 @@ public class CatalogLifecycle implements CollectionCompletedListener {
                         WHERE status = 'RUNNING'
                         """);
                 if (interrupted > 0) LOGGER.info("{} coleta(s) interrompida(s) marcadas como falha.", interrupted);
-                if (rebuildOnStart) builder.rebuild();
+                boolean seeded = collectionEnabled && seedWhenEmpty && withoutPrices()
+                        && !seed().isEmpty();
+                // Seeding already rebuilt the catalog.
+                if (rebuildOnStart && !seeded) builder.rebuild();
                 if (collectionEnabled && !coordinator.getObject().isRunning()) {
                     var upToDate = upToDateCollectors();
                     LOGGER.info("Atualizando em segundo plano os mercados sem coleta nas últimas {}; em dia: {}",
@@ -76,6 +84,17 @@ public class CatalogLifecycle implements CollectionCompletedListener {
                 LOGGER.error("Atualização inicial do catálogo falhou: {}", exception.getMessage(), exception);
             }
         });
+    }
+
+    private boolean withoutPrices() {
+        return Boolean.FALSE.equals(jdbc.queryForObject("SELECT EXISTS (SELECT 1 FROM price_records)", Boolean.class));
+    }
+
+    private java.util.List<?> seed() {
+        LOGGER.info("Banco sem preços: carregando as coletas incluídas na aplicação.");
+        var results = coordinator.getObject().seedFromBundledSnapshots();
+        LOGGER.info("Carga inicial concluída: {} mercado(s).", results.size());
+        return results;
     }
 
     /** Collectors that completed within the threshold; all others are refreshed at startup. */
