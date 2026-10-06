@@ -63,7 +63,8 @@ NEW_JAR="$(ls -1t target/*.jar | grep -v -- '-plain\.jar$' | head -1)"
 log "frontend: build Vite"
 cd "$APP_DIR/frontend"
 if [[ -f package-lock.json ]]; then npm ci --no-audit --no-fund --silent; else npm install --no-audit --no-fund --silent; fi
-npm run build --silent
+# A API é servida no mesmo domínio pelo Nginx (location /api/ → 127.0.0.1:$PORT).
+VITE_API_BASE_URL="${VITE_API_BASE_URL:-/api/v1}" npm run build --silent
 [[ -f dist/index.html ]] || die "build do frontend não gerou dist/"
 
 log "publicando jar e reiniciando (Flyway roda as migrations no boot)"

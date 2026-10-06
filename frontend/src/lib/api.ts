@@ -1,8 +1,27 @@
 import type { ApiProblem } from "@/types/api";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
-  "http://localhost:8080/api/v1";
+/*
+ * Em produção a API fica no mesmo domínio do site (o Nginx encaminha /api para o backend).
+ * Um endereço de localhost só serve no desenvolvimento: publicado, ele apontaria para a máquina
+ * de quem acessa e todo pedido falharia com "Não foi possível conectar ao servidor".
+ */
+const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
+function resolveApiBaseUrl(configured: string | undefined) {
+  const sameOrigin = "/api/v1";
+  const url = configured?.trim().replace(/\/$/, "");
+  if (!url) return import.meta.env.DEV ? "http://localhost:8080/api/v1" : sameOrigin;
+  if (import.meta.env.PROD && isLocalAddress(url) && !isLocalAddress(window.location.origin)) return sameOrigin;
+  return url;
+}
+
+function isLocalAddress(url: string) {
+  try {
+    return ["localhost", "127.0.0.1", "[::1]"].includes(new URL(url, window.location.origin).hostname);
+  } catch {
+    return false;
+  }
+}
 
 const TOKEN_KEY = "gomo.session";
 
