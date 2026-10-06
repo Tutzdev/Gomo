@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -19,6 +20,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.com.supermercados.prices.catalog.CatalogBuilder;
 import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.datasource.DataSourceService;
 import br.com.supermercados.prices.datasource.SourceObservation;
@@ -38,6 +40,8 @@ import jakarta.persistence.EntityManager;
 class CatalogPersistenceTests {
 
     private static final UUID SOURCE_ID = UUID.fromString("00000000-0000-0000-0000-000000000101");
+    private static final UUID STORE_A = UUID.fromString("00000000-0000-0000-0000-000000000201");
+    private static final UUID STORE_B = UUID.fromString("00000000-0000-0000-0000-000000000202");
     private static final Instant COLLECTED_AT = Instant.parse("2025-01-10T12:00:00Z");
     private static final PageRequest PAGE = PageRequest.of(0, 20, Sort.by("name", "id"));
 
@@ -55,6 +59,9 @@ class CatalogPersistenceTests {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    CatalogBuilder catalogBuilder;
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -180,5 +187,83 @@ class CatalogPersistenceTests {
     private void flushAndClear() {
         entityManager.flush();
         entityManager.clear();
+    }
+
+    @Test
+    void storesWritingTheSameProductDifferentlyShareOneCatalogItem() {
+        UUID cut = sku("Acucar Granulado Uniao 1kg Pre");
+        UUID complete = sku("Açúcar Granulado União Premium 1kg");
+        price(cut, STORE_A, "Acucar Granulado Uniao 1kg Pre");
+        price(complete, STORE_B, "Açúcar Granulado União Premium 1kg");
+
+        catalogBuilder.rebuild();
+
+        assertThat(catalogItemOf(cut)).isNotNull().isEqualTo(catalogItemOf(complete));
+    }
+
+    @Test
+    void savedListItemFollowsItsSkuWhenTheCatalogKeyChanges() {
+        UUID sugar = sku("Açúcar Granulado União Premium 1kg");
+        price(sugar, STORE_A, "Açúcar Granulado União Premium 1kg");
+        price(sugar, STORE_B, "Acucar Granulado Uniao 1kg Pre");
+        UUID previousItem = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO catalog_items (id, catalog_key, display_name, size_label, representative_product_id,
+                    search_text, store_count, active, updated_at)
+                VALUES (?, 'KEY FROM AN OLDER RULE|1x1000G', 'Açúcar União Premium 1 kg', '1 kg', ?, 'ACUCAR', 2, TRUE, ?)
+                """, previousItem, sugar, Timestamp.from(Instant.now().minusSeconds(60)));
+        UUID listItem = listItem(sugar, previousItem);
+
+        catalogBuilder.rebuild();
+
+        assertThat(jdbc.queryForObject("SELECT active FROM catalog_items WHERE id = ?", Boolean.class, previousItem)).isFalse();
+        assertThat(jdbc.queryForObject("SELECT catalog_item_id FROM shopping_list_items WHERE id = ?", UUID.class, listItem))
+                .isEqualTo(catalogItemOf(sugar)).isNotEqualTo(previousItem);
+    }
+
+    private UUID sku(String name) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO products (id, name, brand, source_id, source_reference, collected_at, updated_at)
+                VALUES (?, ?, 'União', ?, ?, ?, ?)
+                """, id, name, SOURCE_ID, "synthetic-sku-" + id, recently(), recently());
+        return id;
+    }
+
+    private void price(UUID product, UUID store, String storeDescription) {
+        jdbc.update("""
+                INSERT INTO price_records (id, product_id, store_id, source_id, source_reference, regular_price,
+                    collected_at, recorded_at, source_product_name)
+                VALUES (?, ?, ?, ?, ?, 5.49, ?, ?, ?)
+                """, UUID.randomUUID(), product, store, SOURCE_ID, "synthetic-price-" + UUID.randomUUID(),
+                recently(), recently(), storeDescription);
+    }
+
+    private UUID listItem(UUID product, UUID catalogItem) {
+        UUID user = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO app_users (id, name, email, password_hash, created_at, updated_at)
+                VALUES (?, 'Pessoa fictícia', ?, 'hash', ?, ?)
+                """, user, "fictitious-" + user + "@example.test", recently(), recently());
+        UUID list = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO shopping_lists (id, user_id, name, shopping_type, created_at, updated_at)
+                VALUES (?, ?, 'Lista fictícia', 'WEEKLY', ?, ?)
+                """, list, user, recently(), recently());
+        UUID item = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO shopping_list_items (id, shopping_list_id, product_id, catalog_item_id, quantity)
+                VALUES (?, ?, ?, ?, 1)
+                """, item, list, product, catalogItem);
+        return item;
+    }
+
+    private UUID catalogItemOf(UUID product) {
+        return jdbc.query("SELECT catalog_item_id FROM catalog_item_products WHERE product_id = ?",
+                (row, index) -> row.getObject(1, UUID.class), product).stream().findFirst().orElse(null);
+    }
+
+    private static Timestamp recently() {
+        return Timestamp.from(Instant.now().minusSeconds(5));
     }
 }
