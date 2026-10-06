@@ -1,7 +1,7 @@
 import { BatteryFull, Signal, Wifi } from "lucide-react";
 
 /*
- * Prints reais do app, tirados com uma conta de demonstração e os preços coletados em 02/10/2026.
+ * Prints reais do app, tirados com uma conta de demonstração e os preços coletados em 05/10/2026.
  * Cada print existe em várias larguras, com a largura no nome do arquivo ("app-comparar-712.webp").
  * As versões 1x já têm o tamanho exato exibido na página, para o navegador não precisar redimensionar
  * (é isso que mantém o texto nítido). Para atualizar, gere os arquivos nas mesmas larguras.
@@ -23,7 +23,7 @@ export function HeroShowcase() {
         />
         <img
           src={EMPTY_IMAGE}
-          alt="Tela de comparação do Gomo: óleo de soja Liza 900 ml em sete mercados, de R$ 7,99 a R$ 11,59"
+          alt="Tela de comparação do Gomo: óleo de soja Liza 900 ml em quatro mercados, de R$ 8,79 a R$ 11,59"
           width={712}
           height={765}
           fetchPriority="high"
@@ -45,7 +45,7 @@ export function HeroShowcase() {
             src={listPhoneScreens["./images/app-lista-celular-448.webp"]}
             srcSet={toSrcSet(listPhoneScreens)}
             sizes="(min-width: 80rem) 14rem, (min-width: 40rem) calc(min(52rem, 100vw) / 4 + 2.5rem), 14rem"
-            alt="Comparação da lista no celular: a compra da semana sai por R$ 102,62 no mercado mais barato"
+            alt="Comparação da lista no celular: o Spani Volta Redonda tem 9 dos 10 itens da compra da semana por R$ 100,28"
             width={224}
             height={402}
           />
