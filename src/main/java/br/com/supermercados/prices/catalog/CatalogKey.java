@@ -3,6 +3,7 @@ package br.com.supermercados.prices.catalog;
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -37,8 +38,8 @@ public final class CatalogKey {
             new Rewrite("\\bGRS?\\b|\\bGRAMAS?\\b", "G"),
             new Rewrite("\\bQUILOS?\\b|\\bQUILOGRAMAS?\\b", "KG"),
             new Rewrite("\\bMILILITROS?\\b", "ML"),
-            new Rewrite("\\bINTEG\\b", "INTEGRAL"),
-            new Rewrite("\\bDESN\\b", "DESNATADO"),
+            new Rewrite("\\bINTEG\\b|\\bINT\\b", "INTEGRAL"),
+            new Rewrite("\\bDESNA?\\b", "DESNATADO"),
             new Rewrite("\\bSEMI\\s*DESN(?:ATADO)?\\b", "SEMIDESNATADO"),
             new Rewrite("\\bUHT\\b|\\bLONGA\\s+VIDA\\b", " "),
             new Rewrite("\\bPCT\\b|\\bPACOTE\\b", " "),
@@ -46,7 +47,33 @@ public final class CatalogKey {
             new Rewrite("\\bSABON\\b", "SABONETE"),
             new Rewrite("\\bCOND\\b", "CONDENSADO"),
             new Rewrite("\\bBISC\\b", "BISCOITO"),
-            new Rewrite("\\bCHOC\\b", "CHOCOLATE"));
+            new Rewrite("\\bCHOC\\b", "CHOCOLATE"),
+            // ERP abbreviations used by Ville, Pame and the VIP stores.
+            new Rewrite("\\bTRAD(?:I|IC|ICI|ICIO|ICION)?\\b", "TRADICIONAL"),
+            new Rewrite("\\bIOG\\b", "IOGURTE"),
+            new Rewrite("\\bREQ\\b", "REQUEIJAO"),
+            new Rewrite("\\bMARG\\b", "MARGARINA"),
+            new Rewrite("\\bLING\\b", "LINGUICA"),
+            new Rewrite("\\bRAL\\b", "RALADO"),
+            new Rewrite("\\bAMAC\\b", "AMACIANTE"),
+            new Rewrite("\\bDESOD\\b", "DESODORANTE"),
+            new Rewrite("\\bACHOC\\b", "ACHOCOLATADO"),
+            new Rewrite("\\bROSQ\\b", "ROSQUINHA"),
+            new Rewrite("\\bBOLONH\\b", "BOLONHESA"),
+            new Rewrite("\\bNAT\\b", "NATURAL"),
+            new Rewrite("\\bCONC\\b", "CONCENTRADO"),
+            new Rewrite("\\bSC\\b", "SACHE"),
+            new Rewrite("\\bSB\\b|\\bLAVA\\s*ROUPAS?\\b", "SABAO"),
+            new Rewrite("\\b(?:AG|AGUA)\\s+SANIT\\b", "AGUA SANITARIA"),
+            new Rewrite("\\bTORRADO\\s+(?:E\\s+)?MOIDO\\b", "PO"),
+            // Still water is the default; sparkling water is a different product.
+            new Rewrite("\\bSEM\\s+GAS\\b", " "),
+            new Rewrite("\\bCOM\\s+GAS\\b", "COMGAS"),
+            // Type 1 is the default grade of rice and beans; type 2 is a different product.
+            new Rewrite("\\b(?:TIPO|TP|T)\\s*1\\b(?!\\s*(?:ML|L|KG|G)\\b)", " "),
+            new Rewrite("\\b(?:TIPO|TP|T)\\s*2\\b(?!\\s*(?:ML|L|KG|G)\\b)", "TIPO2"),
+            // "OLEO LIZA MILHO 900M 900ml": a size cut short by the store's own description.
+            new Rewrite("(\\d)\\s*M\\b", "$1 ML"));
     private static final Set<String> NOISE = Set.of(("DE DA DO DAS DOS E EM COM C P PARA NA NO AO A O SABOR BEBIDA "
             + "ENERGETICO REPOSITOR REFRIGERANTE GARRAFA GFA GF PET LATA LT VIDRO DESCARTAVEL EMB EMBALAGEM UN UND UNID "
             + "UNIDADE UNIDADES CX CAIXA GELADO GELADA FRIO FRESCO NOVO NOVA PROMOCAO OFERTA TP TIPO LV "
@@ -63,26 +90,28 @@ public final class CatalogKey {
     /** Tokens seen in at most this many descriptions behave like a brand (e.g. a small local manufacturer). */
     private static final int RARE_TOKEN_LIMIT = 120;
 
-    private final Map<String, List<List<String>>> brandsByFirstWord;
+    private final Map<String, List<Brand>> brandsByFirstWord;
     private final Map<String, Integer> documentFrequency;
 
-    private CatalogKey(Map<String, List<List<String>>> brandsByFirstWord, Map<String, Integer> documentFrequency) {
+    private CatalogKey(Map<String, List<Brand>> brandsByFirstWord, Map<String, Integer> documentFrequency) {
         this.brandsByFirstWord = brandsByFirstWord;
         this.documentFrequency = documentFrequency;
     }
 
     /** Learns brands from the brand fields retailers publish and word rarity from every description. */
     public static CatalogKey learn(Collection<String> declaredBrands, Collection<String> descriptions) {
-        Map<String, List<List<String>>> brands = new HashMap<>();
+        Map<String, List<Brand>> brands = new HashMap<>();
         for (String declared : declaredBrands) {
             if (declared == null) continue;
             String brand = words(declared);
             if (brand.length() < 2 || NOT_BRANDS.contains(brand) || brand.chars().allMatch(Character::isDigit)) continue;
-            List<String> tokens = List.of(brand.split(" "));
-            List<List<String>> known = brands.computeIfAbsent(tokens.getFirst(), ignored -> new ArrayList<>());
-            if (!known.contains(tokens)) known.add(tokens);
+            // Numbers never reach a key, so "3 Corações" is recognised by "CORACOES" and keeps its full name.
+            List<String> tokens = Arrays.stream(brand.split(" ")).filter(word -> !NUMBER.matcher(word).matches()).toList();
+            if (tokens.isEmpty()) continue;
+            List<Brand> known = brands.computeIfAbsent(tokens.getFirst(), ignored -> new ArrayList<>());
+            if (known.stream().noneMatch(existing -> existing.tokens().equals(tokens))) known.add(new Brand(tokens, brand));
         }
-        brands.values().forEach(list -> list.sort((left, right) -> right.size() - left.size()));
+        brands.values().forEach(list -> list.sort((left, right) -> right.tokens().size() - left.tokens().size()));
         Map<String, Integer> frequency = new HashMap<>();
         for (String description : descriptions) {
             for (String word : new LinkedHashSet<>(List.of(words(description).split(" ")))) {
@@ -93,7 +122,8 @@ public final class CatalogKey {
     }
 
     public Identity identify(String name) {
-        String text = ascii(name);
+        // "600 Grama(s)": the plural marker must not survive as a stray "S" word.
+        String text = ascii(name).replace("(S)", "S");
         text = text.replaceAll("(\\d),(\\d)", "$1.$2");
         text = text.replaceAll("[^A-Z0-9.]+", " ");
         text = text.replaceAll("(?<!\\d)\\.|\\.(?!\\d)", " ");
@@ -111,9 +141,15 @@ public final class CatalogKey {
         List<String> measureUnits = new ArrayList<>();
         Matcher measure = MEASURE.matcher(text);
         while (measure.find()) {
-            if (measures.add(measure.group(1) + measure.group(2))) {
-                measureAmounts.add(new BigDecimal(measure.group(1)));
-                measureUnits.add(measure.group(2));
+            BigDecimal amount = new BigDecimal(measure.group(1));
+            String unit = measure.group(2);
+            // "ANIL COLMAN 200ML 0.2 LT" states one size twice, so sizes are compared in ml or g.
+            boolean thousands = unit.equals("L") || unit.equals("KG");
+            String inBaseUnit = (thousands ? amount.multiply(BigDecimal.valueOf(1000)) : amount).stripTrailingZeros()
+                    .toPlainString() + (unit.equals("L") || unit.equals("ML") ? "ML" : "G");
+            if (measures.add(inBaseUnit)) {
+                measureAmounts.add(amount);
+                measureUnits.add(unit);
             }
         }
         Matcher count = COUNT.matcher(text);
@@ -191,10 +227,9 @@ public final class CatalogKey {
 
     private String findBrand(List<String> tokens) {
         for (int index = 0; index < tokens.size(); index++) {
-            for (List<String> brand : brandsByFirstWord.getOrDefault(tokens.get(index), List.of())) {
-                if (index + brand.size() <= tokens.size() && tokens.subList(index, index + brand.size()).equals(brand)) {
-                    return String.join(" ", brand);
-                }
+            for (Brand brand : brandsByFirstWord.getOrDefault(tokens.get(index), List.of())) {
+                int end = index + brand.tokens().size();
+                if (end <= tokens.size() && tokens.subList(index, end).equals(brand.tokens())) return brand.name();
             }
         }
         return null;
@@ -229,6 +264,10 @@ public final class CatalogKey {
     }
 
     public record Identity(String key, String brand, String size) {
+    }
+
+    /** A declared brand: the words that find it in a description and the name it is shown with. */
+    private record Brand(List<String> tokens, String name) {
     }
 
     private record Rewrite(Pattern pattern, String replacement) {

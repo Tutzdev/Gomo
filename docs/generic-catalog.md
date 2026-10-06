@@ -18,7 +18,24 @@ O usuário escolhe **"Coca-Cola 2 L"**, não o anúncio de um mercado. Cada item
 - **Descartados:** kits, combos, "leve X pague Y" e descrições com mais de um tamanho.
 - **Marca obrigatória:** a chave precisa conter uma marca conhecida, aprendida dos campos de marca publicados pelos mercados, ou uma palavra rara na base inteira. Sem isso, dois produtos genéricos de lojas diferentes poderiam ser fundidos por engano.
 
-`CatalogBuilder` agrupa por chave e publica somente os itens vendidos em pelo menos `CATALOG_MIN_STORES` mercados (padrão 2). Em 01/10/2026 eram cerca de 7,9 mil itens e 10,3 mil anúncios vinculados. Os demais anúncios continuam no banco, com o histórico, mas não aparecem na busca.
+- **Abreviações de ERP:** `IOG`, `REQ`, `MARG`, `AMAC`, `DESOD`, `ACHOC`, `TRAD`, `SB` (sabão), `SC` (sachê) e outras viram a palavra completa. "Torrado e moído" é "em pó".
+- **Variante padrão:** "Tipo 1" (arroz e feijão) e "sem gás" (água) podem ser omitidos; "Tipo 2" e "com gás" são outro produto.
+- **Tamanho repetido:** "200M 0.2 lt" e "600 Grama(s)" são lidos como um tamanho só. Marcas com número ("3 Corações") são reconhecidas.
+
+### Descrições diferentes do mesmo produto
+
+`CatalogMatcher` une chaves diferentes que descrevem o mesmo produto, sempre com o **mesmo tamanho**:
+
+| Regra | Exemplo |
+| --- | --- |
+| Mesma marca e diferença só em palavras de forma ou tipo (pó, líquido, biscoito, cremoso, congelado, suco/refresco…) | `Gelatina em Pó Sol Abacaxi 20g` = `Gelatina Sol 20g Abacaxi` |
+| Palavra cortada no limite de 30 caracteres das lojas VIP (Bramil, Pérola, Royal, Spani) | `Acucar Granulado Uniao 1kg Pre` = `Açúcar Granulado União Premium 1kg` |
+| Mesmo SKU descrito de outro jeito por outra loja (a descrição mais recente de cada loja, guardada em cada preço) | `Leite Po Ninho 380g Integral I` liga `Leite em Pó Ninho Integral Instantâneo 380g` |
+
+- **Nunca une:** sabor, ingrediente ou variante diferentes (zero, light, chocolate, milho), nem embalagens diferentes (sachê/refil, pote, squeeze), que têm preços diferentes.
+- **Trava:** se uma mesma loja vende SKUs nas duas descrições, elas são produtos diferentes e não são unidas. Assim, uma união feita aqui nunca coloca dois SKUs da mesma loja no mesmo item.
+
+`CatalogBuilder` agrupa pelo resultado e publica somente os itens vendidos em pelo menos `CATALOG_MIN_STORES` mercados (padrão 2). Em 02/10/2026 eram cerca de 9,3 mil itens (8,5 mil antes destas regras). Os demais anúncios continuam no banco, com o histórico, mas não aparecem na busca.
 
 ## Quando o catálogo é reconstruído
 
@@ -26,7 +43,7 @@ O usuário escolhe **"Coca-Cola 2 L"**, não o anúncio de um mercado. Cada item
 - Ao fim de cada coleta, por meio de `CollectionCompletedListener`.
 - Manualmente, por um administrador: `POST /api/v1/admin/catalog/rebuild`.
 
-O ID de cada item é estável por chave. Um item que deixa de cumprir o mínimo de mercados é desativado, nunca apagado, para não quebrar as listas.
+O ID de cada item é estável por chave. Um item que deixa de cumprir o mínimo de mercados é desativado, nunca apagado, para não quebrar as listas. Quando uma regra nova muda a chave de um item, o item antigo é desativado e os itens de lista que o salvaram passam para o item que agora contém o mesmo SKU.
 
 ## Atualização dos preços
 

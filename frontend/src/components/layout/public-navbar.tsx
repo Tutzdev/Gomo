@@ -20,7 +20,7 @@ export function PublicNavbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
-      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-5 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-5 px-4 sm:px-6 lg:px-16">
         <Link to="/" aria-label="Gomo — página inicial" className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
           <BrandLogo />
         </Link>
@@ -39,7 +39,7 @@ export function PublicNavbar() {
 
         <div className="hidden items-center gap-2 lg:flex">
           <NativeButton to={platformPath} variant="ghost" className="landing-button">Acessar plataforma</NativeButton>
-          <NativeButton to={signUpPath} glow className="landing-button">Começar grátis</NativeButton>
+          <NativeButton to={signUpPath} className="landing-button">Começar grátis</NativeButton>
         </div>
 
         <button
@@ -74,7 +74,7 @@ export function PublicNavbar() {
           </div>
           <div className="mt-auto grid gap-2 border-t border-border pt-5">
             <NativeButton to={platformPath} variant="secondary" className="w-full">Acessar plataforma</NativeButton>
-            <NativeButton to={signUpPath} glow className="w-full">Começar grátis</NativeButton>
+            <NativeButton to={signUpPath} className="w-full">Começar grátis</NativeButton>
           </div>
         </nav>
       </Sheet>
