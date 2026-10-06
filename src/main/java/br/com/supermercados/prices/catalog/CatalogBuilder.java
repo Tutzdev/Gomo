@@ -63,20 +63,26 @@ public class CatalogBuilder {
     @Transactional
     public synchronized Summary rebuild() {
         Instant startedAt = clock.instant();
+        // Each store's latest description of the SKU: older ones may describe a product the code no longer sells.
         List<Offer> offers = jdbc.query("""
-                SELECT DISTINCT p.id, p.name, p.brand, p.category, p.image_url, r.store_id
-                FROM products p
-                JOIN price_records r ON r.product_id = p.id
-                JOIN stores s ON s.id = r.store_id AND s.active
+                SELECT p.id, p.name, p.brand, p.category, p.image_url, latest.store_id, latest.source_product_name
+                FROM (SELECT DISTINCT ON (r.product_id, r.store_id) r.product_id, r.store_id, r.source_product_name
+                      FROM price_records r
+                      ORDER BY r.product_id, r.store_id, r.collected_at DESC, r.recorded_at DESC, r.id DESC) latest
+                JOIN products p ON p.id = latest.product_id
+                JOIN stores s ON s.id = latest.store_id AND s.active
                 """, (row, index) -> new Offer(row.getObject(1, UUID.class), row.getString(2), row.getString(3),
-                row.getString(4), row.getString(5), row.getObject(6, UUID.class)));
+                row.getString(4), row.getString(5), row.getObject(6, UUID.class), row.getString(7)));
         CatalogKey keys = CatalogKey.learn(offers.stream().map(Offer::brand).toList(),
                 offers.stream().map(Offer::name).distinct().toList());
 
+        Map<UUID, CatalogKey.Identity> identities = new CatalogMatcher(keys).match(offers.stream()
+                .map(offer -> new CatalogMatcher.Listing(offer.productId(), offer.storeId(), offer.name(),
+                        offer.storeDescription()))
+                .toList());
         Map<String, Group> groups = new LinkedHashMap<>();
-        Map<UUID, CatalogKey.Identity> identities = new HashMap<>();
         for (Offer offer : offers) {
-            CatalogKey.Identity identity = identities.computeIfAbsent(offer.productId(), ignored -> keys.identify(offer.name()));
+            CatalogKey.Identity identity = identities.get(offer.productId());
             if (identity == null) continue;
             groups.computeIfAbsent(identity.key(), key -> new Group(identity)).add(offer);
         }
@@ -120,11 +126,29 @@ public class CatalogBuilder {
             group.products.keySet().forEach(productId -> links.add(new Object[] {productId, itemId}));
         }
         jdbc.batchUpdate("INSERT INTO catalog_item_products (product_id, catalog_item_id) VALUES (?, ?)", links);
+        int relinked = relinkShoppingListItems();
 
         Summary summary = new Summary(offers.size(), published.size(), links.size(), deactivated);
-        LOGGER.info("Catálogo genérico reconstruído: {} itens em {}+ mercados, {} SKUs vinculados, {} desativados",
-                summary.items(), minimumStores, summary.linkedProducts(), summary.deactivated());
+        LOGGER.info("Catálogo genérico reconstruído: {} itens em {}+ mercados, {} SKUs vinculados, {} desativados, "
+                + "{} itens de lista religados", summary.items(), minimumStores, summary.linkedProducts(),
+                summary.deactivated(), relinked);
         return summary;
+    }
+
+    /**
+     * When better matching changes an item's key, the old item is deactivated. Lists that saved it move to the
+     * item that now holds the same SKU, unless the list already has that item.
+     */
+    private int relinkShoppingListItems() {
+        return jdbc.update("""
+                UPDATE shopping_list_items item SET catalog_item_id = link.catalog_item_id
+                FROM catalog_items previous, catalog_item_products link
+                WHERE item.catalog_item_id = previous.id AND NOT previous.active
+                  AND link.product_id = item.product_id
+                  AND NOT EXISTS (SELECT 1 FROM shopping_list_items other
+                                  WHERE other.shopping_list_id = item.shopping_list_id
+                                    AND other.catalog_item_id = link.catalog_item_id)
+                """);
     }
 
     private static String truncate(String value, int length) {
@@ -146,7 +170,8 @@ public class CatalogBuilder {
     public record Summary(int offers, int items, int linkedProducts, int deactivated) {
     }
 
-    private record Offer(UUID productId, String name, String brand, String category, String imageUrl, UUID storeId) {
+    private record Offer(UUID productId, String name, String brand, String category, String imageUrl, UUID storeId,
+            String storeDescription) {
     }
 
     static final class Group {
@@ -163,10 +188,11 @@ public class CatalogBuilder {
             stores.add(offer.storeId());
         }
 
-        /** The cleanest retailer description: mixed case, few abbreviations, short. */
+        /** The cleanest retailer description: complete, mixed case, few abbreviations, short. */
         Offer representative() {
             Comparator<Offer> quality = Comparator
-                    .comparing((Offer offer) -> offer.name().equals(offer.name().toUpperCase(java.util.Locale.ROOT)))
+                    .comparing((Offer offer) -> CatalogMatcher.cutAtErpLimit(offer.name()))
+                    .thenComparing(offer -> offer.name().equals(offer.name().toUpperCase(java.util.Locale.ROOT)))
                     .thenComparing(offer -> offer.imageUrl() == null)
                     .thenComparingLong(offer -> offer.name().chars().filter(character -> character == '.').count())
                     .thenComparingInt(offer -> cleanName(offer.name()).length())

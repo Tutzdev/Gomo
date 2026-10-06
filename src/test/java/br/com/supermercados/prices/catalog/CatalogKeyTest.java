@@ -8,7 +8,8 @@ import org.junit.jupiter.api.Test;
 
 class CatalogKeyTest {
 
-    private final CatalogKey keys = CatalogKey.learn(List.of("Coca-Cola", "Monster", "Sadia", "Ypê"), List.of());
+    private final CatalogKey keys = CatalogKey.learn(List.of("Coca-Cola", "Monster", "Sadia", "Ypê", "Serramar",
+            "Qualy", "Tio João", "Aviação", "3 Corações", "Colman", "Minalba", "Pilão"), List.of());
 
     @Test
     void retailerSpellingsOfTheSameProductShareOneKey() {
@@ -27,6 +28,40 @@ class CatalogKeyTest {
                 .isEqualTo(keys.identify("Coca-cola Zero 2lts").key());
         assertThat(keys.identify("Refrigerante Coca Cola 1,5l").key()).isEqualTo("COCA COLA|1x1500ML");
         assertThat(keys.identify("REFRIGERANTE COCA COLA 350ML C/6").key()).isEqualTo("COCA COLA|6x350ML");
+    }
+
+    @Test
+    void erpAbbreviationsMeanTheFullWord() {
+        assertThat(keys.identify("IOG SERRAMAR BATIDO 900GR").key())
+                .isEqualTo(keys.identify("Iogurte Batido Serramar 900G").key());
+        assertThat(keys.identify("MARG QUALY LIGHT 250 250gr").key())
+                .isEqualTo(keys.identify("Margarina Qualy 250g Light").key());
+        assertThat(keys.identify("Cafe Po Pilao 500g").key())
+                .isEqualTo(keys.identify("Café Torrado e Moído Pilão 500g").key());
+    }
+
+    @Test
+    void defaultVariantsCanBeOmittedButOthersCannot() {
+        String rice = keys.identify("Arroz Tio Joao Tipo 1 5kg").key();
+        assertThat(List.of("Arroz Tio Joao 5kg Tp1", "ARROZ TIO JOAO TP 1 5kg", "Arroz Tio João 5kg"))
+                .extracting(name -> keys.identify(name).key()).containsOnly(rice);
+        assertThat(keys.identify("Arroz Tio Joao Tipo 2 5kg").key()).isNotEqualTo(rice);
+
+        String stillWater = keys.identify("Água Mineral Minalba Sem Gás 510ml").key();
+        assertThat(keys.identify("Agua Mineral Minalba 510ml").key()).isEqualTo(stillWater);
+        assertThat(keys.identify("Água Mineral Minalba Com Gás 510ml").key()).isNotEqualTo(stillWater);
+    }
+
+    @Test
+    void sizesRepeatedByTheStoreAreReadOnce() {
+        assertThat(keys.identify("DOCE LEITE AVIACAO 6 600 Grama(s)").key())
+                .isEqualTo(keys.identify("Doce Leite Aviacao 600g Vidro").key());
+        assertThat(keys.identify("ANIL LIQ COLMAN 200M 0.2 lt").size()).isEqualTo("1x200ML");
+    }
+
+    @Test
+    void brandsWithNumbersAreRecognised() {
+        assertThat(keys.identify("CAFE 3 CORACOES 500G 500gr").brand()).isEqualTo("3 CORACOES");
     }
 
     @Test
