@@ -316,6 +316,23 @@ class ApiIntegrationTests {
     }
 
     @Test
+    void siteBehindProxyCanLogInWhileOtherSitesStayBlockedByPreflight() throws Exception {
+        // The site's own login through Nginx: the browser sends its public origin, which is not listed.
+        mvc.perform(post("/api/v1/auth/login")
+                        .header(HttpHeaders.ORIGIN, "https://gomo.example.test")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + uniqueEmail() + "\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
+        mvc.perform(options("/api/v1/auth/login")
+                        .header(HttpHeaders.ORIGIN, "https://gomo.example.test")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type"))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
+    }
+
+    @Test
     void openApiDocumentsBearerAuthAndProtectedOperationsWithoutUi() throws Exception {
         mvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
