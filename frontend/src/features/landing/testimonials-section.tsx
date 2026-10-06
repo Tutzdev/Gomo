@@ -1,19 +1,16 @@
-import { Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 import { usePrefersReducedMotion } from "./motion-hooks";
 import { TESTIMONIALS_ARE_EXAMPLES, testimonialRows, type Testimonial } from "./testimonials";
 
-/** Calmo o bastante para ler um card enquanto ele passa. */
-const PIXELS_PER_SECOND = 30;
+/** Ainda dá para ler um card enquanto ele passa; no hover, o carrossel para. */
+const PIXELS_PER_SECOND = 55;
 /** Tempo para o carrossel desacelerar até parar, ou voltar à velocidade normal. */
 const SPEED_CHANGE_MS = 550;
 
 export function TestimonialsSection() {
   const reducedMotion = usePrefersReducedMotion();
   const [hovered, setHovered] = useState(false);
-  const [stopped, setStopped] = useState(false);
   const animated = !reducedMotion;
-  const paused = hovered || stopped;
 
   function handlePointerEnter(event: PointerEvent) {
     if (event.pointerType === "mouse") setHovered(true);
@@ -24,23 +21,12 @@ export function TestimonialsSection() {
       <div className="landing-frame">
         <div className="testimonials-head">
           <h2 id="testimonials-title" className="landing-heading__title">Quem compara, conta.</h2>
-          {animated ? (
-            <button
-              type="button"
-              className="testimonials-toggle"
-              aria-label={stopped ? "Continuar depoimentos" : "Pausar depoimentos"}
-              onClick={() => setStopped((current) => !current)}
-            >
-              {stopped ? <Play className="size-3.5" aria-hidden /> : <Pause className="size-3.5" aria-hidden />}
-              {stopped ? "Continuar" : "Pausar"}
-            </button>
-          ) : null}
         </div>
 
         {animated ? (
           <div className="testimonials" onPointerEnter={handlePointerEnter} onPointerLeave={() => setHovered(false)}>
             {testimonialRows.map((row, index) => (
-              <MarqueeRow key={index} testimonials={row} reverse={index % 2 === 1} paused={paused} />
+              <MarqueeRow key={index} testimonials={row} reverse={index % 2 === 1} paused={hovered} />
             ))}
           </div>
         ) : (

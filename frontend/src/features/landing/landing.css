@@ -5,6 +5,9 @@
  * redesenhados com o conteúdo e a identidade do Gomo (sem código copiado).
  */
 
+/* Fonte arredondada só para os caracteres da hora do celular da hero ("9:41"). */
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@800&text=9:41&display=swap");
+
 .landing {
   --landing-ink-soft: #4d4446;
   --landing-guide: #efe6e5;
@@ -105,13 +108,13 @@
 
 /* ---------- Hero ---------- */
 
-/* Os cantos de baixo arredondados também recortam os prints que saem pela borda, como na referência. */
+/* Os cantos de baixo arredondados fecham a hero; o degradê fica atrás das telas. */
 .landing-hero__panel {
   display: grid;
   overflow: hidden;
   isolation: isolate;
   border-radius: 0 0 var(--landing-radius-md) var(--landing-radius-md);
-  padding: 3.5rem var(--landing-gutter) 0;
+  padding: 3.5rem var(--landing-gutter) 4rem;
 }
 
 /* A faixa de cor no canto, atrás das telas. */
@@ -197,66 +200,486 @@
   color: var(--primary);
 }
 
-/* ---------- Telas da hero (prints reais do app) ---------- */
+/* ---------- Telas da hero (o app desenhado em código) ---------- */
 
-/* No celular só aparece o print do celular, saindo pela borda de baixo da hero. */
+/*
+ * Mesmas cores, fonte e ícones do dashboard: barra lateral vermelho-escura, fundo cinza-claro,
+ * cards brancos e o verde de "mais barato". No celular só aparece o telefone.
+ */
 .hero-showcase {
+  --hero-sidebar: #981d18;
+  --hero-sidebar-width: 12.5rem;
+  --hero-phone-width: 16.5rem;
+  --hero-phone-height: 35.5rem;
+  --hero-phone-top: 9.25rem;
+  --hero-app-bg: #f7f7f8;
+
   position: relative;
   display: flex;
   justify-content: center;
-  margin: 3rem 0 -7rem;
-  animation: landing-rise 800ms var(--landing-ease-out) 120ms both;
+  margin: 3rem 0 0;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
 }
 
-.hero-desktop {
+.hero-showcase svg {
+  width: 1em;
+  height: 1em;
+  flex: none;
+}
+
+/* A janela "continua" para fora da hero pela direita, por isso só tem o canto de cima à esquerda arredondado. */
+.hero-app {
   display: none;
-}
-
-.hero-desktop img,
-.hero-phone img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-/* 15rem menos a moldura de 0,5rem dá uma tela de 14rem (224px), a largura exata do print 1x. */
-.hero-phone {
-  position: relative;
-  z-index: 1;
-  width: 15rem;
-  border-radius: 2.75rem;
-  background: white;
-  padding: 0.5rem;
-  box-shadow: 0 0 0 1px rgb(32 33 36 / 0.08), 0 40px 70px -30px rgb(120 20 16 / 0.45);
-}
-
-.hero-phone__screen {
   overflow: hidden;
-  border-radius: 2.25rem;
+  border-radius: 1.125rem 0 0;
+  background: var(--hero-app-bg);
+  box-shadow: 0 0 0 1px rgb(32 33 36 / 0.07), 0 40px 80px -40px rgb(120 20 16 / 0.32);
+  font-size: 0.8125rem;
+  animation: hero-screen-in 800ms var(--landing-ease-out) 120ms both;
+}
+
+.hero-app__sidebar {
+  flex: none;
+  width: var(--hero-sidebar-width);
+  background: var(--hero-sidebar);
+  padding: 0 0.75rem;
+}
+
+.hero-app__logo {
+  display: block;
+  height: 1.625rem;
+  margin: 1rem 0.5rem;
+  filter: brightness(0) invert(1);
+}
+
+.hero-app__sidebar ul {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-app__sidebar li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.375rem;
+  border-radius: 0.625rem;
+  padding-inline: 0.75rem;
+  color: rgb(255 255 255 / 0.78);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hero-app__sidebar li svg {
+  font-size: 1.125rem;
+}
+
+.hero-app__sidebar li.is-active {
+  background: white;
+  color: #991b16;
+}
+
+.hero-app__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hero-app__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 4rem;
+  border-bottom: 1px solid var(--border);
+  background: white;
+  padding-inline: 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.hero-app__bar svg {
+  color: var(--muted);
+  font-size: 1.25rem;
+}
+
+.hero-app__body {
+  padding: 1.5rem;
+}
+
+.hero-compare {
+  max-width: 32rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
   background: white;
 }
 
-.hero-phone__status {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+.hero-compare__head {
+  display: flex;
   align-items: center;
-  padding: 0.625rem 1.25rem 0.25rem;
+  gap: 0.875rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.875rem 1rem;
+}
+
+.hero-compare__thumb {
+  display: grid;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  color: var(--primary);
+  font-size: 1.375rem;
+}
+
+.hero-compare__head strong {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
+.hero-compare__head span > span {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.hero-compare__savings {
+  border-bottom: 1px solid var(--border);
+  background: var(--success-soft);
+  padding: 0.625rem 1rem;
+  font-size: 0.75rem;
+}
+
+.hero-compare ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* As linhas assentam em ordem, do mais barato ao mais caro, logo depois que a janela chega. */
+.hero-compare li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  animation: hero-row-in 500ms var(--landing-ease-out) both;
+  animation-delay: calc(560ms + var(--row) * 80ms);
+}
+
+.hero-compare li + li {
+  border-top: 1px solid var(--border);
+}
+
+.hero-compare li.is-cheapest {
+  background: rgb(255 241 240 / 0.5);
+}
+
+.hero-compare__rank {
+  display: grid;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--muted);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
-.hero-phone__island {
-  width: 4.75rem;
-  height: 1.375rem;
-  border-radius: 999px;
-  background: #202124;
+.is-cheapest .hero-compare__rank {
+  background: var(--success);
+  color: white;
+  font-size: 0.875rem;
 }
 
-.hero-phone__signal {
+.hero-compare__store {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hero-compare__store svg {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.hero-compare__price {
+  text-align: right;
+}
+
+.hero-compare__price strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.hero-compare__price span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.6875rem;
+}
+
+.is-cheapest .hero-compare__price strong,
+.is-cheapest .hero-compare__price span {
+  color: var(--success);
+}
+
+.is-cheapest .hero-compare__price span {
+  font-weight: 700;
+}
+
+/* O celular, na frente. */
+.hero-phone {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: var(--hero-phone-width);
+  border-radius: 2.75rem;
+  background: white;
+  padding: 0.5rem;
+  box-shadow: 0 0 0 1px rgb(32 33 36 / 0.08), 0 40px 70px -30px rgb(120 20 16 / 0.42);
+  animation: hero-screen-in 800ms var(--landing-ease-out) 300ms both;
+}
+
+.hero-phone__screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: var(--hero-phone-height);
+  border-radius: 2.25rem;
+  background: var(--hero-app-bg);
+}
+
+/*
+ * Barra de status como a do iPhone com Dynamic Island: hora centralizada à esquerda da ilha,
+ * sinal, Wi-Fi e bateria centralizados à direita, na fonte do sistema.
+ */
+.hero-phone__status {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 2.125rem;
+  background: white;
+  padding-top: 0.125rem;
+  color: #000;
+}
+
+.hero-phone__time {
+  justify-self: center;
+  /* No iPhone e no Mac sai a SF Pro Rounded do sistema; nos outros, a Nunito. */
+  font-family: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.hero-phone__island {
+  width: 4.5rem;
+  height: 1.3125rem;
+  border-radius: 999px;
+  background: #000;
+}
+
+.hero-phone__indicators {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-self: center;
   gap: 0.25rem;
+}
+
+.hero-showcase .hero-phone__indicators svg {
+  width: auto;
+}
+
+.hero-showcase .hero-phone__cellular {
+  height: 0.4375rem;
+}
+
+.hero-showcase .hero-phone__wifi {
+  height: 0.4375rem;
+}
+
+.hero-showcase .hero-phone__battery {
+  height: 0.5rem;
+  margin-left: 0.0625rem;
+}
+
+/* Abas do app no rodapé, como no iOS: ícone em cima, nome embaixo, a ativa em vermelho. */
+.hero-phone__tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  background: rgb(255 255 255 / 0.94);
+  padding: 0.4375rem 0.375rem 1.375rem;
+}
+
+.hero-phone__tabs span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1875rem;
+  color: #8e9096;
+  font-size: 0.5625rem;
+  font-weight: 600;
+}
+
+.hero-phone__tabs svg {
+  font-size: 1.25rem;
+}
+
+.hero-phone__tabs .is-active {
+  color: var(--primary);
+}
+
+/* A barrinha do iPhone embaixo da tela. */
+.hero-phone__home {
+  position: absolute;
+  bottom: 0.3125rem;
+  left: 50%;
+  width: 5.25rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: #000;
+  transform: translateX(-50%);
+}
+
+.hero-phone__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: white;
+  padding: 0.625rem 1rem 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.hero-phone__bar svg {
+  color: var(--muted);
+  font-size: 1.125rem;
+}
+
+.hero-list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 1rem 0.875rem 0;
+}
+
+.hero-list__name {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.hero-list__count {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.hero-list ul {
+  margin: 0.75rem 0 0;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: white;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.hero-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.hero-list li > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-list li > span:last-child {
+  color: var(--muted);
+}
+
+.hero-list__more {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  text-align: center;
+}
+
+/* O resultado da lista é o único bloco vermelho das telas: é a resposta que o Gomo dá. */
+.hero-list__result {
+  margin: 0 0.75rem 0.75rem;
+  border-radius: 1.125rem;
+  background: var(--primary);
+  padding: 0.875rem 1rem 1rem;
+  color: white;
+  animation: hero-row-in 500ms var(--landing-ease-out) 1000ms both;
+}
+
+.hero-list__badge {
+  display: block;
+  color: rgb(255 255 255 / 0.82);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.hero-list__store {
+  display: block;
+  margin-top: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.hero-list__result strong {
+  display: block;
+  margin-top: 0.125rem;
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+@keyframes hero-screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+}
+
+@keyframes hero-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
 }
 
 /* ---------- O que o Gomo faz ---------- */
@@ -528,32 +951,6 @@
   justify-content: space-between;
   gap: 1rem;
   padding: clamp(3.5rem, 7vw, 6rem) var(--landing-gutter) 2.5rem;
-}
-
-.testimonials-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  min-height: 2.25rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: white;
-  padding: 0.25rem 0.875rem;
-  color: var(--muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 200ms ease, border-color 200ms ease;
-}
-
-.testimonials-toggle:hover {
-  border-color: var(--border-strong);
-  color: var(--foreground);
-}
-
-.testimonials-toggle:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .testimonials {
@@ -959,15 +1356,6 @@
   text-align: center;
 }
 
-/* ---------- Animações ---------- */
-
-@keyframes landing-rise {
-  from {
-    opacity: 0;
-    transform: translateY(1.5rem);
-  }
-}
-
 /* ---------- Responsivo ---------- */
 
 @media (min-width: 30rem) {
@@ -986,40 +1374,27 @@
   }
 
   /*
-   * O print do computador aparece grande, cortado pela direita e por baixo como se continuasse fora
-   * da página. O celular fica na frente da barra lateral dele e é quem define a altura do conjunto.
+   * Como na referência: a janela do computador é grande e continua para fora da hero pela direita;
+   * o iPhone fica na frente, cobrindo a parte de baixo da barra lateral (a logo e o item ativo
+   * ficam à mostra). A janela termina num corte reto na altura do celular, sobre o degradê.
    */
   .hero-showcase {
-    --desktop-left: 3.5rem;
-    --desktop-width: min(calc(100% - var(--desktop-left) + var(--landing-gutter) + 2rem), 52rem);
-
     display: block;
-    margin: 3.5rem 0 0;
-    padding: 9rem 0 4rem;
+    margin: 3.5rem calc(-1 * var(--landing-gutter)) 0 0;
+    padding-top: var(--hero-phone-top);
   }
 
-  /*
-   * A tela do computador termina num corte reto na mesma altura do celular, deixando uma faixa
-   * do degradê embaixo: é ela que mostra os cantos arredondados da hero, como na referência.
-   */
-  .hero-desktop {
+  .hero-app {
     position: absolute;
     top: 0;
-    bottom: 4rem;
-    left: var(--desktop-left);
-    display: block;
-    overflow: hidden;
-    width: var(--desktop-width);
-    border-radius: 1rem 1rem 0 0;
-    background: white;
-    /* O contorno é sombra, não borda, para a imagem ocupar a largura inteira sem ser redimensionada. */
-    box-shadow: 0 0 0 1px var(--border), 0 40px 80px -40px rgb(120 20 16 / 0.35);
+    right: 0;
+    bottom: 0;
+    left: calc(var(--hero-phone-width) - var(--hero-sidebar-width) - 1rem);
+    display: flex;
   }
 
-  /* A barra lateral ocupa 1/4 do print: o celular a cobre inteira, para nenhum rótulo aparecer cortado atrás dele. */
   .hero-phone {
-    width: calc(var(--desktop-width) / 4 + var(--desktop-left));
-    animation: landing-rise 800ms var(--landing-ease-out) 260ms both;
+    margin-left: 0;
   }
 }
 
@@ -1113,20 +1488,13 @@
   }
 }
 
-/*
- * Lado a lado só a partir de 80rem, quando a coluna das telas tem largura para os prints ficarem grandes.
- * O celular avança um pouco sobre o espaço vazio embaixo do texto, e a barra lateral do app aparece acima dele.
- */
+/* Lado a lado a partir de 80rem: texto à esquerda, telas na coluna da direita. */
 @media (min-width: 80rem) {
   .landing-hero__panel {
     grid-template-columns: minmax(0, 31rem) minmax(0, 1fr);
     align-items: center;
-    column-gap: 2rem;
-    padding: 4.5rem 0 0 var(--landing-gutter);
-  }
-
-  .landing-hero__copy {
-    padding-bottom: 4rem;
+    column-gap: 3rem;
+    padding: 4.5rem var(--landing-gutter);
   }
 
   /* Na coluna de 31rem, este tamanho mantém o título em três linhas. */
@@ -1134,28 +1502,21 @@
     font-size: 3rem;
   }
 
-  .hero-showcase {
-    margin-top: 0;
-    padding: 13.5rem 0 4rem;
+  .landing-hero__panel {
+    padding-right: 0;
   }
 
-  /* 712px fixos: a largura exata do print 1x. Passa um pouco da borda direita e é recortado por ela. */
   .hero-showcase {
-    --desktop-left: 0rem;
-    --desktop-width: 44.5rem;
-  }
-
-  /* Aqui o celular avança 3rem para a esquerda e, com 15rem, já passa da borda da barra lateral. */
-  .hero-phone {
-    width: 15rem;
-    margin-left: -3rem;
+    margin: 0;
   }
 }
 
-/* Por último, para valer sobre as entradas definidas nos breakpoints acima. */
+/* Por último, para valer sobre as entradas definidas acima. */
 @media (prefers-reduced-motion: reduce) {
-  .hero-showcase,
-  .hero-phone {
+  .hero-app,
+  .hero-phone,
+  .hero-compare li,
+  .hero-list__result {
     animation: none;
   }
 }
