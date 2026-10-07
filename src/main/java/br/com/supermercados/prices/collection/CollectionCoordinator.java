@@ -232,6 +232,11 @@ public class CollectionCoordinator {
             CollectionRunResponse failed = runs.fail(run.id(), message);
             LOGGER.error("Coleta {} falhou para {}: {}", failed.id(), metadata.code(), message, exception);
             return failed;
+        } catch (OutOfMemoryError error) {
+            // The collector's data is unreachable once the stack unwinds; record the failure instead of a run left RUNNING.
+            CollectionRunResponse failed = runs.fail(run.id(), "Memória insuficiente durante a coleta");
+            LOGGER.error("Coleta {} sem memória para {}", failed.id(), metadata.code(), error);
+            return failed;
         }
     }
 
