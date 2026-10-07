@@ -47,10 +47,7 @@ public class StoreService {
 
     /** The markets shown to shoppers: only those with a current price (see {@link #currentlyPriced}). */
     public Page<StoreResponse> findListedStores(UUID cityId, Pageable pageable) {
-        if (cityId == null) {
-            return withPriceUpdates(storeRepository.findByActiveTrue(pageable));
-        }
-        locationService.requireCity(cityId);
+        if (cityId != null) locationService.requireCity(cityId);
         return currentlyPriced(cityId, pageable);
     }
 
@@ -59,7 +56,9 @@ public class StoreService {
      * with nothing to compare; it comes back on its own with the next successful collection.
      */
     private Page<StoreResponse> currentlyPriced(UUID cityId, Pageable pageable) {
-        List<Store> priced = storeRepository.findPricedActiveStores(cityId, Pageable.unpaged(pageable.getSort())).getContent();
+        Pageable everything = Pageable.unpaged(pageable.getSort());
+        List<Store> priced = (cityId == null ? storeRepository.findByActiveTrue(everything)
+                : storeRepository.findPricedActiveStores(cityId, everything)).getContent();
         if (priced.isEmpty()) return Page.empty(pageable);
         Map<UUID, Instant> updates = prices.findStoreUpdates(priced.stream().map(Store::getId).toList()).stream()
                 .collect(Collectors.toMap(StorePriceUpdate::storeId, StorePriceUpdate::collectedAt));
