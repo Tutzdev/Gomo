@@ -17,7 +17,9 @@ final class MercafacilProductParser {
         String unit = page.resolve(product.path("unitOfMeasurement")).path("abbreviation").asString("");
         if ("kg".equalsIgnoreCase(unit)) {
             name += " (preço de 1 kg)";
-        } else if (!measurement.isBlank() && !ProductNormalizer.describesSamePackage(name, measurement)) {
+        } else if (!measurement.isBlank() && !ProductNormalizer.statesMeasurement(name)) {
+            // The registered quantity is often the shipping weight ("PAO FORMA SEVEN BOYS 450G" registers
+            // 500 g), so it only completes a description that states no size, such as one cut short.
             name += " " + measurement;
         }
         if (!product.path("variants").isEmpty()) {

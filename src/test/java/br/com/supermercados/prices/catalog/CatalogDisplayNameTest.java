@@ -27,4 +27,13 @@ class CatalogDisplayNameTest {
         assertThat(generic("Lava Roupa Liq. Omo 900ml")).isEqualTo("Lava Roupa Líquido Omo 900 ml");
         assertThat(generic("Bebida Láctea Nescau 180ml")).isEqualTo("Bebida Láctea Nescau 180 ml");
     }
+
+    @Test
+    void genericItemsAreNamedFromTheirKeyWithTheAccentsSomeMarketWrites() {
+        assertThat(CatalogBuilder.Group.accented("BANANA MACA",
+                List.of("BANANA MACA KG (preço de 1 kg)", "Banana Maçã (preço de 1 kg)"))).isEqualTo("Banana Maçã");
+        assertThat(CatalogBuilder.Group.accented("TOMATE", List.of("TOMATE DEBORA KG"))).isEqualTo("Tomate");
+        assertThat(CatalogBuilder.Group.accented("Ovos Brancos Grandes", List.of("Ovos Branco Gde Iana 12un")))
+                .isEqualTo("Ovos Brancos Grandes");
+    }
 }

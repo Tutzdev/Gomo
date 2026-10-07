@@ -202,7 +202,33 @@ public class CatalogBuilder {
 
         /** "Refr. Coca-cola 2lt Pet" → "Coca-Cola 2 L": retailer noise removed, standard size appended. */
         String displayName() {
+            if (identity.genericName() != null) {
+                return accented(identity.genericName(), products.values().stream().map(Offer::name).toList())
+                        + " " + CatalogKey.sizeLabel(identity.size());
+            }
             return genericName(representative().name(), identity);
+        }
+
+        /** "BANANA MACA" → "Banana Maçã": each key word as a market spells it, accents included when one does. */
+        static String accented(String genericName, List<String> retailerNames) {
+            Map<String, String> spellings = new HashMap<>();
+            for (String retailerName : retailerNames) {
+                for (String word : retailerName.split("[\\s/()-]+")) {
+                    String key = CatalogKey.words(word);
+                    if (key.isEmpty() || key.contains(" ")) continue;
+                    String spelled = titleCase(word);
+                    // An accented spelling beats a plain one.
+                    spellings.merge(key, spelled, (current, next) -> current.chars().allMatch(character -> character < 128)
+                            ? next : current);
+                }
+            }
+            StringBuilder name = new StringBuilder();
+            for (String word : genericName.split(" ")) {
+                if (!name.isEmpty()) name.append(' ');
+                boolean keyWord = word.equals(CatalogKey.words(word));
+                name.append(keyWord ? spellings.getOrDefault(word, titleCase(word)) : word);
+            }
+            return name.toString();
         }
 
         static String genericName(String retailerName, CatalogKey.Identity identity) {

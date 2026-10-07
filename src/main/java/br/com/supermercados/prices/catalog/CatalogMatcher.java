@@ -30,7 +30,7 @@ final class CatalogMatcher {
     private static final Set<String> OPTIONAL_WORDS = Set.of(("PO LIQUIDO BISCOITO BOLACHA SALGADINHO TEMPERO "
             + "ROUPA ROUPAS CREMOSO CREMOSA SALGADO PERFUMADO PRONTO CONGELADO CONGELADA RESFRIADO RESFRIADA "
             + "ALIMENTO CHILENO ARGENTINO PORTUGUES ALCOOLICO MACARRAO MASSA BATATA SUCO REFRESCO CERVEJA "
-            + "ISOTONICO REFINADO COZINHA").split(" "));
+            + "ISOTONICO REFINADO COZINHA LACTEA WAFER RECHEADO RECHEIO").split(" "));
     /**
      * Words that only say how the item is packed or sold ("Biscoito Cookie Chocolate Piraquê Pacote 80G",
      * "Rum Nacional Montilla"), allowed as the only difference besides abbreviations. Flavours, variants and
@@ -38,7 +38,7 @@ final class CatalogMatcher {
      */
     private static final Set<String> DESCRIPTIVE_WORDS = Set.of(("EMBALAGEM CAIXA PACOTE ECONOMICA ESPECIAL "
             + "PROMOCIONAL MATINAL INSTANTANEO LONG NECK VINHO NACIONAL IMPORTADO ITALIANO FRANCES ESPANHOL "
-            + "URUGUAIO").split(" "));
+            + "URUGUAIO FORTIFICADO IQF ESPECIAIS").split(" "));
 
     private final CatalogKey keys;
     private final Map<String, Description> descriptions = new HashMap<>();
@@ -157,12 +157,17 @@ final class CatalogMatcher {
                 used.add(word);
                 continue;
             }
-            List<String> candidates = longer.stream().filter(full -> !used.contains(full)
+            // "AA" never abbreviates "AAA": a battery size, not a cut word.
+            List<String> candidates = longer.stream().filter(full -> !used.contains(full) && !repeatsOneLetter(full)
                     && ((word.length() >= 2 && full.startsWith(word)) || (full.length() >= 4 && word.startsWith(full)))).toList();
             if (candidates.size() != 1) return false;
             used.add(candidates.getFirst());
         }
         return longer.stream().filter(word -> !used.contains(word)).allMatch(DESCRIPTIVE_WORDS::contains);
+    }
+
+    private static boolean repeatsOneLetter(String word) {
+        return word.chars().allMatch(character -> character == word.charAt(0));
     }
 
     /** Every joined description is published under the one most stores use. */

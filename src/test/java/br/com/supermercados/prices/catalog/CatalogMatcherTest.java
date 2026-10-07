@@ -16,7 +16,7 @@ class CatalogMatcherTest {
     private static final UUID STORE_C = UUID.randomUUID();
 
     private final CatalogKey keys = CatalogKey.learn(List.of("Sol", "União", "Ninho", "Ypê", "Pomarola", "Perdigão",
-            "Piraquê", "Serramar", "Leão", "Renata"), List.of());
+            "Piraquê", "Serramar", "Leão", "Renata", "Itambé", "Panasonic", "Oreo"), List.of());
     private final List<CatalogMatcher.Listing> listings = new ArrayList<>();
 
     @Test
@@ -96,6 +96,26 @@ class CatalogMatcherTest {
         UUID spinach = sku(STORE_B, "Macarrão Renata Espinafre 500g");
 
         assertThat(item(ambiguous)).isNotEqualTo(item(spaghetti)).isNotEqualTo(item(spinach));
+    }
+
+    @Test
+    void marketingWordsOfOneStoreDoNotHideTheSameProduct() {
+        // Nagumo describes products with words other stores leave out.
+        UUID fortified = sku(STORE_A, "Leite Em Pó Integral Itambé Fortificado 380G");
+        UUID plain = sku(STORE_B, "Leite Po Itambe 380g Integral");
+        UUID filled = sku(STORE_A, "Biscoito Oreo Recheado Original 90g");
+        UUID cookie = sku(STORE_B, "BISCOITO OREO ORIGINAL 90G");
+
+        assertThat(item(fortified)).isEqualTo(item(plain));
+        assertThat(item(filled)).isEqualTo(item(cookie));
+    }
+
+    @Test
+    void batterySizesAreNeverReadAsAbbreviations() {
+        UUID aa = sku(STORE_A, "Pilha Alcalina Panasonic AA 2 Unidades");
+        UUID aaa = sku(STORE_B, "Pilha Alcalina Panasonic AAA 2 Unidades");
+
+        assertThat(item(aa)).isNotEqualTo(item(aaa));
     }
 
     private UUID sku(UUID store, String name) {

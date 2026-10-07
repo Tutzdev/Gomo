@@ -40,7 +40,32 @@ O usuário escolhe **"Coca-Cola 2 L"**, não o anúncio de um mercado. Cada item
 
 ### Hortifrúti e açougue por kg
 
-Itens sem marca vendidos por quilo ("(preço de 1 kg)") viram itens do catálogo quando as palavras são **idênticas**: `Cebola Nacional`, `Laranja Pera`, `Pão Francês`, `Fígado Bovino`. Sem marca para confirmar, não há união aproximada. "Bandeja", "a granel" e "(aproximadamente N unid)" são ignorados, "S CAROCO" é "sem caroço" e o gênero do animal não separa o corte (`Pernil Suína` = `Pernil Suíno`).
+Itens sem marca vendidos por quilo ("(preço de 1 kg)") viram itens do catálogo quando as palavras são **idênticas**: `Laranja Pera`, `Pão Francês`, `Fígado Bovino`. Sem marca para confirmar, não há união aproximada. "Bandeja", "a granel" e "(aproximadamente N unid)" são ignorados, "S CAROCO" é "sem caroço" e o gênero do animal não separa o corte (`Pernil Suína` = `Pernil Suíno`).
+
+O nome do item é **genérico**, montado das palavras da chave (com os acentos de algum mercado que escreva certo), e não a descrição de uma loja: "Tomate 1 kg", "Banana Maçã 1 kg". Na comparação, cada mercado continua mostrando o próprio nome do produto.
+
+| Regra | Exemplo |
+| --- | --- |
+| Tamanho e escolha não mudam o item: média, graúda, grande, pequena, miúda, selecionada, nacional, fresca | `BANANA PRATA MEDIA KG` = `Banana Prata` |
+| Nomes comerciais da variedade comum são o produto comum | `Tomate Débora`, `Tomate Salada`, `Tomate Carmem` = **Tomate**; `Batata Lavada`, `Batata Escovada`, `Batata Inglesa` = **Batata**; `Cebola Amarela` = **Cebola** |
+| Outras variedades continuam itens próprios | `Tomate Italiano`, `Tomate Cereja`, `Batata Asterix`, `Batata Doce`, `Cebola Roxa` |
+| Sinônimos | banana d'água = nanica; Tahiti = Taiti |
+
+O Hortifruti vende tomate, banana e batata **por unidade**, sem informar o peso. Esses itens ficam fora da comparação por kg: converter exigiria inventar o peso.
+
+### Ovos
+
+Uma bandeja de ovos é o mesmo item em qualquer mercado, **seja qual for a granja**: cor (ou tipo: caipira, orgânico, de galinhas livres, de codorna), classe (pequeno, médio, grande, extra, jumbo) e quantidade. `Ovos Branco Gde Iana 12un`, `Ovos Branco Grande Santa Monica C/12un` e `Ovos Brancos Grandes Mantiqueira Dúzia` são **Ovos Brancos Grandes 12 un**. Sem classe na descrição, o item não tem classe ("Ovos Brancos 30 un"). Ovo de Páscoa, ovo pasteurizado e massa com ovos nunca entram. Uma quantidade cortada no limite de 30 caracteres do ERP ("Ovos Bco Mantiqueira Jumbo C/1") não é usada.
+
+### Abreviações e grafias de cada loja
+
+Além das abreviações acima: `ST` no começo é sabonete, `FRG`/`FGO` frango, `RECH` recheado, `SALG` salgadinho, `DESINF` desinfetante, `BCO` branco, `TTO` tinto, `MRG` morango, `ZR` zero, `RF` refil, `SCH` sachê, `SAB` sabor, `LN` long neck. Grafias que variam entre lojas são unificadas (panetone/panettone, parbolizado/parboilizado, capeleti/capeletti, wafer/waffer). "Com sal" é o padrão de manteiga e margarina e "uva tinto" o do suco de uva. As formas sem sal e de uva branca continuam itens próprios.
+
+O pareamento entre descrições também ignora palavras de tipo (láctea, wafer, recheado) e alguns adjetivos que o Nagumo acrescenta (fortificado, IQF, especiais). Pilha `AA` nunca é abreviação de `AAA`.
+
+### Tamanho cadastrado no Ville e no Pame
+
+As lojas Mercafácil (Ville e Pame) informam um peso cadastrado além da descrição. Ele só completa uma descrição que não diz o tamanho ("SUCO MAGUARY UVA 500" + "500ml"). Quando a descrição já diz, vale o que está escrito: o cadastrado costuma ser o peso bruto ("PAO FORMA SEVEN BOYS 450G" cadastra 500 g), e os dois tamanhos juntos impediam a comparação.
 
 Nas lojas VipCommerce, itens vendidos por peso entram quando o peso escrito no nome confere com o peso informado pela loja. Bandejas de peso aproximado (pesadas no caixa) são publicadas pelo preço do kg, comparáveis com o hortifrúti a granel dos outros mercados. Quando a base do preço é desconhecida (preço por kg com peso de embalagem no nome, por exemplo), o item fica de fora.
 
@@ -57,7 +82,7 @@ O ID de cada item é estável por chave. Um item que deixa de cumprir o mínimo 
 ## Atualização dos preços
 
 - **Coleta agendada:** quatro vezes ao dia (`PRICE_COLLECTION_CRON`, padrão 06h, 11h, 16h e 21h).
-- **Coleta ao iniciar:** os coletores sem execução concluída nas últimas `PRICE_REFRESH_WHEN_OLDER_THAN` (padrão 8 h) são atualizados em segundo plano, e os que estão em dia são pulados. Assim, uma máquina que ficou desligada não passa o dia exibindo preços vencidos.
+- **Coleta ao iniciar:** os coletores sem execução concluída nas últimas `PRICE_REFRESH_WHEN_OLDER_THAN` (padrão 8 h) são atualizados em segundo plano, e os que estão em dia são pulados. Assim, uma máquina que ficou desligada não passa o dia exibindo preços vencidos. Um mercado sem importação completa nos últimos 7 dias é importado por inteiro, para que um coletor corrigido num deploy traga logo os produtos que antes descartava.
 - **Coleta em paralelo:** os coletores baixam ao mesmo tempo (`PRICE_COLLECTION_PARALLELISM`, padrão 3), pois cada um consulta o site do próprio mercado. A gravação no banco continua sequencial.
 - **Páginas maiores na Nagumo:** a loja responde 200 itens por página no mesmo tempo que 50 (`NAGUMO_PAGE_SIZE`, padrão 200), o que reduz as requisições em quatro vezes.
 - **Validade dos preços:** continua definida por `PRICE_MAX_AGE` (2 dias). Preço vencido nunca é exibido como atual.
