@@ -108,10 +108,10 @@ class NagumoClient {
                 break;
             }
             // The declared count excludes some unavailable products; it is not a pagination bound.
-            if (!pageSignatures.add(page.toString())) {
+            if (!pageSignatures.add(signature(page))) {
                 throw new IllegalStateException("A Nagumo repetiu uma página durante a coleta");
             }
-            page.forEach(products::add);
+            page.forEach(product -> products.add(essentials(product)));
             if ("finished".equals(response.path("productSearch").path("showMoreUrl").asString())
                     || (response.path("productSearch").path("showMoreUrl").isMissingNode()
                         && page.size() < properties.getPageSize())) {
@@ -122,6 +122,32 @@ class NagumoClient {
         // The source counts indexed hits before branch filtering; follow its explicit end marker.
         LOGGER.info("Nagumo: departamento {} concluído, {} registros recebidos", categoryId, products.size());
         return new NagumoCatalogResponse(store, categoryName, products.size(), products);
+    }
+
+    /** Fields the parser reads; the rest (image sizes, badges, tags…) would multiply the memory of a collection. */
+    private static final java.util.Set<String> PARSED_FIELDS = java.util.Set.of("id", "productName", "price", "flagtypes",
+            "weighable", "averageWeightNumber", "brand", "productAdditionalInfo", "shortDescription", "longDescription",
+            "gtin", "ean", "available", "productShowFullUrl");
+
+    private JsonNode essentials(JsonNode product) {
+        var kept = objectMapper.createObjectNode();
+        for (String field : PARSED_FIELDS) {
+            if (product.has(field)) kept.set(field, product.get(field));
+        }
+        JsonNode image = product.path("images").path("medium").path(0);
+        if (!image.isMissingNode()) kept.putObject("images").putArray("medium").add(image);
+        return kept;
+    }
+
+    /** Identifies a page without keeping its whole text for the rest of the collection. */
+    private static String signature(JsonNode page) {
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(page.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 
     private JsonNode requireExpectedStore(JsonNode response, boolean selectionRequired) {
