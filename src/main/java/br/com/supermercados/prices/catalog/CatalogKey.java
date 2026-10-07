@@ -86,8 +86,12 @@ public final class CatalogKey {
             + "ENERGETICO REPOSITOR REFRIGERANTE GARRAFA GFA GF PET LATA LT VIDRO DESCARTAVEL EMB EMBALAGEM UN UND UNID "
             + "UNIDADE UNIDADES CX CAIXA GELADO GELADA FRIO FRESCO NOVO NOVA PROMOCAO OFERTA TP TIPO LV "
             + "TRADICIONAL ORIGINAL ENERGY DRINK PRECO X L ML G KG").split(" "));
+    /**
+     * Kits and "leve 3 pague 2" offers (always written with "pague"). "Kit Kat" and the "Massa Leve" brand are
+     * products, not bundles.
+     */
     private static final Pattern BUNDLE = Pattern.compile(
-            "\\b(?:KIT|COMBO|LEVE|PAGUE|BONUS|GRATIS|BRINDE|GANHE|SORTIDOS?|SORTIDAS)\\b|\\+");
+            "\\bKIT\\b(?!\\s*KAT\\b)|\\b(?:COMBO|PAGUE|BONUS|GRATIS|BRINDE|GANHE|SORTIDOS?|SORTIDAS)\\b|\\+");
     private static final Pattern MEASURE = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(ML|L|KG|G)\\b");
     private static final Pattern COUNT = Pattern.compile(
             "\\b(\\d+)\\s*(?:UNIDADES|UNIDADE|UNID|UN|UND)\\b|\\b(\\d+)\\s*X\\s*(?=\\d)|\\b(?:PACK|C|COM)\\s*(\\d+)\\b");

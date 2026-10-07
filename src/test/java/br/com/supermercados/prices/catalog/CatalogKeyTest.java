@@ -70,6 +70,15 @@ class CatalogKeyTest {
         assertThat(keys.identify("Leve 3 Pague 2 Sabão Ypê 200g")).isNull();
         assertThat(keys.identify("Arroz Branco 5kg")).isNull();
         assertThat(keys.identify("Banana Prata")).isNull();
+        assertThat(keys.identify("Alimento Achocolatado Nescau Pacote Leve 730g Pague 680g")).isNull();
+        assertThat(keys.identify("Biscoito Integral Leve Mais E Pague Menos Club Social 288G")).isNull();
+    }
+
+    @Test
+    void brandsThatLookLikeBundleWordsAreStillProducts() {
+        assertThat(keys.identify("CAPELETTI MASSA LEVE 400gr")).isNotNull();
+        assertThat(keys.identify("CEREAL KIT KAT 210G")).isNotNull();
+        assertThat(keys.identify("Kit Pano Multiuso Camesa com 3 peças")).isNull();
     }
 
     @Test
