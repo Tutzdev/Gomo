@@ -32,8 +32,17 @@ O usuário escolhe **"Coca-Cola 2 L"**, não o anúncio de um mercado. Cada item
 | Palavra cortada no limite de 30 caracteres das lojas VIP (Bramil, Pérola, Royal, Spani) | `Acucar Granulado Uniao 1kg Pre` = `Açúcar Granulado União Premium 1kg` |
 | Mesmo SKU descrito de outro jeito por outra loja (a descrição mais recente de cada loja, guardada em cada preço) | `Leite Po Ninho 380g Integral I` liga `Leite em Pó Ninho Integral Instantâneo 380g` |
 
+| Abreviação de ERP da mesma marca e tamanho: cada palavra da descrição curta é uma palavra da longa ou o começo dela, e o que sobra é só palavra descritiva (pacote, embalagem, matinal, long neck…) | `LING PERDIGAO CALABR 400gr` = `Linguiça Calabresa Perdigão 400g` |
+
+- **Ambiguidade:** se a descrição abreviada serve para dois produtos da mesma loja (`Macarrão Renata Esp` → Espaguete ou Espinafre), nada é unido naquela loja.
 - **Nunca une:** sabor, ingrediente ou variante diferentes (zero, light, chocolate, milho), nem embalagens diferentes (sachê/refil, pote, squeeze), que têm preços diferentes.
 - **Trava:** se uma mesma loja vende SKUs nas duas descrições, elas são produtos diferentes e não são unidas. Assim, uma união feita aqui nunca coloca dois SKUs da mesma loja no mesmo item.
+
+### Hortifrúti e açougue por kg
+
+Itens sem marca vendidos por quilo ("(preço de 1 kg)") viram itens do catálogo quando as palavras são **idênticas**: `Cebola Nacional`, `Laranja Pera`, `Pão Francês`, `Fígado Bovino`. Sem marca para confirmar, não há união aproximada. "Bandeja", "a granel" e "(aproximadamente N unid)" são ignorados, "S CAROCO" é "sem caroço" e o gênero do animal não separa o corte (`Pernil Suína` = `Pernil Suíno`).
+
+Nas lojas VipCommerce, itens vendidos por peso entram quando o peso escrito no nome confere com o peso informado pela loja. Bandejas de peso aproximado (pesadas no caixa) são publicadas pelo preço do kg, comparáveis com o hortifrúti a granel dos outros mercados. Quando a base do preço é desconhecida (preço por kg com peso de embalagem no nome, por exemplo), o item fica de fora.
 
 `CatalogBuilder` agrupa pelo resultado e publica somente os itens vendidos em pelo menos `CATALOG_MIN_STORES` mercados (padrão 2). Em 02/10/2026 eram cerca de 9,3 mil itens (8,5 mil antes destas regras). Os demais anúncios continuam no banco, com o histórico, mas não aparecem na busca.
 
@@ -52,6 +61,9 @@ O ID de cada item é estável por chave. Um item que deixa de cumprir o mínimo 
 - **Coleta em paralelo:** os coletores baixam ao mesmo tempo (`PRICE_COLLECTION_PARALLELISM`, padrão 3), pois cada um consulta o site do próprio mercado. A gravação no banco continua sequencial.
 - **Páginas maiores na Nagumo:** a loja responde 200 itens por página no mesmo tempo que 50 (`NAGUMO_PAGE_SIZE`, padrão 200), o que reduz as requisições em quatro vezes.
 - **Validade dos preços:** continua definida por `PRICE_MAX_AGE` (2 dias). Preço vencido nunca é exibido como atual.
+- **Promoções sem data de fim** (VipCommerce, Mercafácil): valem como preço atual por `PRICE_UNDATED_PROMOTION_WINDOW` (12 h) depois da coleta, renovadas a cada coleta enquanto durarem. Promoção de clube, aplicativo ou quantidade mínima nunca entra no preço comum.
+- **Preços de marcação:** 9999, 99999, valores redondos acima de R$ 1.000 e R$ 300/kg ou mais em centenas exatas (o que alguns mercados publicam para itens fora de venda) vão para a fila de revisão e nunca viram preço.
+- **Importação completa semanal:** aos domingos, às 3h (`PRICE_COLLECTION_FULL_CRON`), a coleta importa também os produtos novos dos mercados; nas outras, só atualiza preços.
 - **Mercados sem preços:** um mercado que nunca publicou preço não entra na comparação nem na lista de mercados.
 
 ## O que a pessoa vê

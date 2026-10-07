@@ -6,6 +6,20 @@ O banco inicial contém somente o estado e as quatro cidades autorizadas pelo es
 
 As interfaces `ProductDataProvider`, `StoreDataProvider` e `PriceDataProvider` continuam definindo consultas paginadas. Os coletores automáticos implementam `SupermarketCollector` e entregam um catálogo normalizado ao mesmo domínio de ingestão. A ausência de uma integração não é convertida em dados inventados.
 
+## Situação das fontes em 07/10/2026
+
+| Unidade | Fonte | Situação |
+| --- | --- | --- |
+| Nagumo Ponte Alta | Site Nagumo (Salesforce Commerce) | Coletado. Não publica EAN; o pareamento é pela descrição. Itens indisponíveis vêm sem preço e são ignorados. |
+| Bramil, Pérola, Royal, Spani | VipCommerce | Coletados, inclusive itens vendidos por peso. O script de configuração é descoberto sozinho quando o site muda. |
+| Pame, Ville | Mercafácil | Coletados. Não publicam EAN; o tamanho extra da Mercafácil às vezes contradiz a descrição, e esses itens ficam de fora. |
+| Hortifruti Aterrado | Site Hortifruti | Coletado. |
+| Atacadão São Geraldo | E-commerce Atacadão (VTEX) | Coletado. O campo `gtin` traz código interno, não EAN. |
+| Atacadão Vila Rica | — | **Sem fonte.** Entre as 220 lojas do e-commerce Atacadão, a única de Volta Redonda é São Geraldo (`atacadaobr815`). Os encartes revisados à mão venceram em 21/09; o coletor de encarte só roda quando houver encarte revisado válido. |
+| Supermarket Aterrado | — | **Sem fonte** ([supermarket-aterrado.md](supermarket-aterrado.md)). |
+
+Mercados sem preço atual não aparecem na lista de supermercados nem nas comparações. O monitoramento de cada coletor está em [operations.md](operations.md#3-monitor-das-coletas).
+
 ## Fontes ativas do MVP
 
 O recorte inicial foi validado em **17/09/2026**; suas evidências históricas estão em [mvp-data-check.md](mvp-data-check.md). A configuração atual percorre os departamentos públicos das duas fontes e preserva o banco existente. Contagens variam conforme a loja publica seu estoque.
@@ -56,7 +70,7 @@ Aterrado não integra este MVP. O encarte oficial Supermarket anteriormente inve
 
 ## Execução automática e manual
 
-A coleta roda diariamente às 05:30 em `America/Sao_Paulo`. O cron, fuso, intervalo entre coletores, timeouts, tentativas e intervalo entre requisições estão em `application.properties` e podem ser substituídos pelas variáveis documentadas em `.env.example`. Use `PRICE_COLLECTION_ENABLED=false` para desativar apenas o agendamento ou as flags `NAGUMO_COLLECTION_ENABLED=false` / `ROYAL_COLLECTION_ENABLED=false` para desativar cada coletor.
+A agenda atual (quatro atualizações por dia e uma importação completa semanal) está em [operations.md](operations.md#4-agenda-das-coletas). O cron, fuso, intervalo entre coletores, timeouts, tentativas e intervalo entre requisições estão em `application.properties` e podem ser substituídos pelas variáveis documentadas em `.env.example`. Use `PRICE_COLLECTION_ENABLED=false` para desativar apenas o agendamento ou as flags `NAGUMO_COLLECTION_ENABLED=false` / `ROYAL_COLLECTION_ENABLED=false` para desativar cada coletor.
 
 Um administrador pode iniciar a mesma rotina sem reiniciar a aplicação:
 

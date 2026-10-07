@@ -73,3 +73,15 @@ O mesmo relatório, com o último erro de cada coletor e quantos produtos cada m
 | Ao iniciar | Atualiza quem está sem coleta há mais de 8 h | `PRICE_REFRESH_WHEN_OLDER_THAN` |
 
 Uma coleta manual de um mercado, pela API de admin: `POST /api/v1/admin/collections?collectorCode=royal_retiro` (com `existingOnly=true` para só atualizar preços).
+
+## 5. Termos e Privacidade
+
+As páginas `/termos` e `/privacidade` mostram quem responde pelo Gomo e o e-mail para pedidos sobre dados pessoais. Esses dados entram no build do frontend. Crie uma vez, na VPS, o arquivo `/var/www/gomo/frontend/.env.production.local`. Ele é ignorado pelo Git e sobrevive ao `git reset` do deploy, e o Vite o lê em todo `npm run build`:
+
+```bash
+VITE_LEGAL_RESPONSIBLE="Nome completo ou razão social (e CNPJ, se houver)"
+VITE_LEGAL_CONTACT_EMAIL="contato@seudominio.com.br"
+```
+
+Sem eles, as páginas omitem essas linhas. Os textos descrevem o que o código realmente coleta e guarda. Vale a revisão de um advogado antes de escalar o produto.
+
