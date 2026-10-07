@@ -10,15 +10,15 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white" alt="Java 21">
   <img src="https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1">
-  <img src="https://img.shields.io/badge/PostgreSQL-31_migrações_Flyway-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + Flyway">
+  <img src="https://img.shields.io/badge/PostgreSQL-32_migrações_Flyway-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + Flyway">
   <img src="https://img.shields.io/badge/Spring_Security-tokens_opacos-6DB33F?logo=springsecurity&logoColor=white" alt="Spring Security">
-  <img src="https://img.shields.io/badge/testes-248-success" alt="248 testes">
+  <img src="https://img.shields.io/badge/testes-354-success" alt="354 testes">
   <img src="https://img.shields.io/badge/deploy-GitHub_Actions_→_VPS-2088FF?logo=githubactions&logoColor=white" alt="Deploy contínuo">
 </p>
 
 ## O que é
 
-O Gomo é um **SaaS com backend em Java/Spring Boot**, do scraping ao deploy: **9 supermercados** de Volta Redonda e região, coletados **4 vezes por dia**, num catálogo de **~9,3 mil produtos comparáveis**. Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
+O Gomo é um **SaaS com backend em Java/Spring Boot**, do scraping ao deploy: **9 supermercados** de Volta Redonda e região, coletados **4 vezes por dia**, num catálogo de **~10 mil produtos comparáveis** (incluindo hortifrúti e açougue por kg). Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
 
 O valor do produto está numa regra simples e difícil de cumprir: **a busca devolve um produto genérico ("Coca-Cola 2 L"), nunca o anúncio de cada loja, e a comparação mostra só mercados com preço real e atual.** Nada de linha "indisponível" ou preço vencido.
 
@@ -45,8 +45,10 @@ Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/produc
 
 - **7 tipos de coletor** (`nagumo`, `royal`, `vip`, `mercafacil`, `atacadao`, `hortifruti`, `flyer`), cada um com timeout, número de tentativas, limite de tamanho de resposta e intervalo entre requisições configuráveis.
 - **Coleta paralela** (3 lojas ao mesmo tempo) com gravação sequencial no banco.
-- **`PriceChangeGuard`:** um preço que varia fora da faixa esperada em relação ao anterior (ex.: erro de digitação do mercado) não é publicado e vai para uma fila de revisão.
-- **Agendamento** 4x ao dia. Na subida, só os coletores com mais de 8 h sem coleta concluída rodam de novo.
+- **`PriceChangeGuard`:** um preço que varia fora da faixa esperada em relação ao anterior (ex.: erro de digitação do mercado) não é publicado; se a coleta seguinte confirmar o mesmo preço, ele vale. Preços de marcação (9999, R$ 500/kg) nunca viram preço.
+- **Sites que mudam sozinhos:** quando um mercado publica uma versão nova do site, os coletores VipCommerce e Hortifruti encontram de novo a configuração e as consultas atuais nos scripts do próprio site.
+- **Monitor:** `GET /api/v1/status/collections` responde 503 quando um mercado para de atualizar, antes de os preços dele vencerem; a área de admin mostra o último erro de cada coletor.
+- **Agendamento** 4x ao dia, mais uma importação completa semanal com os produtos novos. Na subida, só os coletores com mais de 8 h sem coleta concluída rodam de novo.
 - **Servidor novo pronto sozinho:** com o banco vazio, a aplicação carrega snapshots comprimidos dos 9 mercados e monta o catálogo (~15 min, cabe em 512 MB de heap).
 
 ### 3. Comparar uma lista inteira, não um produto
@@ -95,9 +97,9 @@ A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publica
 
 ## Qualidade e entrega
 
-- **248 testes** (JUnit 5, Spring Boot Test e MockMvc): parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência.
-- **31 migrações Flyway** versionadas, com o Hibernate só validando o schema.
-- **Deploy contínuo:** push na `main` → GitHub Actions (build do backend e do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`. A chave do deploy só aceita esse comando.
+- **354 testes** (JUnit 5, Spring Boot Test e MockMvc): parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência.
+- **32 migrações Flyway** versionadas, com o Hibernate só validando o schema.
+- **Deploy contínuo:** push na `main` → GitHub Actions (testes com PostgreSQL descartável e build do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`, que faz backup do banco antes das migrations. A chave do deploy só aceita esse comando.
 - **Docker Compose** com API, PostgreSQL e Mailpit para rodar o ambiente completo.
 
 ## Como rodar
