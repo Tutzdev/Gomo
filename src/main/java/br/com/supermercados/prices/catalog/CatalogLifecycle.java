@@ -22,12 +22,15 @@ import br.com.supermercados.prices.collection.CollectionCoordinator;
  * in the background, so a machine that was off does not serve expired prices all day. A database without
  * any price (a new server) is first filled with the collections bundled in the application, because the
  * scheduled refresh only updates products that already exist, and then every market is refreshed at once:
- * the bundled prices are as old as the snapshot.
+ * the bundled prices are as old as the snapshot. A market without a full import in the last week (a new
+ * release may read offers the previous one skipped) is imported in full instead of refreshed.
  */
 @Component
 public class CatalogLifecycle implements CollectionCompletedListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogLifecycle.class);
+    /** The weekly full import (see CollectionScheduler); a market without one this recent imports at startup. */
+    private static final Duration FULL_IMPORT_INTERVAL = Duration.ofDays(7);
 
     private final CatalogBuilder builder;
     // Lazy: the coordinator itself notifies this listener.
@@ -78,9 +81,11 @@ public class CatalogLifecycle implements CollectionCompletedListener {
                 if (collectionEnabled && !coordinator.getObject().isRunning()) {
                     // A seeded market has the bundled snapshot's prices, not today's: it is never up to date.
                     var upToDate = seeded ? java.util.Set.<String>of() : upToDateCollectors();
-                    LOGGER.info("Atualizando em segundo plano os mercados sem coleta nas últimas {}; em dia: {}",
-                            refreshWhenOlderThan, upToDate);
-                    coordinator.getObject().refreshExistingExcept(upToDate);
+                    var imported = importedCollectors();
+                    LOGGER.info("Atualizando em segundo plano os mercados sem coleta nas últimas {} (em dia: {}) "
+                            + "e importando por completo os sem importação completa em {} (importados: {})",
+                            refreshWhenOlderThan, upToDate, FULL_IMPORT_INTERVAL, imported);
+                    coordinator.getObject().refreshAtStartup(upToDate, imported);
                 }
             } catch (RuntimeException exception) {
                 LOGGER.error("Atualização inicial do catálogo falhou: {}", exception.getMessage(), exception);
@@ -97,6 +102,14 @@ public class CatalogLifecycle implements CollectionCompletedListener {
         var results = coordinator.getObject().seedFromBundledSnapshots();
         LOGGER.info("Carga inicial concluída: {} mercado(s).", results.size());
         return results;
+    }
+
+    /** Collectors with a full import since the last weekly one should have run; the others import at startup. */
+    private java.util.Set<String> importedCollectors() {
+        return new java.util.HashSet<>(jdbc.queryForList("""
+                SELECT collector_code FROM collection_runs
+                WHERE full_import AND status IN ('SUCCESS', 'PARTIAL') AND finished_at > ?
+                """, String.class, Timestamp.from(clock.instant().minus(FULL_IMPORT_INTERVAL))));
     }
 
     /** Collectors that completed within the threshold; all others are refreshed at startup. */

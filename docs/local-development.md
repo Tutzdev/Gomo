@@ -40,7 +40,7 @@ O checkout e o paywall visual não simulam pagamento. Enquanto a integração de
 ## Coleta de preços em produção
 
 * **Servidor novo:** se o banco não tem nenhum preço, o backend carrega na subida as coletas incluídas no app (`src/main/resources/seed/catalog-snapshots`, uma por mercado) e monta o catálogo de comparação. Leva uns 15 minutos e cabe em 512 MB de heap; o site já abre enquanto isso. Desligue com `PRICE_COLLECTION_SEED_WHEN_EMPTY=false`.
-* **Depois:** 4 vezes por dia (`PRICE_COLLECTION_CRON`, padrão 6h, 11h, 16h e 21h) a coleta atualiza os preços dos produtos que já existem. Produto novo nos mercados só entra numa coleta completa (`PRICE_COLLECTION_EXISTING_ONLY=false` ou `POST /api/v1/admin/collections` como administrador).
+* **Depois:** 4 vezes por dia (`PRICE_COLLECTION_CRON`, padrão 6h, 11h, 16h e 21h) a coleta atualiza os preços dos produtos que já existem. Produto novo nos mercados só entra numa coleta completa: a de domingo, a da subida (mercados sem importação completa nos últimos 7 dias), `PRICE_COLLECTION_EXISTING_ONLY=false` ou `POST /api/v1/admin/collections` como administrador.
 * **Atualizar as sementes:** depois de uma coleta completa local com `APP_COLLECTION_ARCHIVE_DIRECTORY` configurado, comprima cada `.local/catalog-snapshots/<mercado>.json` para `<mercado>.json.gz` nessa pasta.
 * **Atacadão:** as unidades revisadas (São Geraldo e Vila Rica) são registradas na subida, então a coleta online funciona mesmo com os encartes revisados vencidos; os coletores de encarte só voltam a publicar ofertas depois de uma nova revisão.
 

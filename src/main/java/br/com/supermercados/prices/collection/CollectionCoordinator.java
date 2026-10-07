@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,11 +94,17 @@ public class CollectionCoordinator {
         return collectSelected(collectorCode, CatalogOrigin.LIVE, true);
     }
 
-    /** Refreshes only the collectors whose code is not in {@code upToDate}, e.g. after the machine was off. */
-    public List<CollectionRunResponse> refreshExistingExcept(java.util.Set<String> upToDate) {
-        List<SupermarketCollector> stale = collectors.stream().filter(SupermarketCollector::hasCurrentSource)
-                .filter(collector -> !upToDate.contains(collector.metadata().code())).toList();
-        return stale.isEmpty() ? List.of() : run(stale, CatalogOrigin.LIVE, true);
+    /**
+     * After a restart. A market without a recent full import ({@code imported}) is imported in full: a release
+     * may teach its parser to read offers it used to skip, and refreshes never add products. A market whose
+     * prices are not current ({@code upToDate}) is refreshed. The others are left alone.
+     */
+    public List<CollectionRunResponse> refreshAtStartup(java.util.Set<String> upToDate, java.util.Set<String> imported) {
+        List<SupermarketCollector> due = collectors.stream().filter(SupermarketCollector::hasCurrentSource)
+                .filter(collector -> !upToDate.contains(collector.metadata().code())
+                        || !imported.contains(collector.metadata().code())).toList();
+        return due.isEmpty() ? List.of()
+                : run(due, CatalogOrigin.LIVE, collector -> imported.contains(collector.metadata().code()));
     }
 
     public List<CollectionRunResponse> replayArchived(String collectorCode) {
@@ -139,10 +146,11 @@ public class CollectionCoordinator {
         if (selected.isEmpty() && collectorCode != null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Coletor não encontrado");
         }
-        return run(selected, origin, existingOnly);
+        return run(selected, origin, collector -> existingOnly);
     }
 
-    private List<CollectionRunResponse> run(List<SupermarketCollector> selected, CatalogOrigin origin, boolean existingOnly) {
+    private List<CollectionRunResponse> run(List<SupermarketCollector> selected, CatalogOrigin origin,
+            Predicate<SupermarketCollector> existingOnly) {
         if (!running.compareAndSet(false, true)) {
             throw new ApiException(HttpStatus.CONFLICT, "Já existe uma coleta em andamento");
         }
@@ -159,25 +167,25 @@ public class CollectionCoordinator {
     }
 
     private List<CollectionRunResponse> collectInSequence(
-            List<SupermarketCollector> selected, CatalogOrigin origin, boolean existingOnly) {
+            List<SupermarketCollector> selected, CatalogOrigin origin, Predicate<SupermarketCollector> existingOnly) {
         List<CollectionRunResponse> results = new ArrayList<>();
         for (int index = 0; index < selected.size(); index++) {
             if (index > 0 && !waitBeforeNextCollector()) {
                 break;
             }
-            results.add(collect(selected.get(index), origin, existingOnly));
+            results.add(collect(selected.get(index), origin, existingOnly.test(selected.get(index))));
         }
         return results;
     }
 
     /** Results keep the collectors' order; one collector failing never stops the others. */
     private List<CollectionRunResponse> collectInParallel(
-            List<SupermarketCollector> selected, CatalogOrigin origin, boolean existingOnly) {
+            List<SupermarketCollector> selected, CatalogOrigin origin, Predicate<SupermarketCollector> existingOnly) {
         var pool = java.util.concurrent.Executors.newFixedThreadPool(Math.min(parallelism, selected.size()),
                 Thread.ofPlatform().name("collector-", 1).daemon().factory());
         try {
             List<java.util.concurrent.Future<CollectionRunResponse>> futures = selected.stream()
-                    .map(collector -> pool.submit(() -> collect(collector, origin, existingOnly))).toList();
+                    .map(collector -> pool.submit(() -> collect(collector, origin, existingOnly.test(collector)))).toList();
             List<CollectionRunResponse> results = new ArrayList<>();
             for (var future : futures) {
                 try {
@@ -199,7 +207,7 @@ public class CollectionCoordinator {
 
     private CollectionRunResponse collect(SupermarketCollector collector, CatalogOrigin origin, boolean existingOnly) {
         CollectorMetadata metadata = collector.metadata();
-        CollectionRunResponse run = runs.start(metadata);
+        CollectionRunResponse run = runs.start(metadata, !existingOnly);
         LOGGER.info("Coleta {} iniciada para {}", run.id(), metadata.code());
 
         try {

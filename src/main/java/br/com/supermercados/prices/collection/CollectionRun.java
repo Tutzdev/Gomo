@@ -74,12 +74,17 @@ public class CollectionRun {
     @Column(length = 2000)
     private String errorMessage;
 
-    CollectionRun(CollectorMetadata metadata, Instant startedAt) {
+    /** Every offer was imported, new products included; otherwise only known products were refreshed. */
+    @Column(nullable = false)
+    private boolean fullImport;
+
+    CollectionRun(CollectorMetadata metadata, Instant startedAt, boolean fullImport) {
         id = UUID.randomUUID();
         collectorCode = metadata.code();
         supermarketName = metadata.supermarketName();
         storeName = metadata.storeName();
         this.startedAt = startedAt;
+        this.fullImport = fullImport;
         status = CollectionStatus.RUNNING;
     }
 
