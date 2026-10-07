@@ -87,6 +87,7 @@ public class CatalogBuilder {
             groups.computeIfAbsent(identity.key(), key -> new Group(identity)).add(offer);
         }
         List<Group> published = groups.values().stream().filter(group -> group.stores.size() >= minimumStores).toList();
+        Map<String, String> spellings = Group.spellings(offers.stream().map(Offer::name).distinct().toList());
 
         Timestamp now = Timestamp.from(startedAt);
         jdbc.batchUpdate("""
@@ -100,7 +101,7 @@ public class CatalogBuilder {
                     updated_at = EXCLUDED.updated_at
                 """, published, 500, (statement, group) -> {
             Offer representative = group.representative();
-            String displayName = group.displayName();
+            String displayName = group.displayName(spellings);
             statement.setObject(1, UUID.randomUUID());
             statement.setString(2, group.identity.key());
             statement.setString(3, displayName);
@@ -201,8 +202,44 @@ public class CatalogBuilder {
         }
 
         /** "Refr. Coca-cola 2lt Pet" → "Coca-Cola 2 L": retailer noise removed, standard size appended. */
-        String displayName() {
+        String displayName(Map<String, String> spellings) {
+            if (identity.genericName() != null) {
+                return accented(identity.genericName(), spellings) + " " + CatalogKey.sizeLabel(identity.size());
+            }
             return genericName(representative().name(), identity);
+        }
+
+        /**
+         * How the markets spell each word, for generic names: the most common accented spelling ("Maçã"
+         * beats a rarer "Maça"), or the most common plain one when no market writes the accents.
+         */
+        static Map<String, String> spellings(java.util.Collection<String> retailerNames) {
+            Map<String, Map<String, Integer>> counts = new HashMap<>();
+            for (String retailerName : retailerNames) {
+                for (String word : retailerName.split("[\\s/()-]+")) {
+                    String key = CatalogKey.words(word);
+                    if (key.isEmpty() || key.contains(" ")) continue;
+                    counts.computeIfAbsent(key, ignored -> new HashMap<>()).merge(titleCase(word), 1, Integer::sum);
+                }
+            }
+            Map<String, String> spellings = new HashMap<>();
+            counts.forEach((key, spelled) -> spellings.put(key, spelled.entrySet().stream()
+                    .max(Comparator.comparing((Map.Entry<String, Integer> entry) -> !entry.getKey().chars()
+                                    .allMatch(character -> character < 128))
+                            .thenComparing(Map.Entry::getValue).thenComparing(Map.Entry::getKey, Comparator.reverseOrder()))
+                    .orElseThrow().getKey()));
+            return spellings;
+        }
+
+        /** "BANANA MACA" → "Banana Maçã": each key word as the markets spell it. */
+        static String accented(String genericName, Map<String, String> spellings) {
+            StringBuilder name = new StringBuilder();
+            for (String word : genericName.split(" ")) {
+                if (!name.isEmpty()) name.append(' ');
+                boolean keyWord = word.equals(CatalogKey.words(word));
+                name.append(keyWord ? spellings.getOrDefault(word, titleCase(word)) : word);
+            }
+            return name.toString();
         }
 
         static String genericName(String retailerName, CatalogKey.Identity identity) {

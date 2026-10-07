@@ -58,6 +58,11 @@ public final class ProductNormalizer {
                 .replaceAll(" ").strip();
     }
 
+    /** Whether the description states a weight or volume of its own ("PAO FORMA SEVEN BOYS 450G"). */
+    public static boolean statesMeasurement(String name) {
+        return lastMeasurement(name) != null;
+    }
+
     public static boolean describesSamePackage(String name, String measurement) {
         PackageDetails existing = parsePackage(name);
         PackageDetails supplied = parsePackage(measurement);

@@ -57,6 +57,8 @@ class ProductNormalizerTest {
         assertThat(multipack.unit()).isEqualTo("UN");
         assertThat(ProductNormalizer.describesSamePackage("Arroz Teste 5KG", "5.0 kg")).isTrue();
         assertThat(ProductNormalizer.describesSamePackage("Arroz Teste 15KG", "5 kg")).isFalse();
+        assertThat(ProductNormalizer.statesMeasurement("PAO FORMA SEVEN BOYS 450G")).isTrue();
+        assertThat(ProductNormalizer.statesMeasurement("SUCO MAGUARY UVA 500")).isFalse();
     }
 
     @Test

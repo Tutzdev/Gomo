@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,7 @@ class CollectionCoordinatorTest {
     void retriesOnlyTheRequestedCollectorAndRejectsUnknownCodes() {
         TestCollector selected = new TestCollector("selected", false);
         TestCollector untouched = new TestCollector("untouched", false);
-        when(runs.start(selected.metadata())).thenReturn(response(selected.metadata(), CollectionStatus.RUNNING));
+        when(runs.start(selected.metadata(), true)).thenReturn(response(selected.metadata(), CollectionStatus.RUNNING));
         when(ingestion.ingest(any(), any())).thenReturn(new CollectionResult(
                 UUID.randomUUID(), UUID.randomUUID(), 0, 0, 0, 0, 0, null));
         when(runs.finish(any(), any())).thenReturn(response(selected.metadata(), CollectionStatus.SUCCESS));
@@ -46,8 +47,8 @@ class CollectionCoordinatorTest {
         CollectionRunResponse failed = response(failing.metadata(), CollectionStatus.FAILED);
         CollectionRunResponse completed = response(successful.metadata(), CollectionStatus.SUCCESS);
 
-        when(runs.start(failing.metadata())).thenReturn(startedFailing);
-        when(runs.start(successful.metadata())).thenReturn(startedSuccessful);
+        when(runs.start(failing.metadata(), true)).thenReturn(startedFailing);
+        when(runs.start(successful.metadata(), true)).thenReturn(startedSuccessful);
         when(runs.fail(startedFailing.id(), "falha controlada")).thenReturn(failed);
         when(ingestion.ingest(any(), any())).thenReturn(new CollectionResult(
                 UUID.randomUUID(), UUID.randomUUID(), 0, 0, 0, 0, 0, null));
@@ -68,9 +69,9 @@ class CollectionCoordinatorTest {
         TestCollector first = new TestCollector("first", false);
         TestCollector second = new TestCollector("second", false);
         CollectionRunResponse startedFailing = response(failing.metadata(), CollectionStatus.RUNNING);
-        when(runs.start(failing.metadata())).thenReturn(startedFailing);
-        when(runs.start(first.metadata())).thenReturn(response(first.metadata(), CollectionStatus.RUNNING));
-        when(runs.start(second.metadata())).thenReturn(response(second.metadata(), CollectionStatus.RUNNING));
+        when(runs.start(failing.metadata(), true)).thenReturn(startedFailing);
+        when(runs.start(first.metadata(), true)).thenReturn(response(first.metadata(), CollectionStatus.RUNNING));
+        when(runs.start(second.metadata(), true)).thenReturn(response(second.metadata(), CollectionStatus.RUNNING));
         when(runs.fail(startedFailing.id(), "falha controlada"))
                 .thenReturn(response(failing.metadata(), CollectionStatus.FAILED));
         when(ingestion.ingest(any(), any())).thenReturn(new CollectionResult(
@@ -93,7 +94,7 @@ class CollectionCoordinatorTest {
         CollectedCatalogArchive archive = mock(CollectedCatalogArchive.class);
         when(archive.hasSeed(seeded.metadata())).thenReturn(true);
         when(archive.readSeed(seeded.metadata())).thenReturn(seeded.catalog());
-        when(runs.start(seeded.metadata())).thenReturn(response(seeded.metadata(), CollectionStatus.RUNNING));
+        when(runs.start(seeded.metadata(), true)).thenReturn(response(seeded.metadata(), CollectionStatus.RUNNING));
         when(ingestion.ingest(any(), any())).thenReturn(new CollectionResult(
                 UUID.randomUUID(), UUID.randomUUID(), 0, 0, 0, 0, 0, null));
         when(runs.finish(any(), any())).thenReturn(response(seeded.metadata(), CollectionStatus.SUCCESS));
@@ -108,6 +109,28 @@ class CollectionCoordinatorTest {
         verify(ingestion).ingest(seeded.metadata(), seeded.catalog());
         verify(archive, never()).save(any(), any());
         verify(listener).collectionCompleted();
+    }
+
+    @Test
+    void startupImportsMarketsWithoutARecentFullImportAndRefreshesOnlyStalePrices() {
+        TestCollector neverImported = new TestCollector("never_imported", false);
+        TestCollector stale = new TestCollector("stale", false);
+        TestCollector current = new TestCollector("current", false);
+        when(runs.start(neverImported.metadata(), true)).thenReturn(response(neverImported.metadata(), CollectionStatus.RUNNING));
+        when(runs.start(stale.metadata(), false)).thenReturn(response(stale.metadata(), CollectionStatus.RUNNING));
+        CollectionResult result = new CollectionResult(UUID.randomUUID(), UUID.randomUUID(), 0, 0, 0, 0, 0, null);
+        when(ingestion.ingest(any(), any())).thenReturn(result);
+        when(ingestion.refreshExisting(any(), any())).thenReturn(result);
+        when(runs.finish(any(), any())).thenReturn(response(stale.metadata(), CollectionStatus.SUCCESS));
+
+        // "never_imported" has current prices but no full import: a new release may read offers it used to skip.
+        new CollectionCoordinator(List.of(neverImported, stale, current), ingestion, runs,
+                mock(CollectedCatalogArchive.class), Duration.ZERO, 3)
+                .refreshAtStartup(Set.of("never_imported", "current"), Set.of("stale", "current"));
+
+        verify(ingestion).ingest(neverImported.metadata(), neverImported.catalog());
+        verify(ingestion).refreshExisting(stale.metadata(), stale.catalog());
+        assertThat(current.collected).isFalse();
     }
 
     private CollectionRunResponse response(CollectorMetadata metadata, CollectionStatus status) {

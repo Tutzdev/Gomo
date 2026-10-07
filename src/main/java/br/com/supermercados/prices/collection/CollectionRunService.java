@@ -22,8 +22,8 @@ public class CollectionRunService {
     private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public CollectionRunResponse start(CollectorMetadata metadata) {
-        return CollectionRunResponse.from(repository.save(new CollectionRun(metadata, clock.instant())));
+    public CollectionRunResponse start(CollectorMetadata metadata, boolean fullImport) {
+        return CollectionRunResponse.from(repository.save(new CollectionRun(metadata, clock.instant(), fullImport)));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

@@ -27,4 +27,16 @@ class CatalogDisplayNameTest {
         assertThat(generic("Lava Roupa Liq. Omo 900ml")).isEqualTo("Lava Roupa Líquido Omo 900 ml");
         assertThat(generic("Bebida Láctea Nescau 180ml")).isEqualTo("Bebida Láctea Nescau 180 ml");
     }
+
+    @Test
+    void genericItemsAreNamedFromTheirKeyWithTheAccentsSomeMarketWrites() {
+        var spellings = CatalogBuilder.Group.spellings(List.of("BANANA MACA KG (preço de 1 kg)",
+                "Banana Maçã (preço de 1 kg)", "Maçã Fuji (preço de 1 kg)", "Banana Maça (preço de 1 kg)",
+                "Limão Siciliano (preço de 1 kg)", "LIMAO KG (preço de 1 kg)", "TOMATE DEBORA KG"));
+        // The most common accented spelling, even from another item ("Limão Siciliano").
+        assertThat(CatalogBuilder.Group.accented("BANANA MACA", spellings)).isEqualTo("Banana Maçã");
+        assertThat(CatalogBuilder.Group.accented("LIMAO", spellings)).isEqualTo("Limão");
+        assertThat(CatalogBuilder.Group.accented("TOMATE", spellings)).isEqualTo("Tomate");
+        assertThat(CatalogBuilder.Group.accented("Ovos Brancos Grandes", spellings)).isEqualTo("Ovos Brancos Grandes");
+    }
 }
