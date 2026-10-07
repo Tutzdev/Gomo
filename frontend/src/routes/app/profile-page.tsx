@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, MailCheck, MapPin, UserRound } from "lucide-react";
+import { BadgeCheck, MailCheck, MapPin, Trash2, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ErrorState, InlineError, LoadingState } from "@/components/ui/feedback";
 import { SelectField, TextField } from "@/components/ui/form-field";
 import { NativeButton } from "@/components/ui/native-button";
@@ -54,7 +56,36 @@ export function ProfilePage() {
           <InlineError>{profileMessage}</InlineError>
         </section>
       </div>
+      <DeleteAccountSection />
     </>
+  );
+}
+
+function DeleteAccountSection() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const deletion = useMutation({
+    mutationFn: () => authApi.deleteAccount(password),
+    onSuccess: async () => {
+      // The server already ended every session; this only clears the browser.
+      await logout().catch(() => undefined);
+      navigate("/", { replace: true });
+    },
+  });
+  const error = deletion.error instanceof ApiError ? deletion.error.message : deletion.error ? "Não foi possível excluir a conta." : undefined;
+
+  return (
+    <section className="surface mt-6 border-danger/25 p-5 sm:p-6">
+      <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-danger-soft text-danger"><Trash2 className="size-5" aria-hidden /></span><div><h2 className="font-bold">Excluir conta</h2><p className="text-sm text-muted">Apaga na hora suas listas, alertas, preferências e sessões. Não dá para desfazer.</p></div></div>
+      <form className="mt-6 grid gap-4 sm:max-w-md" onSubmit={(event) => { event.preventDefault(); deletion.reset(); setConfirming(true); }}>
+        <TextField id="delete-password" label="Confirme com sua senha" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <p className="text-xs leading-5 text-muted">Preços que você enviou como contribuição continuam no histórico, sem seu nome. Veja a <Link to="/privacidade" className="font-semibold text-primary hover:underline">Política de Privacidade</Link>.</p>
+        <NativeButton type="submit" variant="danger" disabled={!password}>Excluir minha conta</NativeButton>
+      </form>
+      <ConfirmDialog open={confirming} onOpenChange={setConfirming} title="Excluir sua conta?" description="Suas listas, alertas e preferências serão apagados agora. Você poderá criar uma conta nova depois, mas não recuperar esta." confirmLabel="Excluir conta" loading={deletion.isPending} error={error} onConfirm={() => deletion.mutate()} />
+    </section>
   );
 }
 

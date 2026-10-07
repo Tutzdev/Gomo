@@ -60,6 +60,8 @@ export const authApi = {
       authenticated: false,
     }),
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }),
+  deleteAccount: (password: string) =>
+    apiRequest<void>("/users/me", { method: "DELETE", body: { password } }),
   currentUser: () => apiRequest<User>("/users/me"),
   updateUser: (name: string) =>
     apiRequest<User>("/users/me", { method: "PATCH", body: { name } }),

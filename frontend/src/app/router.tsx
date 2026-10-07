@@ -43,6 +43,16 @@ export const router = createBrowserRouter([
     })),
   },
   {
+    path: "/termos",
+    hydrateFallbackElement,
+    lazy: () => import("@/routes/legal-pages").then(({ TermsPage }) => ({ Component: TermsPage })),
+  },
+  {
+    path: "/privacidade",
+    hydrateFallbackElement,
+    lazy: () => import("@/routes/legal-pages").then(({ PrivacyPage }) => ({ Component: PrivacyPage })),
+  },
+  {
     path: "/acesso-negado",
     hydrateFallbackElement,
     lazy: () => import("@/routes/error-pages").then(({ AccessDeniedPage }) => ({

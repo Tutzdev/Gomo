@@ -23,6 +23,11 @@ const appLinks: FooterLink[] = [
   { label: "Supermercados", to: "/app/supermercados" },
 ];
 
+const legalLinks: FooterLink[] = [
+  { label: "Termos de Uso", to: "/termos" },
+  { label: "Privacidade", to: "/privacidade" },
+];
+
 export function LandingFooter() {
   const { user } = useAuth();
   const accountLinks: FooterLink[] = user
@@ -33,6 +38,7 @@ export function LandingFooter() {
     { title: "Gomo", links: pageLinks },
     { title: "No app", links: appLinks },
     { title: "Conta", links: accountLinks },
+    { title: "Legal", links: legalLinks },
   ];
 
   return (

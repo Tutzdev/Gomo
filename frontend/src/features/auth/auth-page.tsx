@@ -146,6 +146,10 @@ function RegisterForm({ onSubmit }: { onSubmit: (values: RegisterValues) => Prom
       </div>
       <InlineError>{apiError}</InlineError>
       <NativeButton type="submit" loading={isSubmitting} className="mt-5 w-full" size="lg" glow>Criar conta</NativeButton>
+      <p className="mt-4 text-center text-xs leading-5 text-muted">
+        Ao criar a conta, você concorda com os <Link to="/termos" className="font-semibold text-primary hover:underline">Termos de Uso</Link> e
+        a <Link to="/privacidade" className="font-semibold text-primary hover:underline">Política de Privacidade</Link>.
+      </p>
     </form>
   );
 }

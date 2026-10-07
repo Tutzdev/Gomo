@@ -373,6 +373,37 @@ a {
   margin-bottom: 1.5rem;
 }
 
+.legal-page h2 {
+  margin-top: 2rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-foreground);
+}
+
+.legal-page p,
+.legal-page li {
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--color-muted);
+}
+
+.legal-page ul {
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.legal-page a {
+  font-weight: 600;
+  color: var(--color-primary);
+  text-underline-offset: 3px;
+}
+
+.legal-page a:hover {
+  text-decoration: underline;
+}
+
 .page-title {
   font-size: clamp(1.5rem, 2vw, 2rem);
   line-height: 1.2;
