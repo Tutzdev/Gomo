@@ -399,6 +399,35 @@ export interface PriceContribution {
   priceRecordId: string | null;
 }
 
+export type MarketStatus = "OK" | "STALE" | "DOWN" | "NO_SOURCE";
+export type CollectionRunStatus = "RUNNING" | "SUCCESS" | "PARTIAL" | "FAILED";
+
+export interface CollectorHealth {
+  code: string;
+  scheduled: boolean;
+  lastStatus: CollectionRunStatus | null;
+  lastRunAt: string | null;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+}
+
+export interface MarketHealth {
+  storeId: string | null;
+  storeName: string;
+  status: MarketStatus;
+  lastPriceAt: string | null;
+  currentProducts: number;
+  collectors: CollectorHealth[];
+}
+
+export interface CollectionHealth {
+  checkedAt: string;
+  healthy: boolean;
+  staleAfter: string;
+  priceMaxAge: string;
+  markets: MarketHealth[];
+}
+
 export interface AdminAudit {
   id: string;
   actorUserId: string;

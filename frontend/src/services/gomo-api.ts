@@ -8,6 +8,7 @@ import type {
   CatalogItemDetail,
   CatalogItemHistory,
   City,
+  CollectionHealth,
   PageResponse,
   PremiumValue,
   PriceAlert,
@@ -370,6 +371,9 @@ export const adminApi = {
     apiRequest("/admin/products", { method: "POST", body: input }),
   recordPrice: (input: unknown) =>
     apiRequest("/admin/prices", { method: "POST", body: input }),
+  collectionHealth: () => apiRequest<CollectionHealth>("/admin/collections/health"),
+  collect: (collectorCode: string, existingOnly: boolean) =>
+    apiRequest<unknown>(`/admin/collections?${queryString({ collectorCode, existingOnly: String(existingOnly) })}`, { method: "POST" }),
 };
 
 export const subscriptionApi = {
