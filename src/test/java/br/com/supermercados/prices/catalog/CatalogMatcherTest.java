@@ -15,7 +15,8 @@ class CatalogMatcherTest {
     private static final UUID STORE_B = UUID.randomUUID();
     private static final UUID STORE_C = UUID.randomUUID();
 
-    private final CatalogKey keys = CatalogKey.learn(List.of("Sol", "União", "Ninho", "Ypê", "Pomarola"), List.of());
+    private final CatalogKey keys = CatalogKey.learn(List.of("Sol", "União", "Ninho", "Ypê", "Pomarola", "Perdigão",
+            "Piraquê", "Serramar", "Leão", "Renata"), List.of());
     private final List<CatalogMatcher.Listing> listings = new ArrayList<>();
 
     @Test
@@ -64,6 +65,37 @@ class CatalogMatcherTest {
         UUID storeBHomemade = sku(STORE_B, "Molho de Tomate Pomarola Caseiro 300g");
 
         assertThat(item(homemade)).isNotEqualTo(item(storeBHomemade));
+    }
+
+    @Test
+    void erpAbbreviationsOfTheSameBrandAndSizeMatchTheFullDescription() {
+        UUID abbreviated = sku(STORE_A, "LING PERDIGAO CALABR 400gr");
+        UUID full = sku(STORE_B, "Linguiça Calabresa Perdigão 400g");
+        UUID cookie = sku(STORE_A, "Bisc. Cookies Piraque 80g Choc");
+        UUID packed = sku(STORE_B, "Biscoito Cookie Chocolate Piraquê Pacote 80G");
+
+        assertThat(item(abbreviated)).isEqualTo(item(full));
+        assertThat(item(cookie)).isEqualTo(item(packed));
+    }
+
+    @Test
+    void anAbbreviationNeverAbsorbsAFlavourOrVariant() {
+        UUID plain = sku(STORE_A, "Iogurte Serramar 170g");
+        UUID strawberry = sku(STORE_B, "Iogurte Serramar Morango 170g");
+        UUID regular = sku(STORE_A, "Chá Leão Lichia 1,5L");
+        UUID zero = sku(STORE_B, "Chá Leão Lichia Zero 1,5L");
+
+        assertThat(item(plain)).isNotEqualTo(item(strawberry));
+        assertThat(item(regular)).isNotEqualTo(item(zero));
+    }
+
+    @Test
+    void anAbbreviationTwoProductsOfOneStoreCouldStandForIsLeftAlone() {
+        UUID ambiguous = sku(STORE_A, "Macarrão Renata Esp 500g");
+        UUID spaghetti = sku(STORE_B, "Macarrão Renata Espaguete 500g");
+        UUID spinach = sku(STORE_B, "Macarrão Renata Espinafre 500g");
+
+        assertThat(item(ambiguous)).isNotEqualTo(item(spaghetti)).isNotEqualTo(item(spinach));
     }
 
     private UUID sku(UUID store, String name) {

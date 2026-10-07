@@ -31,6 +31,14 @@ final class CatalogMatcher {
             + "ROUPA ROUPAS CREMOSO CREMOSA SALGADO PERFUMADO PRONTO CONGELADO CONGELADA RESFRIADO RESFRIADA "
             + "ALIMENTO CHILENO ARGENTINO PORTUGUES ALCOOLICO MACARRAO MASSA BATATA SUCO REFRESCO CERVEJA "
             + "ISOTONICO REFINADO COZINHA").split(" "));
+    /**
+     * Words that only say how the item is packed or sold ("Biscoito Cookie Chocolate Piraquê Pacote 80G",
+     * "Rum Nacional Montilla"), allowed as the only difference besides abbreviations. Flavours, variants and
+     * packaging types that change the price (zero, light, refil, sachê) are deliberately absent.
+     */
+    private static final Set<String> DESCRIPTIVE_WORDS = Set.of(("EMBALAGEM CAIXA PACOTE ECONOMICA ESPECIAL "
+            + "PROMOCIONAL MATINAL INSTANTANEO LONG NECK VINHO NACIONAL IMPORTADO ITALIANO FRANCES ESPANHOL "
+            + "URUGUAIO").split(" "));
 
     private final CatalogKey keys;
     private final Map<String, Description> descriptions = new HashMap<>();
@@ -46,6 +54,7 @@ final class CatalogMatcher {
         Map<UUID, Description> productDescriptions = describeProducts(listings);
         linkStoreDescriptions(listings, productDescriptions);
         joinSameBrandAndSize();
+        joinAbbreviations();
         return publishedIdentities(productDescriptions);
     }
 
@@ -97,6 +106,63 @@ final class CatalogMatcher {
                 }
             }
         }
+    }
+
+    /**
+     * The same product written in full by one store and with ERP abbreviations by another, same brand and
+     * size: "LING PERDIGAO CALABR 400gr" is "Ling. Calabresa Perdigão 400g", "Bisc. Cookies Piraque 80g Choc"
+     * is "Biscoito Cookie Chocolate Piraquê Pacote 80G". Every word of the shorter description must stand for
+     * exactly one word of the longer one (equal, or a prefix of it), and what is left over may only be a
+     * descriptive word. When a store sells two products the description could stand for, it is ambiguous
+     * there and nothing is joined.
+     */
+    private void joinAbbreviations() {
+        Map<String, List<Description>> sameBrandAndSize = new HashMap<>();
+        for (Description description : descriptions.values()) {
+            if (description.identity.brand() == null) continue;
+            sameBrandAndSize.computeIfAbsent(description.identity.brand() + "|" + description.identity.size(),
+                    ignored -> new ArrayList<>()).add(description);
+        }
+        for (List<Description> candidates : sameBrandAndSize.values()) {
+            if (candidates.size() < 2) continue;
+            candidates.sort(Comparator.comparing(description -> description.identity.key()));
+            for (Description description : candidates) {
+                Map<UUID, List<Description>> matchesByStore = new HashMap<>();
+                for (Description other : candidates) {
+                    if (other == description || other.stores.stream().anyMatch(description.stores::contains)) continue;
+                    if (!abbreviates(description, other)) continue;
+                    other.stores.forEach(store -> matchesByStore.computeIfAbsent(store, ignored -> new ArrayList<>()).add(other));
+                }
+                for (List<Description> matches : matchesByStore.values()) {
+                    if (matches.stream().map(match -> root(match.identity.key())).distinct().count() == 1) {
+                        join(description, matches.getFirst());
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean abbreviates(Description first, Description second) {
+        Set<String> brand = new HashSet<>(List.of(CatalogKey.words(first.identity.brand()).split(" ")));
+        List<String> a = first.core.stream().filter(word -> !brand.contains(word)).toList();
+        List<String> b = second.core.stream().filter(word -> !brand.contains(word)).toList();
+        if (new HashSet<>(a).equals(new HashSet<>(b))) return false;
+        List<String> shorter = a.size() <= b.size() ? a : b;
+        List<String> longer = a.size() <= b.size() ? b : a;
+        Set<String> used = new HashSet<>();
+        List<String> ordered = new ArrayList<>(shorter);
+        ordered.sort(Comparator.comparingInt(String::length).reversed());
+        for (String word : ordered) {
+            if (longer.contains(word) && !used.contains(word)) {
+                used.add(word);
+                continue;
+            }
+            List<String> candidates = longer.stream().filter(full -> !used.contains(full)
+                    && ((word.length() >= 2 && full.startsWith(word)) || (full.length() >= 4 && word.startsWith(full)))).toList();
+            if (candidates.size() != 1) return false;
+            used.add(candidates.getFirst());
+        }
+        return longer.stream().filter(word -> !used.contains(word)).allMatch(DESCRIPTIVE_WORDS::contains);
     }
 
     /** Every joined description is published under the one most stores use. */

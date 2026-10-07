@@ -26,6 +26,14 @@ public final class CatalogKey {
             new Rewrite("\\bCOCA\\s*COLA\\b", "COCA COLA"),
             new Rewrite("\\bREFRIG(?:ERANTE)?\\b|\\bREFRI\\b|\\bREFR\\b|\\bREF\\b", "REFRIGERANTE"),
             new Rewrite("\\b(?:SEM|S)\\s*ACUCAR\\b", "ZERO"),
+            // "AZEITONA VERDE S CAROCO" is without pits; "C CAROCO" (with) stays the default.
+            new Rewrite("\\bS\\s+(?=(?:CAROCO|SEMENTES?|GLUTEN|LACTOSE|SAL|PELE|OSSO|CASCA|ALCOOL|GAS|CONSERVANTES?)\\b)", "SEM "),
+            // A tray weighed at the till: "Abacate Bandeja 700g (aproximadamente 1 Unid)".
+            new Rewrite("\\bAPROX(?:IMADAMENTE)?\\b(?:\\s+\\d+\\s*UN[A-Z]*)?", " "),
+            new Rewrite("\\bBANDEJA\\b|\\bBDJ\\b|\\bGRANEL\\b", " "),
+            // Butchers write the animal in either gender: "Pernil Suina" and "Pernil Suino" are one cut.
+            new Rewrite("\\bSUINA\\b", "SUINO"),
+            new Rewrite("\\bBOVINA\\b", "BOVINO"),
             new Rewrite("\\bZERO\\s+ACUCAR\\b", "ZERO"),
             new Rewrite("\\bZERO\\s+ZERO\\b", "ZERO"),
             new Rewrite("\\bENERG\\b|\\bENER\\b|\\bENERGETICA\\b|\\bENERGETICO\\b", "ENERGETICO"),
@@ -127,6 +135,8 @@ public final class CatalogKey {
         text = text.replaceAll("(\\d),(\\d)", "$1.$2");
         text = text.replaceAll("[^A-Z0-9.]+", " ");
         text = text.replaceAll("(?<!\\d)\\.|\\.(?!\\d)", " ");
+        // Loose produce and butcher cuts are priced per kilogram and carry no brand.
+        boolean perKilogram = text.contains("PRECO DE 1 KG");
         text = text.replace("PRECO DE 1 KG", " 1 KG ");
         text = text.replaceAll("(\\d)\\s*X\\s*(\\d)", "$1 X $2");
         text = text.replaceAll("(\\d)([A-Z])", "$1 $2");
@@ -185,6 +195,11 @@ public final class CatalogKey {
         if (tokens.isEmpty()) return null;
 
         String brand = findBrand(tokens);
+        if (brand == null && perKilogram && size.equals("1x1000G")) {
+            // "Cebola Nacional", "Laranja Pera", "Alcatra Bovino" priced per kg: the words alone name the item,
+            // so only identical words are the same item (no brand to confirm a looser match).
+            return new Identity(String.join(" ", new TreeSet<>(tokens)) + "|" + size, null, size);
+        }
         if (brand == null) {
             String rare = tokens.stream().filter(word -> word.length() >= 3
                     && documentFrequency.getOrDefault(word, 0) <= RARE_TOKEN_LIMIT).findFirst().orElse(null);

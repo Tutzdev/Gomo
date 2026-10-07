@@ -37,6 +37,7 @@ public class CollectedCatalogIngestionService {
     private final PriceRecordRepository priceRecords;
     private final PriceChangeGuard priceChangeGuard;
     private final PriceObservationReference observationReferences;
+    private final CollectedOfferPolicy offers;
 
     public CollectionResult ingest(CollectorMetadata metadata, CollectedCatalog collectedCatalog) {
         return ingest(metadata, collectedCatalog, false);
@@ -75,6 +76,13 @@ public class CollectedCatalogIngestionService {
         List<ProductPrice> collectedPrices = new ArrayList<>();
 
         for (CollectedProduct collectedProduct : catalog.products()) {
+            var rejection = offers.rejection(collectedProduct);
+            if (rejection.isPresent()) {
+                reviews.record(collection.sourceId(), collection.storeId(), collectedProduct, catalog.collectedAt(),
+                        rejection.get());
+                result.skippedCount++;
+                continue;
+            }
             try {
                 SourceObservation source = new SourceObservation(
                         collection.sourceId(), collectedProduct.sourceReference(), catalog.collectedAt());
@@ -149,7 +157,8 @@ public class CollectedCatalogIngestionService {
                         collectedPrice.productId(), catalog.storeId(), catalog.sourceId(), sourceReference,
                         product.regularPrice(), product.promotionalPrice(), "BRL",
                         collectedCatalog.collectedAt(), product.validUntil(),
-                        product.promotionValidUntil(), product.promotionCondition(), product.availability(),
+                        offers.promotionValidUntil(product, collectedCatalog.collectedAt()),
+                        product.promotionCondition(), product.availability(),
                         product.originUrl(), product.sourceReference(), product.name()));
                 if (existingReferences.contains(sourceReference)) {
                     result.skippedCount++;

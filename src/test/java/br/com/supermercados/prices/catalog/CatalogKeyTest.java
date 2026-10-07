@@ -73,6 +73,31 @@ class CatalogKeyTest {
     }
 
     @Test
+    void looseProducePricedPerKilogramIsIdentifiedByItsExactWords() {
+        String onion = keys.identify("Cebola Nacional (preço de 1 kg)").key();
+        assertThat(keys.identify("CEBOLA NACIONAL KG (preço de 1 kg)").key()).isEqualTo(onion);
+        assertThat(keys.identify("Cebola Nacional Bandeja (preço de 1 kg)").key()).isEqualTo(onion);
+        assertThat(keys.identify("Cebola Roxa (preço de 1 kg)").key()).isNotEqualTo(onion);
+        assertThat(keys.identify("Alho (preço de 1 kg)").key()).isEqualTo(keys.identify("ALHO A GRANEL (preço de 1 kg)").key());
+        assertThat(keys.identify("Pernil Suína Com Osso (preço de 1 kg)").key())
+                .isEqualTo(keys.identify("PERNIL SUINO C OSSO (preço de 1 kg)").key());
+        // Without the per-kg price a generic name still identifies nothing.
+        assertThat(keys.identify("Cebola Nacional 1kg")).isNull();
+    }
+
+    @Test
+    void withoutIsNeverReadAsWith() {
+        assertThat(keys.identify("AZEITONA VERDE S CAROCO (preço de 1 kg)").key())
+                .isEqualTo(keys.identify("Azeitona Verde Sem Caroço (preço de 1 kg)").key())
+                .isNotEqualTo(keys.identify("AZEITONA VERDE C/ CAROCO (preço de 1 kg)").key());
+    }
+
+    @Test
+    void approximateTrayCountsAreNotPackCounts() {
+        assertThat(keys.identify("Abacate Bandeja (aproximadamente 2 Unids) (preço de 1 kg)").size()).isEqualTo("1x1000G");
+    }
+
+    @Test
     void searchTermsUnderstandSizesTypedByShoppers() {
         assertThat(CatalogKey.searchTerms("coca cola 1 litro")).isEqualTo(
                 new CatalogKey.SearchTerms(List.of("COCA", "COLA"), "x1000ML"));
