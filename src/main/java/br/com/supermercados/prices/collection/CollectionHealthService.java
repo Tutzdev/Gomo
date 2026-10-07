@@ -48,18 +48,24 @@ public class CollectionHealthService {
         Instant oldestCurrent = now.minus(pricePolicy.maxAge());
         Map<String, LastRun> lastRuns = lastRuns();
         Map<String, Instant> lastSuccesses = lastSuccesses();
+        Map<String, UUID> storeOfCollector = storesOfCollectors();
         Map<UUID, List<CollectorHealth>> collectorsByStore = new LinkedHashMap<>();
-        Map<UUID, String> storeNames = new HashMap<>();
+        List<MarketHealth> neverRegistered = new ArrayList<>();
         for (var metadata : coordinator.collectors()) {
             LastRun run = lastRuns.get(metadata.code());
             boolean scheduled = coordinator.isScheduled(metadata.code());
             if (run == null && !scheduled) continue;
-            UUID storeId = run == null ? null : run.storeId();
+            // A run in progress (or one that failed before reaching the store) has no store yet.
+            UUID storeId = storeOfCollector.get(metadata.code());
             var collector = new CollectorHealth(metadata.code(), scheduled, run == null ? null : run.status(),
                     run == null ? null : run.startedAt(), lastSuccesses.get(metadata.code()),
                     run == null ? null : run.errorMessage());
-            collectorsByStore.computeIfAbsent(storeId, ignored -> new ArrayList<>()).add(collector);
-            storeNames.putIfAbsent(storeId, metadata.storeName());
+            if (storeId != null) {
+                collectorsByStore.computeIfAbsent(storeId, ignored -> new ArrayList<>()).add(collector);
+            } else if (scheduled && (run == null || run.status() != CollectionStatus.RUNNING)) {
+                // Its store was never registered (every run failed before reaching it): a market that is down.
+                neverRegistered.add(new MarketHealth(null, metadata.storeName(), MarketStatus.DOWN, null, 0, List.of(collector)));
+            }
         }
 
         List<MarketHealth> markets = new ArrayList<>();
@@ -75,12 +81,7 @@ public class CollectionHealthService {
             long currentProducts = lastPrice == null || !lastPrice.isAfter(oldestCurrent) ? 0 : currentProducts(store.id(), oldestCurrent);
             markets.add(new MarketHealth(store.id(), store.name(), status, lastPrice, currentProducts, collectors));
         }
-        // A collector whose store was never registered (its first run failed) is still a market that is down.
-        collectorsByStore.forEach((storeId, collectors) -> {
-            if (storeId == null && collectors.stream().anyMatch(CollectorHealth::scheduled)) {
-                markets.add(new MarketHealth(null, storeNames.get(null), MarketStatus.DOWN, null, 0, collectors));
-            }
-        });
+        markets.addAll(neverRegistered);
         boolean healthy = markets.stream().noneMatch(market -> market.status() == MarketStatus.DOWN || market.status() == MarketStatus.STALE);
         return new CollectionHealthReport(now, healthy, staleAfter, pricePolicy.maxAge(), markets);
     }
@@ -88,14 +89,24 @@ public class CollectionHealthService {
     private Map<String, LastRun> lastRuns() {
         Map<String, LastRun> runs = new HashMap<>();
         jdbc.query("""
-                SELECT DISTINCT ON (collector_code) collector_code, store_id, status, started_at, error_message
+                SELECT DISTINCT ON (collector_code) collector_code, status, started_at, error_message
                 FROM collection_runs ORDER BY collector_code, started_at DESC, id DESC
                 """, row -> {
-            runs.put(row.getString("collector_code"), new LastRun(row.getObject("store_id", UUID.class),
-                    CollectionStatus.valueOf(row.getString("status")), row.getTimestamp("started_at").toInstant(),
-                    row.getString("error_message")));
+            runs.put(row.getString("collector_code"), new LastRun(CollectionStatus.valueOf(row.getString("status")),
+                    row.getTimestamp("started_at").toInstant(), row.getString("error_message")));
         });
         return runs;
+    }
+
+    private Map<String, UUID> storesOfCollectors() {
+        Map<String, UUID> stores = new HashMap<>();
+        jdbc.query("""
+                SELECT DISTINCT ON (collector_code) collector_code, store_id
+                FROM collection_runs WHERE store_id IS NOT NULL ORDER BY collector_code, started_at DESC, id DESC
+                """, row -> {
+            stores.put(row.getString("collector_code"), row.getObject("store_id", UUID.class));
+        });
+        return stores;
     }
 
     private Map<String, Instant> lastSuccesses() {
@@ -151,7 +162,7 @@ public class CollectionHealthService {
             Instant lastSuccessAt, String lastError) {
     }
 
-    private record LastRun(UUID storeId, CollectionStatus status, Instant startedAt, String errorMessage) {
+    private record LastRun(CollectionStatus status, Instant startedAt, String errorMessage) {
     }
 
     private record StoreFreshness(UUID id, String name, Instant lastPriceAt) {
