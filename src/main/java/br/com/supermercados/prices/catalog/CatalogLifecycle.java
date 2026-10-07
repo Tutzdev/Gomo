@@ -21,7 +21,8 @@ import br.com.supermercados.prices.collection.CollectionCoordinator;
  * and when the newest price is older than {@code app.collection.refresh-when-older-than} a refresh starts
  * in the background, so a machine that was off does not serve expired prices all day. A database without
  * any price (a new server) is first filled with the collections bundled in the application, because the
- * scheduled refresh only updates products that already exist.
+ * scheduled refresh only updates products that already exist, and then every market is refreshed at once:
+ * the bundled prices are as old as the snapshot.
  */
 @Component
 public class CatalogLifecycle implements CollectionCompletedListener {
@@ -75,7 +76,8 @@ public class CatalogLifecycle implements CollectionCompletedListener {
                 // Seeding already rebuilt the catalog.
                 if (rebuildOnStart && !seeded) builder.rebuild();
                 if (collectionEnabled && !coordinator.getObject().isRunning()) {
-                    var upToDate = upToDateCollectors();
+                    // A seeded market has the bundled snapshot's prices, not today's: it is never up to date.
+                    var upToDate = seeded ? java.util.Set.<String>of() : upToDateCollectors();
                     LOGGER.info("Atualizando em segundo plano os mercados sem coleta nas últimas {}; em dia: {}",
                             refreshWhenOlderThan, upToDate);
                     coordinator.getObject().refreshExistingExcept(upToDate);
