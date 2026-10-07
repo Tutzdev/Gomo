@@ -58,6 +58,8 @@ class ProductEquivalenceIntegrationTests {
     @Autowired private PriceService prices;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ProductComparisonIndex index;
+    @Autowired private jakarta.persistence.EntityManager entityManager;
+    private String premiumToken;
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -138,7 +140,7 @@ class ProductEquivalenceIntegrationTests {
         price(colaA, STORE_A, "1.00");
         price(colaB, STORE_B, "3.00");
         price(riceB, STORE_B, "4.00");
-        String token = registerAndLogin();
+        String token = premiumToken();
         String listId = read(mvc.perform(post("/api/v1/shopping-lists")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Synthetic mixed-origin list\",\"shoppingType\":\"CUSTOM\"}"))
@@ -183,7 +185,9 @@ class ProductEquivalenceIntegrationTests {
         price(last, STORE_B, "7.00");
         mvc.perform(get("/api/v1/products").param("query", "Coca-Cola 2 litros").param("size", "1"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(111));
-        compare(selected).andExpect(jsonPath("$.stores.content[1].price.unitPrice").value(7));
+        // Store A never published a price, so store B is the only one compared.
+        compare(selected).andExpect(jsonPath("$.stores.content", hasSize(1)))
+                .andExpect(jsonPath("$.stores.content[0].price.unitPrice").value(7));
     }
 
     @Test
@@ -311,9 +315,24 @@ class ProductEquivalenceIntegrationTests {
                 new SourceObservation(SOURCE, "synthetic-local-" + UUID.randomUUID(), Instant.now().minusSeconds(3))));
     }
 
+    /** The complete comparison (every store with its price status) is the Premium view. */
     private ResultActions compare(ProductResponse selected) throws Exception {
         return mvc.perform(get("/api/v1/comparisons/products").param("productId", selected.id().toString())
-                .param("cityId", CITY)).andExpect(status().isOk());
+                .param("cityId", CITY).header(HttpHeaders.AUTHORIZATION, "Bearer " + premiumToken()))
+                .andExpect(status().isOk());
+    }
+
+    private String premiumToken() throws Exception {
+        if (premiumToken == null) {
+            premiumToken = registerAndLogin();
+            mvc.perform(post("/api/v1/subscription/trial").header(HttpHeaders.AUTHORIZATION, "Bearer " + premiumToken)
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"billingCycle\":\"MONTHLY\"}"))
+                    .andExpect(status().isOk());
+            // The whole test is one transaction: reload the token so it carries the account's new plan.
+            entityManager.flush();
+            entityManager.clear();
+        }
+        return premiumToken;
     }
 
     private String registerAndLogin() throws Exception {

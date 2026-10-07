@@ -28,10 +28,13 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Backend — build (Maven)
+      # Os testes de integração sobem um PostgreSQL descartável com o initdb que já vem no runner.
+      - name: Backend — testes e build (Maven)
         run: |
           chmod +x mvnw
-          ./mvnw -B -ntp -DskipTests clean package
+          export PG_BIN="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)"
+          echo "PostgreSQL dos testes: $PG_BIN"
+          ./mvnw -B -ntp clean verify
 
       - uses: actions/setup-node@v4
         with:

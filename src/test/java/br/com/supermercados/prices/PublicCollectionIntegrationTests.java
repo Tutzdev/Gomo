@@ -72,8 +72,8 @@ class PublicCollectionIntegrationTests {
         var first = ingestion.ingest(nagumo.metadata(), nagumoCatalog);
         CollectedCatalog royalCatalog = royal.collect();
         var second = ingestion.ingest(royal.metadata(), royalCatalog);
-        assertThat(first.errorCount()).isEqualTo(2);
-        assertThat(first.errorMessage()).contains("preço normal ausente");
+        // The two items the store lists without a price are unavailable: neither offers nor collection errors.
+        assertThat(first.errorCount()).isZero();
         assertThat(second.errorCount()).isZero();
         assertThat(second.createdCount()).isEqualTo(26);
         assertThat(jdbc.queryForObject("select count(*) from stores", Integer.class)).isEqualTo(3);
@@ -90,16 +90,17 @@ class PublicCollectionIntegrationTests {
                         .param("cityId", "5c4cb935-52e1-4bf8-8d17-902dc0837c66"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         var stores = mapper.readTree(comparison).path("stores").path("content");
-        assertThat(stores.size()).isEqualTo(3);
+        // Supermarket Aterrado has no public price source, so it is not part of the comparison.
+        assertThat(stores.size()).isEqualTo(2);
         stores.forEach(store -> {
-            String expected = "Supermarket Aterrado".equals(store.path("storeName").asString())
-                    ? "NO_OBSERVATION" : "KNOWN";
-            assertThat(store.path("price").path("status").asString()).isEqualTo(expected);
+            assertThat(store.path("storeName").asString()).isNotEqualTo("Supermarket Aterrado");
+            assertThat(store.path("price").path("status").asString()).isEqualTo("KNOWN");
         });
         mvc.perform(get("/api/v1/products").param("query", "7894900027013")).andExpect(status().isOk());
         mvc.perform(get("/api/v1/stores")).andExpect(status().isOk());
+        // Price history is part of Premium (freemium, V31); a visitor gets the plan limit, not an error.
         mvc.perform(get("/api/v1/prices").param("productId", productId.toString())
-                .param("storeId", first.storeId().toString())).andExpect(status().isOk());
+                .param("storeId", first.storeId().toString())).andExpect(status().isForbidden());
 
         Instant observedAgain = Instant.now();
         var fresh = new CollectedCatalog(nagumoCatalog.store(), nagumoCatalog.products(),

@@ -90,8 +90,8 @@ class PricePersistenceTests {
         assertThat(history.totalElements()).isEqualTo(2);
         assertThat(history.content().getFirst().id()).isEqualTo(latest.id());
         var result = comparisons.compareProduct(PRODUCT_A, cityId(), storePage());
-        assertThat(result.stores().content().getFirst().price().unitPrice()).isEqualByComparingTo("4.35");
-        assertThat(result.stores().content().get(1).price().unitPrice()).isNull();
+        assertThat(result.stores().content()).singleElement()
+                .satisfies(store -> assertThat(store.price().unitPrice()).isEqualByComparingTo("4.35"));
     }
 
     @Test
@@ -195,6 +195,9 @@ class PricePersistenceTests {
 
     @Test
     void comparisonPaginationCountsStoresAndExcludesInactiveStores() {
+        Instant now = Instant.now().minusSeconds(5);
+        prices.appendObservation(observation(STORE_A, PRODUCT_A, "pagination-a", "3.00", now));
+        prices.appendObservation(observation(STORE_B, PRODUCT_B, "pagination-b", "4.00", now));
         assertThat(comparisons.compareProduct(PRODUCT_A, cityId(), PageRequest.of(0, 1, Sort.by("name")))
                 .stores().totalElements()).isEqualTo(2);
         jdbc.update("update stores set active = false where id = ?", STORE_B);
