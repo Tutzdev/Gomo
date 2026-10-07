@@ -15,6 +15,7 @@ import java.time.Clock;
 import java.time.Instant;
 
 import br.com.supermercados.prices.collection.CatalogCheckpoint;
+import br.com.supermercados.prices.collection.vip.VipStorefrontConfiguration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +63,8 @@ class RoyalClient {
         }
 
         // The storefront itself downloads this anonymous-session configuration. No customer login is used.
-        String configuration = session.text(properties.getBaseUrl().resolve(properties.getPublicConfigurationPath()));
+        String configuration = VipStorefrontConfiguration.load(properties.getBaseUrl(),
+                properties.getPublicConfigurationPath(), session::text);
         String publicKey = configurationValue(configuration, "lojaAuthJWT");
         String publicUser = configurationValue(configuration, "lojaUser");
         var login = mapper.createObjectNode().put("domain", DOMAIN)

@@ -33,4 +33,19 @@ class CollectionSchedulerTest {
         verify(coordinator).collectAll();
         verify(coordinator, never()).refreshExisting(null);
     }
+
+    @Test
+    void weeklyImportBringsInProductsTheMarketsLaunched() {
+        new CollectionScheduler(coordinator, true, true).importNewProducts();
+
+        verify(coordinator).collectAll();
+        verify(coordinator, never()).refreshExisting(null);
+    }
+
+    @Test
+    void weeklyImportRespectsTheDisabledSchedule() {
+        new CollectionScheduler(coordinator, false, true).importNewProducts();
+
+        verifyNoInteractions(coordinator);
+    }
 }

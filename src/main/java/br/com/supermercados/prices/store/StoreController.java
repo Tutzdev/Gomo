@@ -35,7 +35,7 @@ public class StoreController {
             @RequestParam(required = false) UUID cityId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return PageResponse.from(storeService.findActiveStores(
+        return PageResponse.from(storeService.findListedStores(
                 cityId, PageRequests.create(page, size, Sort.by("name", "id"))));
     }
 

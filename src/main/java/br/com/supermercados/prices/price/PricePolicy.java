@@ -19,6 +19,11 @@ public class PricePolicy {
         }
     }
 
+    /** How long an observation counts as the current price. */
+    public Duration maxAge() {
+        return maxAge;
+    }
+
     public PriceQuote quote(PriceRecord record, Instant comparedAt) {
         if (record == null) {
             return PriceQuote.missing();

@@ -62,7 +62,8 @@ public class SecurityConfiguration {
                                 "/api/v1/products", "/api/v1/products/**",
                                 "/api/v1/catalog/items", "/api/v1/catalog/items/**",
                                 "/api/v1/prices", "/api/v1/prices/**",
-                                "/api/v1/comparisons/products", "/v3/api-docs", "/v3/api-docs/**").permitAll()
+                                "/api/v1/comparisons/products", "/api/v1/status/collections",
+                                "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterAt(corsFilter, CorsFilter.class)
                 .addFilterBefore(new BearerTokenFilter(tokens, problems), UsernamePasswordAuthenticationFilter.class)

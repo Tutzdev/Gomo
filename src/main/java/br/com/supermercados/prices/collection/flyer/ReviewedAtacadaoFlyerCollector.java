@@ -52,13 +52,33 @@ public final class ReviewedAtacadaoFlyerCollector implements SupermarketCollecto
     }
 
     @Override
-    public CollectedCatalog collect() {
-        ReviewedFlyers reviewed;
+    public boolean hasCurrentSource() {
+        try {
+            Instant now = clock.instant();
+            return reviewed().documents().stream().anyMatch(document -> isCurrent(document, now));
+        } catch (RuntimeException exception) {
+            // A broken file must surface as a failed run, not be skipped silently.
+            return true;
+        }
+    }
+
+    private ReviewedFlyers reviewed() {
         try (var input = new ClassPathResource("collectors/atacadao-reviewed-2026-09.json").getInputStream()) {
-            reviewed = mapper.readValue(input, ReviewedFlyers.class);
+            return mapper.readValue(input, ReviewedFlyers.class);
         } catch (IOException exception) {
             throw new IllegalStateException("Encartes revisados não encontrados", exception);
         }
+    }
+
+    private static boolean isCurrent(Flyer document, Instant now) {
+        Instant start = document.validFrom().atStartOfDay(LOCAL_ZONE).toInstant();
+        Instant end = document.validThrough().plusDays(1).atStartOfDay(LOCAL_ZONE).toInstant();
+        return !now.isBefore(start) && now.isBefore(end);
+    }
+
+    @Override
+    public CollectedCatalog collect() {
+        ReviewedFlyers reviewed = reviewed();
         if (!"MANUALLY_REVIEWED_PUBLIC_FLYERS".equals(reviewed.method()) || !reviewed.storeIds().contains(storeId)) {
             throw new IllegalStateException("Encartes sem revisão ou sem abrangência para a unidade");
         }
@@ -68,9 +88,8 @@ public final class ReviewedAtacadaoFlyerCollector implements SupermarketCollecto
         }
         List<CollectedProduct> products = new ArrayList<>();
         for (Flyer document : reviewed.documents()) {
-            Instant start = document.validFrom().atStartOfDay(LOCAL_ZONE).toInstant();
+            if (!isCurrent(document, now)) continue;
             Instant end = document.validThrough().plusDays(1).atStartOfDay(LOCAL_ZONE).toInstant();
-            if (now.isBefore(start) || !now.isBefore(end)) continue;
             if (!document.sha256().matches("[a-f0-9]{64}") || !document.url().equals(
                     "https://apigw.cloud.carrefour.com.br/api-middleware-flyer-services/api/v2/Flyer/?id=" + document.id())) {
                 throw new IllegalStateException("Origem do encarte revisado inválida");

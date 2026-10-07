@@ -18,7 +18,7 @@ public class VipCollectorsConfiguration {
     @Bean
     SupermarketCollector bramilVoltaRedonda(ObjectMapper mapper, Clock clock, VipProductParser parser) {
         return collector(new VipStoreDefinition("bramil_santo_agostinho", "Bramil", "Bramil Santo Agostinho",
-                URI.create("https://www.bramilemcasa.com.br"), "/chunk-DRYSFH6T.js",
+                URI.create("https://www.bramilemcasa.com.br"), "/chunk-CA3SU4MX.js",
                 53, 24, 1, 24, "32296378004753"), mapper, clock, parser);
     }
 
@@ -32,7 +32,7 @@ public class VipCollectorsConfiguration {
     @Bean
     SupermarketCollector spaniVoltaRedonda(ObjectMapper mapper, Clock clock, VipProductParser parser) {
         return collector(new VipStoreDefinition("spani_volta_redonda", "Spani", "Spani Volta Redonda",
-                URI.create("https://www.spanionline.com.br"), "/chunk-DRYSFH6T.js",
+                URI.create("https://www.spanionline.com.br"), "/chunk-CA3SU4MX.js",
                 67, 108, 1, 6, "05868574001171"), mapper, clock, parser);
     }
 

@@ -41,4 +41,22 @@ public class CollectionScheduler {
             LOGGER.error("Não foi possível iniciar a coleta agendada: {}", exception.getMessage(), exception);
         }
     }
+
+    /**
+     * Once a week every offer is imported, not only the products already known, so the catalog follows what
+     * the markets launch and the SKUs they renumber. The other collections of the day only refresh prices.
+     */
+    @Scheduled(
+            cron = "${app.collection.full-cron:0 0 3 * * SUN}",
+            zone = "${app.collection.zone:America/Sao_Paulo}")
+    public void importNewProducts() {
+        if (!enabled || coordinator.isRunning()) {
+            return;
+        }
+        try {
+            coordinator.collectAll();
+        } catch (RuntimeException exception) {
+            LOGGER.error("Não foi possível iniciar a importação semanal: {}", exception.getMessage(), exception);
+        }
+    }
 }

@@ -30,6 +30,11 @@ class NagumoProductParser {
         List<String> warnings = new ArrayList<>();
 
         for (JsonNode externalProduct : catalog.products()) {
+            // The storefront lists items it is not selling today without a price; they are neither offers nor errors.
+            if (externalProduct.path("available").isBoolean() && !externalProduct.path("available").asBoolean()
+                    && externalProduct.path("price").path("sales").path("value").isNull()) {
+                continue;
+            }
             try {
                 CollectedProduct product = parseProduct(externalProduct, catalog.categoryName(), validUntil);
                 if (products.putIfAbsent(product.sourceReference(), product) != null) {

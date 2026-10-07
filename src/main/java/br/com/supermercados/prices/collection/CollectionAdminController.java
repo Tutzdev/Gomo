@@ -26,16 +26,25 @@ public class CollectionAdminController {
     private final CollectionRunService runs;
     private final AdminAuditService audit;
     private final CollectionReviewRepository reviews;
+    private final CollectionHealthService health;
 
     public CollectionAdminController(
             CollectionCoordinator coordinator,
             CollectionRunService runs,
             AdminAuditService audit,
-            CollectionReviewRepository reviews) {
+            CollectionReviewRepository reviews,
+            CollectionHealthService health) {
         this.coordinator = coordinator;
         this.runs = runs;
         this.audit = audit;
         this.reviews = reviews;
+        this.health = health;
+    }
+
+    /** Each market's freshness and its collectors' last runs, for the admin collections panel. */
+    @GetMapping("/health")
+    public CollectionHealthService.CollectionHealthReport health() {
+        return health.report();
     }
 
     @PostMapping

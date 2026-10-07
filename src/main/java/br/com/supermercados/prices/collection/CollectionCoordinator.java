@@ -66,6 +66,17 @@ public class CollectionCoordinator {
         this.listeners = List.copyOf(listeners);
     }
 
+    /** Every registered collector, including those skipped by the schedule because their source has nothing current. */
+    public List<CollectorMetadata> collectors() {
+        return collectors.stream().map(SupermarketCollector::metadata).toList();
+    }
+
+    /** Whether the scheduled collections run this collector now (see {@link SupermarketCollector#hasCurrentSource()}). */
+    public boolean isScheduled(String collectorCode) {
+        return collectors.stream().anyMatch(collector -> collector.metadata().code().equals(collectorCode)
+                && collector.hasCurrentSource());
+    }
+
     public boolean isRunning() {
         return running.get();
     }
@@ -84,7 +95,7 @@ public class CollectionCoordinator {
 
     /** Refreshes only the collectors whose code is not in {@code upToDate}, e.g. after the machine was off. */
     public List<CollectionRunResponse> refreshExistingExcept(java.util.Set<String> upToDate) {
-        List<SupermarketCollector> stale = collectors.stream()
+        List<SupermarketCollector> stale = collectors.stream().filter(SupermarketCollector::hasCurrentSource)
                 .filter(collector -> !upToDate.contains(collector.metadata().code())).toList();
         return stale.isEmpty() ? List.of() : run(stale, CatalogOrigin.LIVE, true);
     }
@@ -122,7 +133,8 @@ public class CollectionCoordinator {
     }
 
     private List<CollectionRunResponse> collectSelected(String collectorCode, CatalogOrigin origin, boolean existingOnly) {
-        List<SupermarketCollector> selected = collectorCode == null ? collectors : collectors.stream()
+        List<SupermarketCollector> selected = collectorCode == null
+                ? collectors.stream().filter(SupermarketCollector::hasCurrentSource).toList() : collectors.stream()
                 .filter(collector -> collector.metadata().code().equals(collectorCode)).toList();
         if (selected.isEmpty() && collectorCode != null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Coletor não encontrado");

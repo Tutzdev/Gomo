@@ -64,7 +64,7 @@ public final class VipStoreCollector implements SupermarketCollector {
             throw new IllegalStateException("Loja pública inativa ou em manutenção");
         }
 
-        String configuration = http.get(definition.website().resolve(definition.configurationPath()));
+        String configuration = VipStorefrontConfiguration.load(definition.website(), definition.configurationPath(), http::get);
         // These values are published by the storefront for anonymous browsing, never customer credentials.
         String login = mapper.writeValueAsString(mapper.createObjectNode().put("domain", domain)
                 .put("username", configurationValue(configuration, "lojaUser"))
