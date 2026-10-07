@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class CollectedCatalogIngestionService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CollectedCatalogIngestionService.class);
+    private static final String PRICE_CHANGE_REVIEW = "Variação de preço exige revisão antes da publicação.";
 
     private final CollectionCatalogService catalogs;
     private final ProductIngestionService products;
@@ -60,10 +61,12 @@ public class CollectedCatalogIngestionService {
             }
         });
         collectedCatalog.warnings().forEach(result::addSkippedError);
+        // Read before ingestion: linking a product clears its pending review items.
+        var heldPriceChanges = reviews.heldPriceChanges(catalog.sourceId(), catalog.storeId(), PRICE_CHANGE_REVIEW);
 
         List<ProductPrice> collectedPrices = ingestProducts(
                 metadata, collectedCatalog, catalog, result, existingOnly);
-        ingestPrices(metadata, collectedCatalog, catalog, collectedPrices, result);
+        ingestPrices(metadata, collectedCatalog, catalog, collectedPrices, result, heldPriceChanges);
 
         return result.toResult(catalog.sourceId(), catalog.storeId());
     }
@@ -122,7 +125,8 @@ public class CollectedCatalogIngestionService {
             CollectedCatalog collectedCatalog,
             CollectionCatalog catalog,
             List<ProductPrice> collectedPrices,
-            MutableResult result) {
+            MutableResult result,
+            Map<String, CollectionReviewRepository.HeldPrice> heldPriceChanges) {
         if (collectedPrices.isEmpty()) {
             return;
         }
@@ -142,11 +146,13 @@ public class CollectedCatalogIngestionService {
             String sourceReference = entry.getValue();
             PriceRecord previous = latestPrices.get(collectedPrice.productId());
             if (!existingReferences.contains(sourceReference)
-                    && priceChangeGuard.isSuspicious(product.regularPrice(), previous)) {
+                    && priceChangeGuard.isSuspicious(product.regularPrice(), previous)
+                    && !confirmedByAnEarlierCollection(heldPriceChanges.get(product.sourceReference()), product,
+                            collectedCatalog.collectedAt())) {
                 result.skippedCount++;
                 result.addError("Variação suspeita no produto " + product.sourceReference());
                 reviews.record(catalog.sourceId(), catalog.storeId(), product, collectedCatalog.collectedAt(),
-                        "Variação de preço exige revisão antes da publicação.");
+                        PRICE_CHANGE_REVIEW);
                 LOGGER.warn("Coletor {} rejeitou variação suspeita do produto {}",
                         metadata.code(), product.sourceReference());
                 continue;
@@ -174,6 +180,16 @@ public class CollectedCatalogIngestionService {
                         product.sourceReference(), safeMessage(exception));
             }
         }
+    }
+
+    /**
+     * A store's typo is usually fixed by the next collection; a real price change is published again. The same
+     * held price seen by an earlier collection is therefore accepted, so a genuine change is never stuck forever.
+     */
+    private static boolean confirmedByAnEarlierCollection(CollectionReviewRepository.HeldPrice held,
+            CollectedProduct product, java.time.Instant collectedAt) {
+        return held != null && held.collectedAt().isBefore(collectedAt)
+                && held.regularPrice().compareTo(product.regularPrice()) == 0;
     }
 
     private Map<UUID, PriceRecord> latestPrices(CollectionCatalog catalog, List<ProductPrice> collectedPrices) {

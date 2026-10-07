@@ -44,6 +44,25 @@ public class CollectionReviewRepository {
                 reason.substring(0, Math.min(reason.length(), 2000)), mapper.writeValueAsString(product));
     }
 
+    /** Regular price of each offer held because its price changed too much, by source reference. */
+    public java.util.Map<String, HeldPrice> heldPriceChanges(UUID sourceId, UUID storeId, String reason) {
+        java.util.Map<String, HeldPrice> held = new java.util.HashMap<>();
+        jdbc.query("""
+                SELECT source_reference, collected_at, offer->>'regularPrice' AS regular_price
+                FROM collection_review_items WHERE source_id = ? AND store_id = ? AND reason = ?
+                """, row -> {
+            String price = row.getString("regular_price");
+            if (price != null) {
+                held.put(row.getString("source_reference"), new HeldPrice(
+                        row.getTimestamp("collected_at").toInstant(), new java.math.BigDecimal(price)));
+            }
+        }, sourceId, storeId, reason);
+        return held;
+    }
+
+    public record HeldPrice(Instant collectedAt, java.math.BigDecimal regularPrice) {
+    }
+
     public void resolve(UUID sourceId, UUID storeId, String reference) {
         jdbc.update("DELETE FROM collection_review_items WHERE source_id = ? AND store_id = ? AND source_reference = ?",
                 sourceId, storeId, reference);
