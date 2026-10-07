@@ -63,7 +63,7 @@ public class HortifrutiCollector implements SupermarketCollector {
     @Override
     public CollectedCatalog collect() {
         PublicCatalogHttp http = new PublicCatalogHttp(delay);
-        JsonNode pickup = query(http, "ClientPickupPointsQuery", "3fa04e88c811fcb5ece7206fd5aa745bdbc143a8",
+        JsonNode pickup = query(http, "ClientPickupPointsQuery",
                 Map.of("geoCoordinates", Map.of("latitude", -22.51, "longitude", -44.09)))
                 .path("pickupPoints").path("pickupPointDistances");
         JsonNode store = null;
@@ -76,7 +76,7 @@ public class HortifrutiCollector implements SupermarketCollector {
                 || !"874".equals(store.path("address").path("number").asString())) {
             throw new IllegalStateException("Unidade Hortifruti Aterrado não confirmada");
         }
-        JsonNode region = query(http, "GetSellersByPostalCodeQuery", "285e40ec689755393866a7c3f72e64319f84a06e",
+        JsonNode region = query(http, "GetSellersByPostalCodeQuery",
                 Map.of("postalCode", "27213270", "country", "BRA", "salesChannel", "1")).path("sellers");
         boolean supported = false;
         for (JsonNode seller : region.path("sellers")) {
@@ -126,7 +126,10 @@ public class HortifrutiCollector implements SupermarketCollector {
                 warnings.add("Categoria Hortifruti " + path + " incompleta: " + exception.getMessage());
             }
         }
-        if (products.isEmpty()) throw new IllegalStateException("Hortifruti não forneceu preços utilizáveis");
+        if (products.isEmpty()) {
+            throw new IllegalStateException("Hortifruti não forneceu preços utilizáveis"
+                    + (warnings.isEmpty() ? "" : ": " + warnings.getFirst()));
+        }
         if (complete) checkpoint.complete();
         return new CollectedCatalog(new CollectedStore("Hortifruti Aterrado",
                 "Avenida Paulo de Frontin, 874 - Aterrado - Volta Redonda/RJ", null, null, true),
@@ -138,7 +141,7 @@ public class HortifrutiCollector implements SupermarketCollector {
         HortifrutiProductParser parser = new HortifrutiProductParser();
         int total = -1;
         for (int offset = 0; total < 0 || offset < total; offset += 20) {
-            JsonNode result = query(http, "ClientManyProductsQuery", "f33281cdf32c8270dbfb69330029e00be9a0b3f9",
+            JsonNode result = query(http, "ClientManyProductsQuery",
                     Map.of("first", 20, "after", String.valueOf(offset), "sort", "score_desc", "term", "", "selectedFacets", facets))
                     .path("search").path("products");
             int count = result.path("pageInfo").path("totalCount").asInt(-1);
@@ -160,9 +163,19 @@ public class HortifrutiCollector implements SupermarketCollector {
         return total;
     }
 
-    private JsonNode query(PublicCatalogHttp http, String operation, String hash, Object variables) {
-        String path = "/api/graphql?operationName=" + operation + "&operationHash=" + hash + "&variables="
-                + URLEncoder.encode(mapper.writeValueAsString(variables), StandardCharsets.UTF_8);
+    private JsonNode query(PublicCatalogHttp http, String operation, Object variables) {
+        try {
+            return queryOnce(http, operation, variables);
+        } catch (IllegalStateException refused) {
+            // The site redeployed and renamed its persisted queries: read the current hash and retry once.
+            if (!HortifrutiOperations.refresh(operation, website, "/bebidas", http::get)) throw refused;
+            return queryOnce(http, operation, variables);
+        }
+    }
+
+    private JsonNode queryOnce(PublicCatalogHttp http, String operation, Object variables) {
+        String path = "/api/graphql?operationName=" + operation + "&operationHash=" + HortifrutiOperations.hash(operation)
+                + "&variables=" + URLEncoder.encode(mapper.writeValueAsString(variables), StandardCharsets.UTF_8);
         JsonNode response = mapper.readTree(http.get(website.resolve(path)));
         if (!response.path("data").isObject() || !response.path("errors").isMissingNode()) {
             throw new IllegalStateException("Consulta pública Hortifruti recusada: " + operation);
