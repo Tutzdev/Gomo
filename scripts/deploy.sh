@@ -67,6 +67,13 @@ if [[ -f package-lock.json ]]; then npm ci --no-audit --no-fund --silent; else n
 VITE_API_BASE_URL="${VITE_API_BASE_URL:-/api/v1}" npm run build --silent
 [[ -f dist/index.html ]] || die "build do frontend não gerou dist/"
 
+# As migrations não são desfeitas no rollback: com o backup instalado, nenhuma versão sobe sem uma cópia do banco.
+if [[ -x "$JAR_DIR/bin/backup.sh" ]]; then
+  "$JAR_DIR/bin/backup.sh" || die "backup do banco falhou; deploy interrompido antes das migrations"
+else
+  log "AVISO: $JAR_DIR/bin/backup.sh não instalado; publicando sem backup do banco"
+fi
+
 log "publicando jar e reiniciando (Flyway roda as migrations no boot)"
 install -m 644 "$APP_DIR/$NEW_JAR" "$JAR_DIR/gomo.jar"
 sudo -n /usr/bin/systemctl restart "$SERVICE"
