@@ -46,20 +46,22 @@ O nome do item é **genérico**, montado das palavras da chave (com os acentos d
 
 | Regra | Exemplo |
 | --- | --- |
-| Tamanho e escolha não mudam o item: média, graúda, grande, pequena, miúda, selecionada, nacional, fresca | `BANANA PRATA MEDIA KG` = `Banana Prata` |
-| Nomes comerciais da variedade comum são o produto comum | `Tomate Débora`, `Tomate Salada`, `Tomate Carmem` = **Tomate**; `Batata Lavada`, `Batata Escovada`, `Batata Inglesa` = **Batata**; `Cebola Amarela` = **Cebola** |
+| Tamanho e escolha não mudam o item: média, graúda, grande, pequena, miúda, selecionada, nacional, fresca, e códigos de classificação | `BANANA PRATA MEDIA KG` = `Banana Prata`; `TOMATE GRAUDO B6` = `Tomate` |
+| Nomes comerciais da variedade comum são o produto comum | `Tomate Débora`, `Tomate Salada`, `Tomate Carmem`, `Tomate Netuno` = **Tomate**; `Batata Lavada`, `Batata Escovada`, `Batata Inglesa` = **Batata**; `Cebola Amarela` = **Cebola** |
 | Outras variedades continuam itens próprios | `Tomate Italiano`, `Tomate Cereja`, `Batata Asterix`, `Batata Doce`, `Cebola Roxa` |
 | Sinônimos | banana d'água = nanica; Tahiti = Taiti |
+
+Uma "marca" que é o próprio nome do produto não é marca: o Nagumo cadastra os tomates com a marca "TOMATE".
 
 O Hortifruti vende tomate, banana e batata **por unidade**, sem informar o peso. Esses itens ficam fora da comparação por kg: converter exigiria inventar o peso.
 
 ### Ovos
 
-Uma bandeja de ovos é o mesmo item em qualquer mercado, **seja qual for a granja**: cor (ou tipo: caipira, orgânico, de galinhas livres, de codorna), classe (pequeno, médio, grande, extra, jumbo) e quantidade. `Ovos Branco Gde Iana 12un`, `Ovos Branco Grande Santa Monica C/12un` e `Ovos Brancos Grandes Mantiqueira Dúzia` são **Ovos Brancos Grandes 12 un**. Sem classe na descrição, o item não tem classe ("Ovos Brancos 30 un"). Ovo de Páscoa, ovo pasteurizado e massa com ovos nunca entram. Uma quantidade cortada no limite de 30 caracteres do ERP ("Ovos Bco Mantiqueira Jumbo C/1") não é usada.
+Uma bandeja de ovos é o mesmo item em qualquer mercado, **seja qual for a granja**: cor, tipo (caipira, orgânico, de galinhas livres, ômega 3, de codorna), classe (pequeno, médio, grande, extra, jumbo) e quantidade. Ovo caipira dispensa a cor, e o de codorna dispensa cor e classe; os outros tipos mantêm a cor ("Ovos Vermelhos Grandes Ômega 3"). Com dois tipos na descrição vale o primeiro desta ordem: codorna, caipira, orgânico, galinhas livres, ômega 3. `Ovos Branco Gde Iana 12un`, `Ovos Branco Grande Santa Monica C/12un` e `Ovos Brancos Grandes Mantiqueira Dúzia` são **Ovos Brancos Grandes 12 un**. Sem classe na descrição, o item não tem classe ("Ovos Brancos 30 un"). Ovo de Páscoa, ovo pasteurizado e massa com ovos nunca entram. Uma quantidade cortada no limite de 30 caracteres do ERP ("Ovos Bco Mantiqueira Jumbo C/1") não é usada.
 
 ### Abreviações e grafias de cada loja
 
-Além das abreviações acima: `ST` no começo é sabonete, `FRG`/`FGO` frango, `RECH` recheado, `SALG` salgadinho, `DESINF` desinfetante, `BCO` branco, `TTO` tinto, `MRG` morango, `ZR` zero, `RF` refil, `SCH` sachê, `SAB` sabor, `LN` long neck. Grafias que variam entre lojas são unificadas (panetone/panettone, parbolizado/parboilizado, capeleti/capeletti, wafer/waffer). "Com sal" é o padrão de manteiga e margarina e "uva tinto" o do suco de uva. As formas sem sal e de uva branca continuam itens próprios.
+Além das abreviações acima: `ST` no começo é sabonete, `FRG`/`FGO` frango, `RECH` recheado, `SALG` salgadinho, `DESINF` desinfetante, `BCO` branco, `TTO` tinto, `MRG` morango, `ZR` zero, `RF` refil, `SCH` sachê, `SAB` sabor, `LN` long neck. Um tamanho colado na palavra ("Chocolate100G", "PERFUME1L") é separado; um código de uma letra ("B6", "A12") não é lido como tamanho. Grafias que variam entre lojas são unificadas (panetone/panettone, parbolizado/parboilizado, capeleti/capeletti, wafer/waffer). "Com sal" é o padrão de manteiga e margarina e "uva tinto" o do suco de uva. As formas sem sal e de uva branca continuam itens próprios.
 
 O pareamento entre descrições também ignora palavras de tipo (láctea, wafer, recheado) e alguns adjetivos que o Nagumo acrescenta (fortificado, IQF, especiais). Pilha `AA` nunca é abreviação de `AAA`.
 

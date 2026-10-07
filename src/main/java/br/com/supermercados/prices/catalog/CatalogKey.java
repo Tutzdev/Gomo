@@ -121,7 +121,13 @@ public final class CatalogKey {
      */
     private static final Pattern BUNDLE = Pattern.compile(
             "\\bKIT\\b(?!\\s*KAT\\b)|\\b(?:COMBO|PAGUE|BONUS|GRATIS|BRINDE|GANHE|SORTIDOS?|SORTIDAS)\\b|\\+");
-    private static final Pattern MEASURE = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(ML|L|KG|G)\\b");
+    /** A size starts a word: "B6" (a produce grade) and "A12" (a milk) are not 6 kg or 12 g. */
+    private static final Pattern MEASURE = Pattern.compile("\\b(\\d+(?:\\.\\d+)?)\\s*(ML|L|KG|G)\\b");
+    /**
+     * "CHOCOLATE100G": a size glued to the word before it, separated so it starts a word. Reference codes
+     * ("CA0092 UN") and single-letter codes ("B6") stay glued.
+     */
+    private static final Pattern GLUED_SIZE = Pattern.compile("([A-Z]{2,})(?=\\d+(?:\\.\\d+)?(?:ML|LTS?|L|KG|GRS?|G|M)\\b)");
     private static final Pattern COUNT = Pattern.compile(
             "\\b(\\d+)\\s*(?:UNIDADES|UNIDADE|UNID|UN|UND)\\b|\\b(\\d+)\\s*X\\s*(?=\\d)|\\b(?:PACK|C|COM)\\s*(\\d+)\\b");
     private static final Pattern NUMBER = Pattern.compile("[\\d.]+");
@@ -138,7 +144,8 @@ public final class CatalogKey {
      * Cereja", "Batata Doce" and "Cebola Roxa" stay items of their own.
      */
     private static final Map<String, Set<String>> EVERYDAY_VARIETIES = Map.of(
-            "TOMATE", Set.of("DEBORA", "SALADA", "CARMEM", "CARMEN", "SANTA", "CRUZ", "LONGA", "VIDA", "VERMELHO", "MADURO"),
+            "TOMATE", Set.of("DEBORA", "SALADA", "CARMEM", "CARMEN", "SANTA", "CRUZ", "LONGA", "VIDA", "VERMELHO",
+                    "MADURO", "NETUNO", "RASTEIRO"),
             "BATATA", Set.of("INGLESA", "LAVADA", "ESCOVADA", "COMUM"),
             "CEBOLA", Set.of("AMARELA", "COMUM"));
     /** Products made from eggs, never a carton of eggs. */
@@ -156,12 +163,15 @@ public final class CatalogKey {
             Map.entry("GRANDE", "Grandes"), Map.entry("GRANDES", "Grandes"), Map.entry("GDE", "Grandes"),
             Map.entry("GDES", "Grandes"), Map.entry("EXTRA", "Extra"), Map.entry("EXTRAS", "Extra"),
             Map.entry("JUMBO", "Jumbo"));
-    /** Kinds of egg priced apart from the common ones; the kind replaces the colour in the name. */
+    /** Kinds of egg priced apart from the common ones. */
     private static final Map<String, String> EGG_KINDS = Map.ofEntries(Map.entry("CAIPIRA", "Caipira"),
             Map.entry("CAIPIRAS", "Caipira"), Map.entry("ORGANICO", "Orgânicos"), Map.entry("ORGANICOS", "Orgânicos"),
             Map.entry("ORGANIC", "Orgânicos"), Map.entry("LIVRE", "de Galinhas Livres"),
             Map.entry("LIVRES", "de Galinhas Livres"), Map.entry("HAPPY", "de Galinhas Livres"),
-            Map.entry("CODORNA", "de Codorna"));
+            Map.entry("OMEGA", "Ômega 3"), Map.entry("OMEGA3", "Ômega 3"), Map.entry("CODORNA", "de Codorna"));
+    /** A carton described with two kinds ("Caipira Orgânico") is the first of them here. */
+    private static final List<String> EGG_KIND_PRIORITY = List.of("de Codorna", "Caipira", "Orgânicos",
+            "de Galinhas Livres", "Ômega 3");
     /** Tokens seen in at most this many descriptions behave like a brand (e.g. a small local manufacturer). */
     private static final int RARE_TOKEN_LIMIT = 120;
 
@@ -206,6 +216,7 @@ public final class CatalogKey {
         boolean perKilogram = text.contains("PRECO DE 1 KG");
         text = text.replace("PRECO DE 1 KG", " 1 KG ");
         text = text.replaceAll("(\\d)\\s*X\\s*(\\d)", "$1 X $2");
+        text = GLUED_SIZE.matcher(text).replaceAll("$1 ");
         text = text.replaceAll("(\\d)([A-Z])", "$1 $2");
         text = text.replaceAll("\\s+", " ");
         for (Rewrite rewrite : REWRITES) {
@@ -268,11 +279,14 @@ public final class CatalogKey {
             if (eggs != null) return eggs;
         }
         String brand = findBrand(tokens);
-        if (brand == null && perKilogram && size.equals("1x1000G")) {
+        // Nagumo declares "TOMATE" as the brand of its tomatoes: the product's own name is not a brand.
+        boolean ownName = brand != null && words(brand).equals(tokens.getFirst());
+        if ((brand == null || ownName) && perKilogram && size.equals("1x1000G")) {
             // "Cebola Nacional", "Laranja Pera", "Alcatra Bovino" priced per kg: the words alone name the item,
             // so only identical words are the same item (no brand to confirm a looser match), apart from the
-            // grade and the trade names of the everyday variety.
-            List<String> produce = everydayVariety(tokens.stream().filter(word -> !PRODUCE_GRADES.contains(word)).toList());
+            // grade (also as a code: "TOMATE GRAUDO B6") and the trade names of the everyday variety.
+            List<String> produce = everydayVariety(tokens.stream()
+                    .filter(word -> !PRODUCE_GRADES.contains(word) && !word.matches("[A-Z]\\d")).toList());
             if (produce.isEmpty()) return null;
             return new Identity(String.join(" ", new TreeSet<>(produce)) + "|" + size, null, size, String.join(" ", produce));
         }
@@ -307,16 +321,24 @@ public final class CatalogKey {
         for (String word : tokens) {
             if (EGG_COLOURS.containsKey(word)) colour = EGG_COLOURS.get(word);
             if (EGG_SIZES.containsKey(word)) eggSize = EGG_SIZES.get(word);
-            if (EGG_KINDS.containsKey(word) && kind == null) kind = EGG_KINDS.get(word);
+            String found = EGG_KINDS.get(word);
+            if (found != null && (kind == null || EGG_KIND_PRIORITY.indexOf(found) < EGG_KIND_PRIORITY.indexOf(kind))) {
+                kind = found;
+            }
         }
-        if ("de Codorna".equals(kind)) eggSize = null;
-        if (kind != null) colour = null;
         if (colour == null && kind == null) return null;
         List<String> name = new ArrayList<>(List.of("Ovos"));
-        if (kind != null && kind.startsWith("de ")) name.add(kind);
-        if (colour != null) name.add(colour);
-        if (eggSize != null) name.add(eggSize);
-        if (kind != null && !kind.startsWith("de ")) name.add(kind);
+        if ("de Codorna".equals(kind)) {
+            name.add(kind);
+        } else if ("Caipira".equals(kind)) {
+            // Caipira eggs are red; the colour adds nothing.
+            name.add(kind);
+            if (eggSize != null) name.add(eggSize);
+        } else {
+            if (colour != null) name.add(colour);
+            if (eggSize != null) name.add(eggSize);
+            if (kind != null) name.add(kind);
+        }
         String label = String.join(" ", name);
         return new Identity(String.join(" ", new TreeSet<>(List.of(words(label).split(" ")))) + "|" + size,
                 null, size, label);
@@ -328,6 +350,7 @@ public final class CatalogKey {
         text = text.replaceAll("(\\d),(\\d)", "$1.$2");
         text = text.replaceAll("[^A-Z0-9.]+", " ");
         text = text.replaceAll("(?<!\\d)\\.|\\.(?!\\d)", " ");
+        text = GLUED_SIZE.matcher(text).replaceAll("$1 ");
         text = text.replaceAll("(\\d)([A-Z])", "$1 $2");
         for (Rewrite rewrite : REWRITES) {
             text = rewrite.pattern().matcher(text).replaceAll(rewrite.replacement());

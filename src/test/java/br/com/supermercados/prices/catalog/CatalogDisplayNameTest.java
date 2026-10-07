@@ -30,10 +30,13 @@ class CatalogDisplayNameTest {
 
     @Test
     void genericItemsAreNamedFromTheirKeyWithTheAccentsSomeMarketWrites() {
-        assertThat(CatalogBuilder.Group.accented("BANANA MACA",
-                List.of("BANANA MACA KG (preço de 1 kg)", "Banana Maçã (preço de 1 kg)"))).isEqualTo("Banana Maçã");
-        assertThat(CatalogBuilder.Group.accented("TOMATE", List.of("TOMATE DEBORA KG"))).isEqualTo("Tomate");
-        assertThat(CatalogBuilder.Group.accented("Ovos Brancos Grandes", List.of("Ovos Branco Gde Iana 12un")))
-                .isEqualTo("Ovos Brancos Grandes");
+        var spellings = CatalogBuilder.Group.spellings(List.of("BANANA MACA KG (preço de 1 kg)",
+                "Banana Maçã (preço de 1 kg)", "Maçã Fuji (preço de 1 kg)", "Banana Maça (preço de 1 kg)",
+                "Limão Siciliano (preço de 1 kg)", "LIMAO KG (preço de 1 kg)", "TOMATE DEBORA KG"));
+        // The most common accented spelling, even from another item ("Limão Siciliano").
+        assertThat(CatalogBuilder.Group.accented("BANANA MACA", spellings)).isEqualTo("Banana Maçã");
+        assertThat(CatalogBuilder.Group.accented("LIMAO", spellings)).isEqualTo("Limão");
+        assertThat(CatalogBuilder.Group.accented("TOMATE", spellings)).isEqualTo("Tomate");
+        assertThat(CatalogBuilder.Group.accented("Ovos Brancos Grandes", spellings)).isEqualTo("Ovos Brancos Grandes");
     }
 }

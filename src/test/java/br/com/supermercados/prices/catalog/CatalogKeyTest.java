@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 class CatalogKeyTest {
 
     private final CatalogKey keys = CatalogKey.learn(List.of("Coca-Cola", "Monster", "Sadia", "Ypê", "Serramar",
-            "Qualy", "Tio João", "Aviação", "3 Corações", "Colman", "Minalba", "Pilão", "Royal", "Nivea", "Galiotto"), List.of());
+            "Qualy", "Tio João", "Aviação", "3 Corações", "Colman", "Minalba", "Pilão", "Royal", "Nivea", "Galiotto", "Tomate"), List.of());
 
     @Test
     void retailerSpellingsOfTheSameProductShareOneKey() {
@@ -124,6 +124,10 @@ class CatalogKeyTest {
                 "Tomate Carmem Graudo (preço de 1 kg)", "Tomate Selecionado (preço de 1 kg)"))
                 .extracting(name -> keys.identify(name).key()).containsOnly(tomato);
         assertThat(keys.identify("Tomate Debora (preço de 1 kg)").genericName()).isEqualTo("TOMATE");
+        // Nagumo declares "TOMATE" as the brand; Pame writes the grade as a code.
+        assertThat(keys.identify("Tomate Debora (preço de 1 kg)").brand()).isNull();
+        assertThat(List.of("TOMATE GRAUDO B6 KG (preço de 1 kg)", "Tomate Netuno (preço de 1 kg)",
+                "Tomate Rasteiro (preço de 1 kg)")).extracting(name -> keys.identify(name).key()).containsOnly(tomato);
         // Other varieties are priced apart and stay items of their own.
         assertThat(keys.identify("TOMATE ITALIANO KG (preço de 1 kg)").key()).isNotEqualTo(tomato);
         assertThat(keys.identify("Tomate Cereja (preço de 1 kg)").key()).isNotEqualTo(tomato);
@@ -151,6 +155,12 @@ class CatalogKeyTest {
         assertThat(keys.identify("Ovo Caipira Vermelho Natural da Terra 10 unidades").key()).isEqualTo(caipira);
         assertThat(keys.identify("Ovos Caipira com 10 Unidades").genericName()).isEqualTo("Ovos Caipira");
         assertThat(keys.identify("Ovos Codorna Pet C/30").genericName()).isEqualTo("Ovos de Codorna");
+        assertThat(keys.identify("Ovos Caipira Grande Vermelhos Granja Gemar 10 Unidades PVC").genericName())
+                .isEqualTo("Ovos Caipira Grandes");
+        // Omega 3 and free-range cartons are priced apart and keep their colour.
+        assertThat(keys.identify("Ovos Vermelho Omega Santa Monica C/10un").genericName()).isEqualTo("Ovos Vermelhos Ômega 3");
+        assertThat(keys.identify("Ovos Brancos Happy Eggs com 10 unidades").genericName())
+                .isEqualTo("Ovos Brancos de Galinhas Livres");
 
         // A count cut at the 30-character ERP limit is not the real count; egg products are not cartons.
         assertThat(keys.identify("Ovos Bco Mantiqueira Jumbo C/1")).isNull();
