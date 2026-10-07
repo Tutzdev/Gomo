@@ -36,6 +36,10 @@ jobs:
           echo "PostgreSQL dos testes: $PG_BIN"
           ./mvnw -B -ntp clean verify
 
+      - name: Logs do PostgreSQL dos testes
+        if: failure()
+        run: tail -n 50 target/postgres-tests/*.log target/postgres-tests/*/server.log 2>/dev/null || true
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"

@@ -74,8 +74,14 @@ public final class PostgresTestDatabase {
         try (var socket = new ServerSocket(0)) {
             port = socket.getLocalPort();
         }
+        String options = "-h 127.0.0.1 -p " + port;
+        if (!System.getProperty("os.name").toLowerCase(java.util.Locale.ROOT).startsWith("windows")) {
+            // Distribution builds (Ubuntu, the CI runner) put the socket in /var/run/postgresql, which only the
+            // postgres user may write; a short private directory also stays under the socket path length limit.
+            options += " -k " + Files.createTempDirectory("pgsock");
+        }
         run("pg_ctl", "-D", cluster.toString(), "-l", cluster.resolve("server.log").toString(),
-                "-o", "-h 127.0.0.1 -p " + port, "-w", "-t", "30", "start");
+                "-o", options, "-w", "-t", "30", "start");
         return "jdbc:postgresql://127.0.0.1:" + port + "/postgres";
     }
 
