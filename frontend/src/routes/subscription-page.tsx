@@ -1,23 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Sparkles } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAuth } from "@/features/auth/auth-context";
 import { PlanComparison } from "@/features/plan/subscription/plan-comparison";
-import { PlanPicker, TrialButton } from "@/features/plan/subscription/plan-picker";
+import { PlanActions, PlanPicker } from "@/features/plan/subscription/plan-picker";
 import { dailyCostLabel, priceLabel } from "@/features/plan/subscription/pricing";
+import { useCheckoutAction } from "@/features/plan/subscription/use-checkout-action";
 import { useTrialAction } from "@/features/plan/subscription/use-trial-action";
 import { formatCurrency } from "@/lib/brand";
 import { useDefaultCityId } from "@/lib/use-default-city";
 import { subscriptionApi } from "@/services/gomo-api";
 import type { BillingCycle, PremiumValue } from "@/types/api";
 
-const objections = [
+const objections = (paymentOpen: boolean) => [
   {
     question: "Posso cancelar?",
     answer:
-      "Sim, quando quiser e sem multa. O teste grátis é cancelado no seu perfil e a conta volta ao plano grátis na hora, com suas listas preservadas.",
+      "Sim, quando quiser e sem multa, no seu perfil. O teste grátis termina na hora e a conta volta ao plano grátis, com suas listas preservadas. Na assinatura paga, o Premium continua até o fim do período que você já pagou.",
   },
   {
     question: "Os preços são atualizados mesmo?",
@@ -31,8 +32,9 @@ const objections = [
   },
   {
     question: "O que acontece depois dos 7 dias?",
-    answer:
-      "A conta volta sozinha ao plano grátis. Nada é cobrado: o teste não pede cartão e o pagamento online ainda está em implantação.",
+    answer: paymentOpen
+      ? "A conta volta sozinha ao plano grátis. Nada é cobrado: o teste não pede cartão. Para continuar no Premium, é só assinar aqui quando quiser."
+      : "A conta volta sozinha ao plano grátis. Nada é cobrado: o teste não pede cartão e o pagamento online ainda está em implantação.",
   },
 ];
 
@@ -41,6 +43,9 @@ export function SubscriptionPage() {
   const { user } = useAuth();
   const [cycle, setCycle] = useState<BillingCycle>("ANNUAL");
   const action = useTrialAction(cycle);
+  const checkout = useCheckoutAction(cycle);
+  const [searchParams] = useSearchParams();
+  const returnedFromPayment = searchParams.get("pagamento") === "concluido";
   const cityId = useDefaultCityId({ signedIn: Boolean(user) });
   const premiumValue = useQuery({
     queryKey: ["premium-value", cityId],
@@ -80,7 +85,8 @@ export function SubscriptionPage() {
         <div className="subscription-layout mx-auto max-w-6xl px-4 pb-28 sm:px-6 lg:pb-20">
           <div className="subscription-layout__aside">
             <div className="lg:sticky lg:top-6">
-              <PlanPicker cycle={cycle} onCycleChange={setCycle} action={action} />
+              {returnedFromPayment && user ? <PaymentReturnNotice /> : null}
+              <PlanPicker cycle={cycle} onCycleChange={setCycle} action={action} checkout={checkout} />
             </div>
           </div>
 
@@ -90,7 +96,7 @@ export function SubscriptionPage() {
             <section aria-labelledby="objections-title">
               <h2 id="objections-title" className="font-display text-2xl font-bold tracking-[-0.02em]">Antes de começar</h2>
               <div className="mt-5 border-t border-border">
-                {objections.map(({ question, answer }) => (
+                {objections(checkout.available).map(({ question, answer }) => (
                   <details key={question} className="subscription-faq group border-b border-border">
                     <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
                       {question}
@@ -111,10 +117,47 @@ export function SubscriptionPage() {
           <p className="truncate text-xs text-muted">{priceLabel(cycle)}, {dailyCostLabel(cycle)}</p>
         </div>
         <div className="w-44 shrink-0">
-          <TrialButton action={action} compact />
+          <PlanActions action={action} checkout={checkout} cycle={cycle} compact />
         </div>
       </div>
     </div>
+  );
+}
+
+const CONFIRMATION_CHECKS = 10;
+const CONFIRMATION_INTERVAL_MS = 3000;
+
+/**
+ * Back from the payment page. Premium starts when the provider's confirmation reaches the server, usually in
+ * seconds, so the account is reloaded a few times instead of trusting the return link.
+ */
+function PaymentReturnNotice() {
+  const { user, refreshUser } = useAuth();
+  const queryClient = useQueryClient();
+  const [checks, setChecks] = useState(0);
+  const confirmed = user?.premiumSource === "SUBSCRIPTION";
+
+  useEffect(() => {
+    if (confirmed) {
+      // Every cached comparison was computed for the free plan.
+      void queryClient.invalidateQueries();
+      return;
+    }
+    if (checks >= CONFIRMATION_CHECKS) return;
+    const timer = window.setTimeout(() => {
+      void refreshUser().finally(() => setChecks((value) => value + 1));
+    }, CONFIRMATION_INTERVAL_MS);
+    return () => window.clearTimeout(timer);
+  }, [checks, confirmed, queryClient, refreshUser]);
+
+  return (
+    <p role="status" className="mb-4 rounded-lg bg-success-soft px-4 py-3 text-sm font-semibold text-success">
+      {confirmed
+        ? "Pagamento confirmado. Seu Premium está ativo."
+        : checks < CONFIRMATION_CHECKS
+          ? "Pagamento recebido. Estamos ativando seu Premium, leva alguns segundos…"
+          : "Ainda não recebemos a confirmação do pagamento. Ela pode levar alguns minutos; atualize a página daqui a pouco."}
+    </p>
   );
 }
 

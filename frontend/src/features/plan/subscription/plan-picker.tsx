@@ -5,6 +5,7 @@ import { BRAND, formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import type { BillingCycle } from "@/types/api";
 import { dailyCostLabel } from "./pricing";
+import type { CheckoutAction } from "./use-checkout-action";
 import type { TrialAction } from "./use-trial-action";
 
 const ANNUAL_DISCOUNT = Math.round((1 - BRAND.annualPrice / (BRAND.monthlyPrice * 12)) * 100);
@@ -17,10 +18,12 @@ export function PlanPicker({
   cycle,
   onCycleChange,
   action,
+  checkout,
 }: {
   cycle: BillingCycle;
   onCycleChange: (cycle: BillingCycle) => void;
   action: TrialAction;
+  checkout: CheckoutAction;
 }) {
   return (
     <section className="plan-picker" aria-labelledby="plan-picker-title">
@@ -52,7 +55,7 @@ export function PlanPicker({
       <p className="mt-3 text-center text-xs text-muted">Isso dá {dailyCostLabel(cycle)}.</p>
 
       <div className="mt-5">
-        <TrialButton action={action} />
+        <PlanActions action={action} checkout={checkout} cycle={cycle} />
       </div>
 
       <ul className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
@@ -60,8 +63,9 @@ export function PlanPicker({
         <li className="flex gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />Cancele quando quiser, sem multa</li>
       </ul>
       <p className="mt-3 text-xs leading-5 text-muted">
-        Ao fim do teste, sua conta volta ao plano grátis. Nada é cobrado automaticamente: o pagamento online ainda está em implantação e
-        a forma escolhida fica guardada para quando ele abrir.
+        {checkout.available
+          ? "O teste grátis não pede cartão e termina sozinho. A assinatura é paga na página segura da AbacatePay; ao cancelar no seu perfil, o Premium continua até o fim do período já pago."
+          : "Ao fim do teste, sua conta volta ao plano grátis. Nada é cobrado automaticamente: o pagamento online ainda está em implantação e a forma escolhida fica guardada para quando ele abrir."}
       </p>
     </section>
   );
@@ -95,6 +99,53 @@ function PlanOption({
       </span>
       <span className="text-right font-extrabold tabular-nums">{price}</span>
     </label>
+  );
+}
+
+/**
+ * The plan buttons: paying, when the server takes payments, comes first; the trial stays as the free way in.
+ * Someone whose trial was used sees only the payment.
+ */
+export function PlanActions({
+  action,
+  checkout,
+  cycle,
+  compact = false,
+}: {
+  action: TrialAction;
+  checkout: CheckoutAction;
+  cycle: BillingCycle;
+  compact?: boolean;
+}) {
+  if (!checkout.available) return <TrialButton action={action} compact={compact} />;
+  const pay = (
+    <NativeButton size="lg" glow className="pill-button w-full" loading={checkout.loading} onClick={checkout.start}>
+      {compact ? "Assinar" : `Assinar o plano ${cycle === "ANNUAL" ? "anual" : "mensal"}`}
+    </NativeButton>
+  );
+  if (compact || action.kind === "trial-used") {
+    return (
+      <div className="grid gap-2">
+        {pay}
+        {checkout.error ? <InlineError>{checkout.error}</InlineError> : null}
+      </div>
+    );
+  }
+  return (
+    <div className="grid gap-3">
+      {pay}
+      {checkout.error ? <InlineError>{checkout.error}</InlineError> : null}
+      {action.kind === "start-trial" ? (
+        <>
+          <NativeButton size="lg" variant="secondary" className="pill-button w-full" loading={action.loading} onClick={action.start}>
+            Testar 7 dias grátis antes
+          </NativeButton>
+          {action.error ? <InlineError>{action.error}</InlineError> : null}
+        </>
+      ) : (
+        <TrialButton action={action} />
+      )}
+    </div>
   );
 }
 

@@ -78,7 +78,7 @@ function DeleteAccountSection() {
 
   return (
     <section className="surface mt-6 border-danger/25 p-5 sm:p-6">
-      <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-danger-soft text-danger"><Trash2 className="size-5" aria-hidden /></span><div><h2 className="font-bold">Excluir conta</h2><p className="text-sm text-muted">Apaga na hora suas listas, alertas, preferências e sessões. Não dá para desfazer.</p></div></div>
+      <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-danger-soft text-danger"><Trash2 className="size-5" aria-hidden /></span><div><h2 className="font-bold">Excluir conta</h2><p className="text-sm text-muted">Apaga na hora suas listas, alertas, preferências e sessões, e cancela a assinatura paga, se houver. Não dá para desfazer.</p></div></div>
       <form className="mt-6 grid gap-4 sm:max-w-md" onSubmit={(event) => { event.preventDefault(); deletion.reset(); setConfirming(true); }}>
         <TextField id="delete-password" label="Confirme com sua senha" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
         <p className="text-xs leading-5 text-muted">Preços que você enviou como contribuição continuam no histórico, sem seu nome. Veja a <Link to="/privacidade" className="font-semibold text-primary hover:underline">Política de Privacidade</Link>.</p>
@@ -91,9 +91,21 @@ function DeleteAccountSection() {
 
 function PlanSection({ user, onChanged }: { user: User; onChanged: () => Promise<void> }) {
   const cancelTrial = useMutation({ mutationFn: subscriptionApi.cancelTrial, onSuccess: onChanged });
-  const trialEndsAt = user.trialEndsAt
-    ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long" }).format(new Date(user.trialEndsAt))
-    : null;
+  const paid = user.premiumSource === "SUBSCRIPTION" && Boolean(user.paidUntil);
+  const status = useQuery({ queryKey: ["subscription-status", user.id], queryFn: subscriptionApi.status, enabled: paid });
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const cancelSubscription = useMutation({
+    mutationFn: subscriptionApi.cancelSubscription,
+    onSuccess: async () => {
+      setConfirmingCancel(false);
+      await status.refetch();
+      await onChanged();
+    },
+  });
+  const formatDay = (value: string) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long" }).format(new Date(value));
+  const trialEndsAt = user.trialEndsAt ? formatDay(user.trialEndsAt) : null;
+  const paidUntil = user.paidUntil ? formatDay(user.paidUntil) : null;
+  const renews = Boolean(status.data?.renews);
 
   return (
     <div className="mt-8 border-t border-border pt-6">
@@ -106,7 +118,11 @@ function PlanSection({ user, onChanged }: { user: User; onChanged: () => Promise
       <p className="mt-3 text-sm leading-6 text-muted">
         {user.premiumSource === "TRIAL"
           ? `Seu teste vai até ${trialEndsAt}. Depois disso a conta volta ao plano grátis, sem cobrança.`
-          : user.premium
+          : paid
+            ? renews
+              ? `Assinatura ativa, com renovação automática. Seu Premium está garantido até ${paidUntil}.`
+              : `Assinatura cancelada, sem novas cobranças. Seu Premium continua até ${paidUntil}.`
+            : user.premium
             ? "Sua conta tem todos os recursos do Premium."
             : "Compare os 3 mercados mais baratos, com 1 lista de até 10 produtos e 2 alertas."}
       </p>
@@ -116,6 +132,22 @@ function PlanSection({ user, onChanged }: { user: User; onChanged: () => Promise
             Cancelar teste agora
           </NativeButton>
           <InlineError>{cancelTrial.error?.message}</InlineError>
+        </>
+      ) : paid && renews ? (
+        <>
+          <NativeButton variant="secondary" className="mt-4" onClick={() => { cancelSubscription.reset(); setConfirmingCancel(true); }}>
+            Cancelar assinatura
+          </NativeButton>
+          <ConfirmDialog
+            open={confirmingCancel}
+            onOpenChange={setConfirmingCancel}
+            title="Cancelar a assinatura?"
+            description={`Não haverá novas cobranças. Você continua com o Premium até ${paidUntil}; depois a conta volta ao plano grátis, com suas listas preservadas.`}
+            confirmLabel="Cancelar assinatura"
+            loading={cancelSubscription.isPending}
+            error={cancelSubscription.error?.message}
+            onConfirm={() => cancelSubscription.mutate()}
+          />
         </>
       ) : !user.premium ? (
         <NativeButton to="/assinar?origem=perfil" className="mt-4">

@@ -38,6 +38,8 @@ export interface User {
   premiumSource: PremiumSource;
   trialEndsAt: string | null;
   trialAvailable: boolean;
+  /** End of the paid period when Premium comes from a payment. */
+  paidUntil: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -58,6 +60,11 @@ export interface SubscriptionStatus {
   trialEndsAt: string | null;
   trialAvailable: boolean;
   preferredBillingCycle: BillingCycle | null;
+  paidUntil: string | null;
+  /** A paid subscription will charge the next cycle; false once it is cancelled. */
+  renews: boolean;
+  /** Online payment is configured on the server. */
+  checkoutAvailable: boolean;
   freeLimits: {
     shoppingLists: number;
     listItems: number;

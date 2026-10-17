@@ -383,6 +383,9 @@ export const subscriptionApi = {
   startTrial: (billingCycle: BillingCycle) =>
     apiRequest<SubscriptionStatus>("/subscription/trial", { method: "POST", body: { billingCycle } }),
   cancelTrial: () => apiRequest<SubscriptionStatus>("/subscription/trial", { method: "DELETE" }),
+  checkout: (billingCycle: BillingCycle) =>
+    apiRequest<{ checkoutUrl: string }>("/subscription/checkout", { method: "POST", body: { billingCycle } }),
+  cancelSubscription: () => apiRequest<SubscriptionStatus>("/subscription", { method: "DELETE" }),
   premiumValue: (cityId: string) =>
     apiRequest<PremiumValue>(`/subscription/premium-value?${queryString({ cityId })}`),
 };
