@@ -50,6 +50,9 @@ public class User {
     @Column(name = "preferred_billing_cycle", length = 16)
     private BillingCycle preferredBillingCycle;
 
+    @Column(name = "premium_paid_until")
+    private Instant premiumPaidUntil;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -101,9 +104,25 @@ public class User {
         }
     }
 
-    /** The trial is offered once per account and never to someone who already has Premium. */
+    /** A confirmed payment keeps Premium until {@code until}; a late or repeated event never shortens it. */
+    public void extendPaidPremium(Instant until, Instant now) {
+        if (premiumPaidUntil == null || until.isAfter(premiumPaidUntil)) {
+            premiumPaidUntil = until;
+            updatedAt = now;
+        }
+    }
+
+    /** Ends paid access right away, when the provider gave up charging the renewal. */
+    public void endPaidPremium(Instant now) {
+        if (premiumPaidUntil != null && premiumPaidUntil.isAfter(now)) {
+            premiumPaidUntil = now;
+            updatedAt = now;
+        }
+    }
+
+    /** The trial is offered once per account and never to someone who already has or had paid Premium. */
     public boolean isTrialAvailable(Instant now) {
-        return premiumTrialStartedAt == null && premiumSource(now) == PremiumSource.NONE;
+        return premiumTrialStartedAt == null && premiumPaidUntil == null && premiumSource(now) == PremiumSource.NONE;
     }
 
     public void startPremiumTrial(Duration length, BillingCycle billingCycle, Instant now) {
@@ -128,7 +147,7 @@ public class User {
         if (role == UserRole.ADMIN) {
             return PremiumSource.ADMIN;
         }
-        if (subscriber) {
+        if (subscriber || (premiumPaidUntil != null && premiumPaidUntil.isAfter(now))) {
             return PremiumSource.SUBSCRIPTION;
         }
         if (isTrialActive(now)) {
@@ -188,6 +207,10 @@ public class User {
 
     public BillingCycle getPreferredBillingCycle() {
         return preferredBillingCycle;
+    }
+
+    public Instant getPremiumPaidUntil() {
+        return premiumPaidUntil;
     }
 
     public Instant getCreatedAt() {

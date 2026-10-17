@@ -50,6 +50,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login",
                                 "/api/v1/auth/email-verifications/confirm",
                                 "/api/v1/auth/password-resets", "/api/v1/auth/password-resets/confirm").permitAll()
+                        // The payment provider has no Gomo account; the webhook authenticates it by secret and HMAC.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/billing/abacatepay/webhook").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/actuator", "/actuator/info", "/actuator/metrics", "/actuator/metrics/**")
                                 .hasRole("ADMIN")
