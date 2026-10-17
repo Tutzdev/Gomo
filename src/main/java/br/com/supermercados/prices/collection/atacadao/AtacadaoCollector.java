@@ -42,8 +42,9 @@ public class AtacadaoCollector implements SupermarketCollector {
     public CollectorMetadata metadata() {
         return new CollectorMetadata("atacadao_sao_geraldo_online", "Atacadão", "Atacadão São Geraldo",
                 "atacadao_online", "E-commerce público Atacadão — retirada São Geraldo", WEBSITE.toString(),
-                Instant.parse("2026-09-20T22:33:00Z"), "Atacadão", "atacadao:chain", "atacadao:store:815",
-                UUID.fromString("5c4cb935-52e1-4bf8-8d17-902dc0837c66"), "atacadao_reviewed_flyers");
+                Instant.parse("2026-09-20T22:33:00Z"), "Atacadão", "atacadao:chain",
+                AtacadaoStoreDirectory.STORE_REFERENCE, UUID.fromString("5c4cb935-52e1-4bf8-8d17-902dc0837c66"),
+                AtacadaoStoreDirectory.SOURCE_CODE);
     }
 
     @Override
