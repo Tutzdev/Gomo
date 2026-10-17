@@ -87,3 +87,35 @@ VITE_LEGAL_CONTACT_EMAIL="contato@seudominio.com.br"
 
 Sem eles, as páginas omitem essas linhas. Os textos descrevem o que o código realmente coleta e guarda. Vale a revisão de um advogado antes de escalar o produto.
 
+
+## 6. Pagamento do Premium (AbacatePay)
+
+O Premium pago usa o checkout hospedado de assinatura da AbacatePay (API v2): o Gomo nunca vê dados de cartão. Só o webhook do provedor libera o acesso; voltar da página de pagamento não prova nada. Enquanto `ABACATEPAY_ENABLED=false`, a página de planos continua oferecendo só o teste grátis.
+
+1. **Teste primeiro em Dev mode.** A conta nova da AbacatePay já começa nele. Em produção, a AbacatePay exige CNPJ e a análise leva até 3 dias úteis.
+2. **Crie os dois produtos** no painel, ou por `POST /products/create`, com `currency` `BRL`:
+
+   | Plano | `externalId` | `price` (centavos) | `cycle` |
+   | --- | --- | --- | --- |
+   | Mensal | `gomo-premium-mensal` | `1490` | `MONTHLY` |
+   | Anual | `gomo-premium-anual` | `11990` | `ANNUALLY` |
+
+   Os ids (`prod_...`) vão em `ABACATEPAY_MONTHLY_PRODUCT_ID` e `ABACATEPAY_ANNUAL_PRODUCT_ID`. O preço da landing (`frontend/src/lib/brand.ts`) precisa ser o mesmo dos produtos.
+3. **Crie uma chave de API** só com `SUBSCRIPTION:CREATE` e `SUBSCRIPTION:DELETE`. As permissões não mudam depois que a chave é criada.
+4. **Cadastre o webhook** com a URL `https://SEU_DOMINIO/api/v1/billing/abacatepay/webhook`, um secret longo e aleatório (`openssl rand -hex 32`) e os eventos `subscription.completed`, `subscription.renewed`, `subscription.payment_failed` e `subscription.cancelled`. A AbacatePay manda o secret no parâmetro `webhookSecret` da URL; o Gomo também confere a assinatura HMAC do corpo.
+5. **Configure** em `/etc/gomo/gomo.env` e reinicie o serviço:
+
+   ```bash
+   ABACATEPAY_ENABLED=true
+   ABACATEPAY_API_KEY=...
+   ABACATEPAY_WEBHOOK_SECRET=...
+   ABACATEPAY_MONTHLY_PRODUCT_ID=prod_...
+   ABACATEPAY_ANNUAL_PRODUCT_ID=prod_...
+   ABACATEPAY_SITE_URL=https://SEU_DOMINIO
+   ABACATEPAY_DEV_MODE=true    # false com a chave de produção
+   ```
+
+   Faltando qualquer um, a aplicação não sobe e o log diz o que falta. `ABACATEPAY_DEV_MODE` precisa combinar com a chave: um evento de Dev mode nunca libera Premium em produção.
+6. **Teste o fluxo** com o cartão `4242 4242 4242 4242` (validade futura e qualquer CVV): assinar, voltar para `/assinar?pagamento=concluido`, ver o Premium ativo e cancelar no perfil. Os logs de entrega do webhook ficam no painel da AbacatePay.
+
+Como o acesso funciona: cada pagamento confirmado (`subscription.completed` ou `subscription.renewed`) estende o Premium por um ciclo, contado no horário de Brasília, mais 3 dias, que cobrem as retentativas de uma renovação recusada. Cancelar pelo perfil para as cobranças e mantém o período já pago. Se as retentativas esgotarem, a AbacatePay cancela a assinatura e o Premium termina na hora. Excluir a conta cancela a assinatura antes; se a AbacatePay não confirmar, a exclusão espera.

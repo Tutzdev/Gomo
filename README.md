@@ -63,6 +63,7 @@ Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/produc
 - **Listas de compras**, cidade preferida, lojas favoritas e **alertas de preço** com notificações internas.
 - **Contribuições da comunidade** com moderação, e área administrativa com auditoria.
 - **Freemium** aplicado no backend: plano gratuito com limites (3 mercados mais baratos, 5 comparações completas por dia, 1 lista) que respondem `403 PLAN_LIMIT`, e trial de 7 dias sem cartão.
+- **Premium pago** pela AbacatePay: checkout hospedado de assinatura mensal ou anual, sem dados de cartão no Gomo. Só o webhook confirmado libera o acesso, cada pagamento estende um ciclo e cancelar mantém o período já pago.
 
 ## Arquitetura
 
@@ -91,6 +92,7 @@ A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publica
 - Senhas com **BCrypt** e política de tamanho (12 a 72 caracteres).
 - **Rate limiting** de tentativas de login e de fluxos sensíveis (`AttemptRateLimiter`, `AbuseProtectionService`).
 - Tokens de **uso único** para verificação de e-mail e redefinição de senha.
+- **Webhook de pagamento** autenticado por secret e HMAC do corpo (comparação em tempo constante), idempotente pelo id da entrega e separado por ambiente: um evento de teste nunca libera Premium em produção.
 - Controle de acesso por papéis e **auditoria** das operações administrativas.
 - Em produção, a API fica no **mesmo domínio** do site (`/api/v1` via Nginx), com `forward-headers-strategy=native` e CORS restrito.
 - Segredos só por variáveis de ambiente. Veja [`.env.example`](.env.example).
@@ -125,7 +127,7 @@ O guia completo do ambiente local, da coleta e das sementes está em [`docs/loca
 
 ## Status
 
-Em produção. Já estão no ar: coleta, catálogo, comparação, listas, alertas e plano gratuito. A cobrança do plano pago (checkout e webhooks) **ainda não está integrada**: hoje o acesso premium vem do trial.
+Em produção. Já estão no ar: coleta, catálogo, comparação, listas, alertas e plano gratuito. A cobrança do plano pago pela AbacatePay está pronta no código e fica desligada até as chaves serem configuradas ([passo a passo](docs/operations.md#6-pagamento-do-premium-abacatepay)); até lá, o acesso Premium vem do trial.
 
 ---
 
