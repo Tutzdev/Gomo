@@ -32,6 +32,9 @@ public class AccountDeletionService {
             "DELETE FROM favorite_stores WHERE user_id = ?",
             "DELETE FROM user_preferences WHERE user_id = ?",
             "DELETE FROM comparison_usage WHERE user_id = ?",
+            // The provider keeps the payment records; the subscription was cancelled before this point.
+            "DELETE FROM billing_checkouts WHERE user_id = ?",
+            "DELETE FROM billing_subscriptions WHERE user_id = ?",
             "DELETE FROM email_verification_tokens WHERE user_id = ?",
             "DELETE FROM password_reset_tokens WHERE user_id = ?",
             "DELETE FROM auth_tokens WHERE user_id = ?");
@@ -46,14 +49,15 @@ public class AccountDeletionService {
         this.clock = clock;
     }
 
+    /** Lets the caller confirm the owner before steps that must happen outside the deletion (paid plan). */
+    @Transactional(readOnly = true)
+    public void verifyPassword(UUID userId, String password) {
+        checkPassword(userId, password, "SELECT password_hash FROM app_users WHERE id = ?");
+    }
+
     @Transactional
     public void delete(UUID userId, String password) {
-        List<String> hashes = jdbc.queryForList("SELECT password_hash FROM app_users WHERE id = ? FOR UPDATE",
-                String.class, userId);
-        if (hashes.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
-        if (password == null || !passwordEncoder.matches(password, hashes.getFirst())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Senha incorreta.");
-        }
+        checkPassword(userId, password, "SELECT password_hash FROM app_users WHERE id = ? FOR UPDATE");
         PERSONAL_DATA.forEach(statement -> jdbc.update(statement, userId));
         Boolean keepsPublicRecords = jdbc.queryForObject("""
                 SELECT EXISTS (SELECT 1 FROM price_contributions WHERE contributor_id = ? OR moderator_id = ?)
@@ -68,10 +72,19 @@ public class AccountDeletionService {
         jdbc.update("""
                 UPDATE app_users SET name = 'Conta excluída', email = ?, password_hash = ?, role = 'USER',
                     email_verified_at = NULL, subscriber = FALSE, preferred_billing_cycle = NULL,
+                    premium_paid_until = NULL,
                     updated_at = ?, version = version + 1
                 WHERE id = ?
                 """, "conta-excluida-" + userId + "@gomo.invalid",
                 // Not a BCrypt hash, so no password can ever match it.
                 "excluida:" + HexFormat.of().formatHex(unusable), Timestamp.from(clock.instant()), userId);
+    }
+
+    private void checkPassword(UUID userId, String password, String query) {
+        List<String> hashes = jdbc.queryForList(query, String.class, userId);
+        if (hashes.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
+        if (password == null || !passwordEncoder.matches(password, hashes.getFirst())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Senha incorreta.");
+        }
     }
 }

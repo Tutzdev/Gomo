@@ -18,7 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The account's plan and the free 7-day Premium trial. Paid checkout does not exist yet. */
+/** The account's plan and the free 7-day Premium trial; paid Premium is in {@link PaidSubscriptionService}. */
 @Service
 public class SubscriptionService {
 
@@ -29,15 +29,18 @@ public class SubscriptionService {
     private final PriceAlertService alerts;
     private final ComparisonUsageService comparisonUsage;
     private final ShoppingComparisonService comparisons;
+    private final PaidSubscriptionService paidSubscriptions;
     private final Clock clock;
 
     public SubscriptionService(UserRepository users, ShoppingListService shoppingLists, PriceAlertService alerts,
-            ComparisonUsageService comparisonUsage, ShoppingComparisonService comparisons, Clock clock) {
+            ComparisonUsageService comparisonUsage, ShoppingComparisonService comparisons,
+            PaidSubscriptionService paidSubscriptions, Clock clock) {
         this.users = users;
         this.shoppingLists = shoppingLists;
         this.alerts = alerts;
         this.comparisonUsage = comparisonUsage;
         this.comparisons = comparisons;
+        this.paidSubscriptions = paidSubscriptions;
         this.clock = clock;
     }
 
@@ -96,10 +99,12 @@ public class SubscriptionService {
     private SubscriptionStatusResponse status(User user, Instant now) {
         PremiumSource source = user.premiumSource(now);
         Instant trialEndsAt = source == PremiumSource.TRIAL ? user.getPremiumTrialEndsAt() : null;
+        Instant paidUntil = source == PremiumSource.SUBSCRIPTION ? user.getPremiumPaidUntil() : null;
         var usage = new SubscriptionStatusResponse.Usage(shoppingLists.countOwnedLists(user.getId()),
                 alerts.countActive(user.getId()), comparisonUsage.countToday(user.getId()));
         return new SubscriptionStatusResponse(source != PremiumSource.NONE, source, trialEndsAt,
-                user.isTrialAvailable(now), user.getPreferredBillingCycle(),
+                user.isTrialAvailable(now), user.getPreferredBillingCycle(), paidUntil,
+                paidSubscriptions.activeSubscriptionId(user.getId()).isPresent(), paidSubscriptions.checkoutAvailable(),
                 SubscriptionStatusResponse.FreeLimits.current(), usage);
     }
 

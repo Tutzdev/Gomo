@@ -17,13 +17,29 @@ import org.springframework.web.bind.annotation.RestController;
 public class SubscriptionController {
 
     private final SubscriptionService subscriptions;
+    private final PaidSubscriptionService paidSubscriptions;
 
-    public SubscriptionController(SubscriptionService subscriptions) {
+    public SubscriptionController(SubscriptionService subscriptions, PaidSubscriptionService paidSubscriptions) {
         this.subscriptions = subscriptions;
+        this.paidSubscriptions = paidSubscriptions;
     }
 
     @GetMapping
     public SubscriptionStatusResponse status(@AuthenticationPrincipal AuthenticatedUser user) {
+        return subscriptions.status(user.id());
+    }
+
+    /** Opens the provider's payment page; Premium starts when the provider confirms the payment. */
+    @PostMapping("/checkout")
+    public CheckoutResponse startCheckout(@AuthenticationPrincipal AuthenticatedUser user,
+            @Valid @RequestBody StartCheckoutRequest request) {
+        return paidSubscriptions.startCheckout(user.id(), request.billingCycle());
+    }
+
+    /** Stops renewals; the paid period stays available until it ends. */
+    @DeleteMapping
+    public SubscriptionStatusResponse cancelSubscription(@AuthenticationPrincipal AuthenticatedUser user) {
+        paidSubscriptions.cancel(user.id());
         return subscriptions.status(user.id());
     }
 

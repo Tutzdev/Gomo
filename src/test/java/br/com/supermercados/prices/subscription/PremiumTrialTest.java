@@ -31,6 +31,7 @@ class PremiumTrialTest {
     @Mock private ShoppingListService shoppingLists;
     @Mock private PriceAlertService alerts;
     @Mock private ComparisonUsageService comparisonUsage;
+    @Mock private PaidSubscriptionService paidSubscriptions;
     @Mock private ShoppingComparisonService comparisons;
 
     private User user;
@@ -39,7 +40,7 @@ class PremiumTrialTest {
     @BeforeEach
     void setUp() {
         user = new User("Conta grátis", "gratis@example.test", "not-used-by-test", NOW.minusSeconds(60));
-        subscriptions = new SubscriptionService(users, shoppingLists, alerts, comparisonUsage, comparisons,
+        subscriptions = new SubscriptionService(users, shoppingLists, alerts, comparisonUsage, comparisons, paidSubscriptions,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
