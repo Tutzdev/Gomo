@@ -115,4 +115,13 @@ public class StoreService {
         return storeRepository.findById(storeId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Loja não encontrada"));
     }
+
+    /** A store that still takes new favourites and prices; a retired one only keeps its history. */
+    public Store requireActiveStore(UUID storeId) {
+        Store store = requireStore(storeId);
+        if (!store.isActive()) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Este mercado não faz mais parte do Gomo.");
+        }
+        return store;
+    }
 }

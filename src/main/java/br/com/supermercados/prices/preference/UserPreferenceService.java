@@ -58,7 +58,7 @@ public class UserPreferenceService {
 
     @Transactional
     public UserPreferenceResponse addFavoriteStore(UUID userId, UUID storeId) {
-        stores.requireStore(storeId);
+        stores.requireActiveStore(storeId);
         if (!favoriteStores.existsByUserIdAndStoreId(userId, storeId)) {
             favoriteStores.save(new FavoriteStore(userId, storeId, clock.instant()));
         }
@@ -80,10 +80,7 @@ public class UserPreferenceService {
     }
 
     private UserPreferenceResponse response(UUID userId, UUID preferredCityId) {
-        List<UUID> storeIds = favoriteStores.findByUserIdOrderByCreatedAtAscIdAsc(userId).stream()
-                .map(FavoriteStore::getStoreId)
-                .toList();
-                
+        List<UUID> storeIds = favoriteStores.findActiveStoreIds(userId);
         return new UserPreferenceResponse(preferredCityId, storeIds);
     }
 }

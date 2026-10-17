@@ -56,7 +56,7 @@ public class PriceContributionService {
         observationRules.validate(request.regularPrice(), request.promotionalPrice(), request.observedAt(),
                 request.validUntil(), request.promotionValidUntil(), now);
         products.requireProduct(request.productId());
-        stores.requireStore(request.storeId());
+        stores.requireActiveStore(request.storeId());
 
         PriceContribution contribution = new PriceContribution(contributor.id(), request, now);
         return PriceContributionResponse.from(contributions.save(contribution));

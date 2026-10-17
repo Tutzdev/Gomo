@@ -43,6 +43,8 @@ class ApiIntegrationTests {
     private static final String PASSWORD = "integration-test-password";
     private static final String PRODUCT_ID = "00000000-0000-0000-0000-000000000301";
     private static final String SECOND_PRODUCT_ID = "00000000-0000-0000-0000-000000000302";
+    private static final String STORE_A = "00000000-0000-0000-0000-000000000201";
+    private static final String STORE_B = "00000000-0000-0000-0000-000000000202";
     private static final String LISTS_PATH = "/api/v1/shopping-lists";
 
     @Autowired
@@ -53,6 +55,9 @@ class ApiIntegrationTests {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
 
     @DynamicPropertySource
     static void configureDatabase(DynamicPropertyRegistry registry) {
@@ -278,6 +283,35 @@ class ApiIntegrationTests {
         mvc.perform(get("/api/v1/products/offers").param("ids",
                         java.util.Collections.nCopies(101, PRODUCT_ID).toArray(String[]::new)).param("cityId", rioCityId()))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @Sql("/fixtures/catalog.sql")
+    void retiredMarketKeepsItsFavouriteRowsButTakesNoNewFavouriteOrContribution() throws Exception {
+        String email = uniqueEmail();
+        register(email).andExpect(status().isCreated());
+        jdbc.update("update app_users set email_verified_at = CURRENT_TIMESTAMP where email = ?", email);
+        String token = read(login(email, PASSWORD).andExpect(status().isOk())).path("accessToken").asString();
+        String favourites = "/api/v1/users/me/preferences/favorite-stores/";
+        perform(put(favourites + STORE_A), token).andExpect(status().isOk());
+        perform(put(favourites + STORE_B), token).andExpect(jsonPath("$.favoriteStoreIds", hasSize(2)));
+
+        jdbc.update("update stores set active = false where id = ?::uuid", STORE_B);
+        entityManager.clear(); // the test transaction still holds the store as it was before the update
+
+        perform(get("/api/v1/users/me/preferences"), token)
+                .andExpect(jsonPath("$.favoriteStoreIds", hasSize(1)))
+                .andExpect(jsonPath("$.favoriteStoreIds[0]").value(STORE_A));
+        assertThat(jdbc.queryForObject("select count(*) from favorite_stores where store_id = ?::uuid",
+                Integer.class, STORE_B)).isOne();
+        perform(put(favourites + STORE_B), token).andExpect(status().is(422));
+        perform(post("/api/v1/contributions").content(json(Map.of("productId", PRODUCT_ID, "storeId", STORE_B,
+                        "regularPrice", 5, "currency", "BRL", "observedAt", "2026-01-01T12:00:00Z",
+                        "availability", "AVAILABLE"))), token)
+                .andExpect(status().is(422));
+        perform(delete(favourites + STORE_B), token).andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("select count(*) from favorite_stores where store_id = ?::uuid",
+                Integer.class, STORE_B)).isZero();
     }
 
     @Test
