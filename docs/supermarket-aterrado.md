@@ -1,5 +1,7 @@
 # Supermarket Aterrado — verificação da fonte
 
+> **Retirado em 10/2026:** o Supermarket Aterrado foi desativado pela migração `V34`, porque o Gomo só compara mercados com loja online. O cadastro e este registro da verificação ficam para consulta. Situação atual em [data-sources.md](data-sources.md#mercados-retirados-em-102026).
+
 Verificação realizada em 20/09/2026.
 
 ## Unidade confirmada

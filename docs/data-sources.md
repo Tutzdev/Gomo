@@ -6,7 +6,11 @@ O banco inicial contém somente o estado e as quatro cidades autorizadas pelo es
 
 As interfaces `ProductDataProvider`, `StoreDataProvider` e `PriceDataProvider` continuam definindo consultas paginadas. Os coletores automáticos implementam `SupermarketCollector` e entregam um catálogo normalizado ao mesmo domínio de ingestão. A ausência de uma integração não é convertida em dados inventados.
 
-## Situação das fontes em 07/10/2026
+## Regra de entrada
+
+O Gomo só compara mercados que vendem pela internet: e-commerce ou site com catálogo e preço público, lidos como o próprio site do mercado os mostra. Não entram encarte, agregador de delivery (iFood, Rappi), API paga nem parceria com o mercado. Uma resposta 403, login ou captcha descarta a fonte, sem contornar o bloqueio.
+
+## Situação das fontes em 16/10/2026
 
 | Unidade | Fonte | Situação |
 | --- | --- | --- |
@@ -14,9 +18,18 @@ As interfaces `ProductDataProvider`, `StoreDataProvider` e `PriceDataProvider` c
 | Bramil, Pérola, Royal, Spani | VipCommerce | Coletados, inclusive itens vendidos por peso. O script de configuração é descoberto sozinho quando o site muda. |
 | Pame, Ville | Mercafácil | Coletados. Não publicam EAN; o tamanho extra da Mercafácil às vezes contradiz a descrição, e esses itens ficam de fora. |
 | Hortifruti Aterrado | Site Hortifruti | Coletado. |
-| Atacadão São Geraldo | E-commerce Atacadão (VTEX) | Coletado. O campo `gtin` traz código interno, não EAN. |
-| Atacadão Vila Rica | — | **Sem fonte.** Entre as 220 lojas do e-commerce Atacadão, a única de Volta Redonda é São Geraldo (`atacadaobr815`). Os encartes revisados à mão venceram em 21/09; o coletor de encarte só roda quando houver encarte revisado válido. |
-| Supermarket Aterrado | — | **Sem fonte** ([supermarket-aterrado.md](supermarket-aterrado.md)). |
+| Atacadão São Geraldo | E-commerce Atacadão (VTEX) | Coletado. O campo `gtin` traz código interno, não EAN. A unidade é registrada na subida por `AtacadaoStoreDirectory`. |
+
+### Mercados retirados em 10/2026
+
+A migração `V34` desativou (`active = false`) as duas unidades sem loja online. Nada foi apagado: histórico de preços, favoritos, notificações de alerta e contribuições continuam no banco. Uma loja inativa não aparece na lista de mercados, na comparação, na recomendação, nos filtros da busca nem no monitor de coletas. Os favoritos dela deixam de ser listados (e voltam se ela voltar), e ela não aceita novo favorito nem contribuição de preço. Um `storeIds` com uma loja inativa ou desconhecida é ignorado; se nenhuma sobrar, a resposta é a mesma de quando nenhum mercado é escolhido.
+
+| Unidade | Motivo |
+| --- | --- |
+| Atacadão Vila Rica | Entre as 220 lojas do e-commerce Atacadão, a única de Volta Redonda é São Geraldo (`atacadaobr815`). Vila Rica só tinha encartes revisados à mão, vencidos em 21/09. O importador de encartes foi removido. |
+| Supermarket Aterrado | Só o cadastro do diretório oficial, sem preço ([supermarket-aterrado.md](supermarket-aterrado.md)). A fonte `SUPERMARKET_OFFICIAL_DIRECTORY` foi desligada. |
+
+A fonte `atacadao_reviewed_flyers` continua existindo com o nome "Diretório oficial de lojas Atacadão": ela é dona da unidade São Geraldo em produção, e trocar o código criaria uma segunda unidade separada do histórico.
 
 Mercados sem preço atual não aparecem na lista de supermercados nem nas comparações. O monitoramento de cada coletor está em [operations.md](operations.md#3-monitor-das-coletas).
 

@@ -1,5 +1,7 @@
 # Auditoria da comparação — Volta Redonda
 
+> **Retirado em 10/2026:** o Atacadão Vila Rica, o Supermarket Aterrado e os coletores de encarte citados abaixo saíram do Gomo, que agora só compara mercados com loja online. Esta auditoria registra o estado de 20/09. Situação atual em [data-sources.md](data-sources.md#mercados-retirados-em-102026).
+
 Verificação em 20/09/2026, horário de Brasília. Catálogo mantido em **47.305 produtos**. Nenhuma oferta sintética foi inserida no banco da aplicação.
 
 ## Causas corrigidas

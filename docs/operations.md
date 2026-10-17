@@ -62,7 +62,7 @@ Vale copiar os backups para fora da VPS de vez em quando. Se o disco da VPS falh
 
 Cadastre esse endereço num monitor de uptime gratuito (UptimeRobot, Better Stack…) para receber um e-mail no 503. Quando um mercado muda o próprio site, o coletor dele quebra. O alerta chega enquanto os preços ainda valem, ou seja, antes de o mercado sumir das comparações.
 
-O mesmo relatório, com o último erro de cada coletor e quantos produtos cada mercado tem com preço atual, está em **Administração → Coletas** (`GET /api/v1/admin/collections/health`). Mercados sem fonte pública de preços aparecem como `NO_SOURCE` e não disparam alerta. Hoje são o Supermarket Aterrado e o Atacadão Vila Rica: veja [supermarket-aterrado.md](supermarket-aterrado.md) e a seção do Atacadão em [data-sources.md](data-sources.md).
+O mesmo relatório, com o último erro de cada coletor e quantos produtos cada mercado tem com preço atual, está em **Administração → Coletas** (`GET /api/v1/admin/collections/health`). Um mercado ativo sem coletor agendado aparece como `NO_SOURCE` e não dispara alerta. Mercados desativados (como os retirados em 10/2026, veja [data-sources.md](data-sources.md#mercados-retirados-em-102026)) não aparecem no relatório.
 
 ## 4. Agenda das coletas
 

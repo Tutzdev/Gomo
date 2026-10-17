@@ -1,5 +1,7 @@
 # Expansão do catálogo de Volta Redonda
 
+> **Retirado em 10/2026:** o Atacadão Vila Rica e o importador de encartes revisados do Atacadão saíram do Gomo, que agora só compara mercados com loja online. Este documento registra a expansão de 18/09; a situação atual está em [data-sources.md](data-sources.md#situação-das-fontes-em-16102026).
+
 Verificação em 18/09/2026. O dashboard e a navegação existentes foram preservados. Esta entrega amplia os dados e as telas de produtos, comparação e listas. Os dados comerciais vieram de consultas públicas reais, não de seeds de demonstração.
 
 ## Resultado gravado e validado
@@ -81,11 +83,11 @@ $env:APP_COLLECTION_RUN_ON_START = 'hortifruti_aterrado,bramil_santo_agostinho'
 .\scripts\start-local.ps1 -Service Backend
 ```
 
-Códigos: `nagumo_volta_redonda`, `royal_retiro`, `bramil_santo_agostinho`, `spani_volta_redonda`, `perola_agua_limpa`, `pame_santo_agostinho`, `ville_sessenta`, `hortifruti_aterrado`, `atacadao_sao_geraldo_flyer`, `atacadao_vila_rica_flyer`.
+Códigos: `nagumo_volta_redonda`, `royal_retiro`, `bramil_santo_agostinho`, `spani_volta_redonda`, `perola_agua_limpa`, `pame_santo_agostinho`, `ville_sessenta`, `hortifruti_aterrado`, `atacadao_sao_geraldo_online`.
 
 `APP_COLLECTION_ARCHIVE_DIRECTORY` habilita arquivos locais dos catálogos completos antes da ingestão. O script configura `.local/catalog-snapshots`. Para reaplicar um arquivo completo sem nova consulta, use `APP_COLLECTION_RUN_ON_START=replay:spani_volta_redonda`. A identidade da fonte é conferida e a data original é preservada. Não se inclui o arquivo local com dados em commits. Remova a variável de lote nas próximas inicializações normais.
 
-`APP_COLLECTION_REGIONAL_ENABLED=false` desativa as seis novas integrações automáticas; `APP_COLLECTION_REVIEWED_FLYERS_ENABLED=false` desativa os dois importadores de encartes. As flags antigas de Nagumo e Royal continuam funcionando.
+`APP_COLLECTION_REGIONAL_ENABLED=false` desativa as seis novas integrações automáticas. As flags antigas de Nagumo e Royal continuam funcionando.
 
 ## Limitações e expansão
 

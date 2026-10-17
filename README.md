@@ -43,7 +43,7 @@ Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/produc
 
 ### 2. Coletar preço de sites que não foram feitos para isso
 
-- **7 tipos de coletor** (`nagumo`, `royal`, `vip`, `mercafacil`, `atacadao`, `hortifruti`, `flyer`), cada um com timeout, número de tentativas, limite de tamanho de resposta e intervalo entre requisições configuráveis.
+- **6 tipos de coletor** (`nagumo`, `royal`, `vip`, `mercafacil`, `atacadao`, `hortifruti`), cada um com timeout, número de tentativas, limite de tamanho de resposta e intervalo entre requisições configuráveis.
 - **Coleta paralela** (3 lojas ao mesmo tempo) com gravação sequencial no banco.
 - **`PriceChangeGuard`:** um preço que varia fora da faixa esperada em relação ao anterior (ex.: erro de digitação do mercado) não é publicado; se a coleta seguinte confirmar o mesmo preço, ele vale. Preços de marcação (9999, R$ 500/kg) nunca viram preço.
 - **Sites que mudam sozinhos:** quando um mercado publica uma versão nova do site, os coletores VipCommerce e Hortifruti encontram de novo a configuração e as consultas atuais nos scripts do próprio site.
