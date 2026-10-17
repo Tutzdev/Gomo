@@ -38,8 +38,10 @@ class PricesApplicationTests {
 		assertThat(jdbc.queryForObject("select count(*) from stores", Integer.class)).isEqualTo(1);
 		assertThat(jdbc.queryForObject("select source_reference from stores", String.class))
 				.isEqualTo("https://redesupermarket.com.br/lojas/supermarket-aterrado/");
+		// Kept for its history but retired by V34: the Gomo only compares markets that sell online.
+		assertThat(jdbc.queryForObject("select active from stores", Boolean.class)).isFalse();
 		assertThat(jdbc.queryForObject("select price_source_note from stores", String.class))
-				.contains("Preços não integrados");
+				.contains("Retirado em 10/2026");
 		assertThat(jdbc.queryForObject("select count(*) from products", Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("select count(*) from price_records", Integer.class)).isZero();
 	}
