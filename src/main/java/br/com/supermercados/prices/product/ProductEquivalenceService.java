@@ -100,7 +100,12 @@ public class ProductEquivalenceService {
         return withCatalogLinks(matches);
     }
 
-    /** SKUs grouped under the same generic catalog item are confirmed equivalents of each other. */
+    /**
+     * The generic catalog decides which SKUs are the same product. A product grouped under an active catalog item
+     * is confirmed only with that item's members, so a shopping list prices it with exactly the SKUs its product
+     * page shows; whatever the name matching found besides them, which lacks the catalog's safety checks, stays a
+     * possible match. Products outside the catalog keep the name matching.
+     */
     private Map<UUID, Matches> withCatalogLinks(Map<UUID, Matches> matches) {
         if (catalog == null || matches.isEmpty()) return matches;
         Map<UUID, Set<UUID>> linked = new HashMap<>();
@@ -115,10 +120,14 @@ public class ProductEquivalenceService {
         linked.forEach((requestedId, ids) -> {
             Matches current = matches.get(requestedId);
             Map<UUID, Product> confirmed = new LinkedHashMap<>();
-            current.confirmed().forEach(product -> confirmed.put(product.getId(), product));
+            Product requested = current.confirmed().getFirst();
+            confirmed.put(requested.getId(), requested);
             ids.stream().map(members::get).filter(Objects::nonNull).forEach(product -> confirmed.putIfAbsent(product.getId(), product));
-            List<Product> possible = current.possible().stream().filter(product -> !confirmed.containsKey(product.getId())).toList();
-            merged.put(requestedId, new Matches(List.copyOf(confirmed.values()), possible, true));
+            Map<UUID, Product> possible = new LinkedHashMap<>();
+            java.util.stream.Stream.concat(current.confirmed().stream(), current.possible().stream())
+                    .filter(product -> !confirmed.containsKey(product.getId()))
+                    .forEach(product -> possible.putIfAbsent(product.getId(), product));
+            merged.put(requestedId, new Matches(List.copyOf(confirmed.values()), List.copyOf(possible.values()), true));
         });
         return merged;
     }
