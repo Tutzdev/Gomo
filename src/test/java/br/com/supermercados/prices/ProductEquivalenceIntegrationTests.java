@@ -111,7 +111,7 @@ class ProductEquivalenceIntegrationTests {
     }
 
     @Test
-    void selectedMarketsAreAppliedExactlyAndInvalidSelectionsAreRejected() throws Exception {
+    void selectedMarketsAreAppliedExactlyAndRetiredOrUnknownOnesAreIgnored() throws Exception {
         var selected = product("Coca-Cola Original 2L");
         price(selected, STORE_A, "9.00");
         price(product("Coca Cola Original 2000ml"), STORE_B, "7.00");
@@ -126,9 +126,29 @@ class ProductEquivalenceIntegrationTests {
                         .param("storeIds", STORE_A))
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].offers", hasSize(1)))
                 .andExpect(jsonPath("$[0].offers[0].storeId").value(STORE_A));
-        mvc.perform(get("/api/v1/comparisons/products").param("productId", selected.id().toString())
-                        .param("cityId", CITY).param("storeIds", UUID.randomUUID().toString()))
-                .andExpect(status().isBadRequest());
+
+        // A market that left the Gomo (or an unknown ID from an old link) is dropped from the selection.
+        jdbc.update("update stores set active = false where id = ?::uuid", STORE_B);
+        entityManager.clear();
+        String path = "/api/v1/comparisons/products";
+        String product = selected.id().toString();
+        mvc.perform(get(path).param("productId", product).param("cityId", CITY).param("storeIds", STORE_A + "," + STORE_B))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stores.totalElements").value(1))
+                .andExpect(jsonPath("$.stores.content[0].storeId").value(STORE_A));
+        // With nothing usable left, the answer is exactly the one without a selection, not an error.
+        String unselected = mvc.perform(get(path).param("productId", product).param("cityId", CITY))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        for (String ids : new String[] {STORE_B, UUID.randomUUID().toString(), STORE_B + "," + UUID.randomUUID()}) {
+            String response = mvc.perform(get(path).param("productId", product).param("cityId", CITY)
+                    .param("storeIds", ids)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertThat(withoutComparedAt(response)).isEqualTo(withoutComparedAt(unselected));
+        }
+    }
+
+    private JsonNode withoutComparedAt(String response) {
+        var tree = (tools.jackson.databind.node.ObjectNode) json.readTree(response);
+        tree.remove("comparedAt");
+        return tree;
     }
 
     @Test

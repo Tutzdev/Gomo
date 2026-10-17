@@ -277,6 +277,10 @@ public class ShoppingComparisonService {
     private Page<StoreResponse> comparisonStores(UUID cityId, Pageable pageable, List<UUID> storeIds) {
         if (storeIds == null || storeIds.isEmpty()) return stores.findActiveStores(cityId, pageable);
         List<StoreResponse> selected = stores.selectComparisonStores(cityId, storeIds, maximumRecommendationStores);
+        // Nothing usable was selected: answer exactly as if no market had been selected.
+        if (selected.stream().noneMatch(store -> storeIds.contains(store.id()))) {
+            return stores.findActiveStores(cityId, pageable);
+        }
         int from = (int) Math.min(pageable.getOffset(), selected.size());
         int to = Math.min(from + pageable.getPageSize(), selected.size());
         return new PageImpl<>(selected.subList(from, to), pageable, selected.size());
