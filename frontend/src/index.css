@@ -11,6 +11,8 @@
   --primary-strong: #cc211c;
   --primary-dark: #a91c18;
   --primary-soft: #fff1f0;
+  --primary-soft-strong: #ffe1de;
+  --sidebar: #981d18;
   --foreground: #202124;
   --muted: #686b72;
   --surface: #ffffff;
@@ -34,6 +36,8 @@
   --color-primary-strong: var(--primary-strong);
   --color-primary-dark: var(--primary-dark);
   --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-strong: var(--primary-soft-strong);
+  --color-sidebar: var(--sidebar);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-surface: var(--surface);
@@ -318,7 +322,7 @@ a {
   align-items: center;
   padding: 3rem;
   color: white;
-  background: #981d18;
+  background: var(--sidebar);
   transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -653,7 +657,7 @@ a {
 }
 
 .upsell-dialog__header {
-  background: linear-gradient(180deg, var(--primary-soft) 0%, #ffe1de 100%);
+  background: linear-gradient(180deg, var(--primary-soft) 0%, var(--primary-soft-strong) 100%);
 }
 
 @keyframes upsell-fade-in {

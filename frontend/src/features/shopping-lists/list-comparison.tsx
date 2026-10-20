@@ -193,7 +193,7 @@ export function ListComparison({
           {combination.locked ? (
             <button
               type="button"
-              className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-primary/25 bg-primary-soft px-4 text-sm font-bold text-primary-dark hover:bg-[#ffe1de] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-primary/25 bg-primary-soft px-4 text-sm font-bold text-primary-dark hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               onClick={() =>
                 showUpsell("SPLIT_PURCHASE", {
                   savings: recommendation.data.splitSavings?.savings,

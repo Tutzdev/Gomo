@@ -74,7 +74,7 @@ export function AppShell() {
 
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-40 hidden bg-[#981d18] transition-[width] duration-200 lg:block motion-reduce:transition-none",
+            "fixed inset-y-0 left-0 z-40 hidden bg-sidebar transition-[width] duration-200 lg:block motion-reduce:transition-none",
             collapsed ? "w-20" : "w-64",
           )}
         >
@@ -105,7 +105,7 @@ export function AppShell() {
               {!user.premium ? (
                 <Link
                   to="/assinar?origem=topo"
-                  className="hidden min-h-9 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark hover:bg-[#ffe1de] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:inline-flex"
+                  className="hidden min-h-9 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:inline-flex"
                 >
                   <Sparkles className="size-3.5" aria-hidden />
                   Conhecer o Premium
@@ -128,7 +128,7 @@ export function AppShell() {
           onOpenChange={setMobileOpen}
           title="Menu da Gomo"
           side="left"
-          bodyClassName="mt-5 -mx-5 -mb-5 overflow-hidden bg-[#981d18]"
+          bodyClassName="mt-5 -mx-5 -mb-5 overflow-hidden bg-sidebar"
           onCloseAutoFocus={(event) => { event.preventDefault(); menuButton.current?.focus(); }}
         >
             <DashboardSidebar

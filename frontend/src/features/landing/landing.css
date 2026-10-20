@@ -207,7 +207,7 @@
  * cards brancos e o verde de "mais barato". No celular só aparece o telefone.
  */
 .hero-showcase {
-  --hero-sidebar: #981d18;
+  --hero-sidebar: var(--sidebar);
   --hero-sidebar-width: 12.5rem;
   --hero-phone-width: 16.5rem;
   --hero-phone-height: 35.5rem;
