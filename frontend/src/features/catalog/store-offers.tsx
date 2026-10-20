@@ -104,8 +104,10 @@ export function StoreOffers({
 
       {missing > 0 ? (
         <p className="mt-4 text-xs text-muted">
-          {missing} loja(s) ainda não têm observação deste produto. Isso não
-          confirma falta de estoque.
+          {missing === 1
+            ? "1 mercado ainda não mostrou preço deste produto no site."
+            : `${missing} mercados ainda não mostraram preço deste produto no site.`}{" "}
+          Isso não quer dizer que esteja em falta.
         </p>
       ) : null}
     </>

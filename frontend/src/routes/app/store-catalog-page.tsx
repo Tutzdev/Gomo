@@ -36,7 +36,7 @@ export function StoreCatalogPage() {
       <PageHeading
         title={store.data?.name ?? "Catálogo do mercado"}
         description={
-          store.data?.address ?? "Produtos e preços coletados nesta loja."
+          store.data?.address ?? "Produtos e preços deste mercado."
         }
       />
       {store.data?.priceSourceNote ? (
@@ -58,8 +58,8 @@ export function StoreCatalogPage() {
         />
         <p className="mt-3 text-sm text-muted">
           {catalog.data?.totalElements.toLocaleString("pt-BR") ?? "…"}{" "}
-          produto(s). Consulte a data de coleta e a disponibilidade de cada
-          item.
+          produto(s). Cada um mostra quando o preço foi visto e se está
+          disponível.
         </p>
       </div>
       {catalog.isLoading || search.trim() !== query ? (

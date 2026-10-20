@@ -8,7 +8,7 @@ const faq = [
   },
   {
     question: "Como os preços são obtidos?",
-    answer: "O Gomo coleta os preços publicados pelos supermercados e também recebe contribuições da comunidade. As contribuições passam por moderação antes de virar um registro de preço.",
+    answer: "O Gomo consulta os preços publicados nos sites dos próprios supermercados, várias vezes por dia. Cada preço mostra a hora em que foi visto.",
   },
   {
     question: "Por que algumas lojas não aparecem na comparação?",

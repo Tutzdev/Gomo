@@ -32,7 +32,7 @@ export function ProfilePage() {
 
   return (
     <>
-      <PageHeading title="Perfil e preferências" description="Mantenha seus dados, cidade e estado de verificação atualizados." />
+      <PageHeading title="Perfil" description="Seus dados, sua cidade e a confirmação do seu e-mail." />
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="surface p-5 sm:p-6">
           <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary"><UserRound className="size-5" aria-hidden /></span><div><h2 className="font-bold">Dados da conta</h2><p className="text-sm text-muted">Informações suportadas pelo backend.</p></div></div>
@@ -46,11 +46,11 @@ export function ProfilePage() {
         </section>
 
         <section className="surface p-5 sm:p-6">
-          <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary"><MapPin className="size-5" aria-hidden /></span><div><h2 className="font-bold">Preferências de compra</h2><p className="text-sm text-muted">A cidade orienta atalhos e comparações.</p></div></div>
+          <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary"><MapPin className="size-5" aria-hidden /></span><div><h2 className="font-bold">Preferências de compra</h2><p className="text-sm text-muted">Usamos a cidade para mostrar os mercados certos.</p></div></div>
           <form className="mt-6" onSubmit={(event) => { event.preventDefault(); updateCity.mutate(); }}>
             <SelectField id="preferred-city" label="Cidade preferida" value={preferredCityId} onChange={(event) => setPreferredCityId(event.target.value)}><option value="">Nenhuma cidade definida</option>{cities.data?.content.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}</SelectField>
             <p className="mt-4 text-sm text-muted">Lojas favoritas: <strong className="text-foreground">{preferences.data?.favoriteStoreIds.length ?? 0}</strong></p>
-            <NativeButton type="submit" className="mt-5" loading={updateCity.isPending}>Salvar preferência</NativeButton>
+            <NativeButton type="submit" className="mt-5" loading={updateCity.isPending}>Salvar cidade</NativeButton>
           </form>
           <PlanSection user={user} onChanged={async () => { await refreshUser(); await queryClient.invalidateQueries(); }} />
           <InlineError>{profileMessage}</InlineError>

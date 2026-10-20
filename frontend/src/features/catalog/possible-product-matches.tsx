@@ -8,7 +8,7 @@ export function PossibleProductMatches({ products, cityId, storeIds = [] }: { pr
   return (
     <section
       className="surface mt-5 p-5"
-      aria-label="Correspondências não confirmadas"
+      aria-label="Produtos parecidos"
     >
       <h3 className="font-bold">Confira a variante e a embalagem</h3>
       <p className="mt-2 text-sm text-muted">
@@ -18,7 +18,7 @@ export function PossibleProductMatches({ products, cityId, storeIds = [] }: { pr
       </p>
       <details className="mt-3">
         <summary className="cursor-pointer py-2 text-sm font-semibold">
-          Ver {products.length} possível(is) correspondência(s)
+          {products.length === 1 ? "Ver 1 produto parecido" : `Ver ${products.length} produtos parecidos`}
         </summary>
         <ul className="divide-y divide-border">
           {products.map((product) => (

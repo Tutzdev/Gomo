@@ -35,7 +35,7 @@ export function ComparisonItems({
                 {item.price.observation?.sourceProductName ||
                 (item.matchedProduct && item.matchedProduct.id !== item.productId) ? (
                   <p className="mt-1 text-xs text-muted">
-                    Nesta loja: {item.price.observation?.sourceProductName ?? item.matchedProduct?.name}
+                    Neste mercado: {item.price.observation?.sourceProductName ?? item.matchedProduct?.name}
                   </p>
                 ) : null}
                 {item.price.promotionApplied ? (
@@ -44,16 +44,16 @@ export function ComparisonItems({
                 {item.price.observation ? (
                   <details className="mt-1 text-xs text-muted">
                     <summary className="cursor-pointer">
-                      Coleta: {formatDate(item.price.observation.collectedAt)}
+                      Visto em {formatDate(item.price.observation.collectedAt)}
                     </summary>
                     {item.price.observation.salesChannel === "ONLINE" ? (
-                      <p className="mt-1">Preço da loja online; pode diferir da loja física.</p>
+                      <p className="mt-1">Preço do site do mercado. Na loja física pode ser diferente.</p>
                     ) : item.price.observation.salesChannel === "PHYSICAL_FLYER" ? (
-                      <p className="mt-1">Oferta de encarte da loja física.</p>
+                      <p className="mt-1">Oferta do encarte da loja.</p>
                     ) : null}
                     {item.price.observation.sourceProductReference ? (
                       <p className="mt-1 break-all">
-                        Código na fonte:{" "}
+                        Código no site do mercado:{" "}
                         {item.price.observation.sourceProductReference}
                       </p>
                     ) : null}
@@ -64,22 +64,22 @@ export function ComparisonItems({
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Conferir na fonte
+                        Ver no site do mercado
                       </a>
                     ) : (
                       <p className="mt-1">
                         {item.price.observation.originType ===
                         "USER_CONTRIBUTION"
                           ? "Preço enviado pela comunidade."
-                          : "Catálogo público da loja."}
+                          : "Do site do próprio mercado."}
                       </p>
                     )}
                     {item.price.observation.promotionalPrice !== null &&
                     !item.price.promotionApplied ? (
                       <p className="mt-1">
-                        Promoção não aplicada:{" "}
+                        Promoção fora do total:{" "}
                         {item.price.observation.promotionCondition ??
-                          "validade não confirmada pela fonte"}
+                          "o mercado não informou até quando vale"}
                         .
                       </p>
                     ) : null}

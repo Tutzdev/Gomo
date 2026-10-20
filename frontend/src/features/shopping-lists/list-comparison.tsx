@@ -114,7 +114,7 @@ export function ListComparison({
               </p>
               {winner.stockUncertain ? (
                 <p className="mt-2 text-sm text-warning">
-                  Há itens cujo estoque não foi informado pela fonte.
+                  O mercado não informa se alguns itens estão disponíveis. Vale conferir.
                 </p>
               ) : null}
             </>
@@ -126,7 +126,7 @@ export function ListComparison({
               {closestMatches.length ? (
                 <>
                   <h4 className="mt-4 font-semibold">
-                    Maior cobertura parcial
+                    Mercados com mais itens da lista
                   </h4>
                   {closestMatches.map((store) => (
                     <div
@@ -142,8 +142,8 @@ export function ListComparison({
                           : formatCurrency(store.total)}
                       </p>
                       <p className="mt-1 text-xs text-muted">
-                        Faltam {store.missingItems} itens. Este valor não é o
-                        total da lista.
+                        Faltam {store.missingItems} itens, então este valor não
+                        é o total da lista.
                       </p>
                     </div>
                   ))}
@@ -154,7 +154,7 @@ export function ListComparison({
                 </>
               ) : (
                 <p className="mt-3 text-sm">
-                  Ainda não há preços utilizáveis para os itens nesta cidade.
+                  Ainda não temos preço atual destes itens nesta cidade.
                 </p>
               )}
             </>
@@ -167,8 +167,8 @@ export function ListComparison({
               tone={combination.completeShoppingList ? "success" : "warning"}
             >
               {combination.completeShoppingList
-                ? "Combinação completa"
-                : "Combinação parcial"}
+                ? "Todos os itens"
+                : "Faltam itens"}
             </StatusBadge>
           </div>
           <p className="mt-3 text-2xl font-extrabold">
@@ -207,7 +207,7 @@ export function ListComparison({
           ) : null}
           {combination.missingProductIds.length ? (
             <p className="mt-3 text-sm">
-              Sem preço utilizável em nenhum mercado:{" "}
+              Sem preço atual em nenhum mercado:{" "}
               {items
                 .filter((item) =>
                   combination.missingProductIds.includes(item.productId),

@@ -96,7 +96,7 @@ export function ProductDetailPage() {
           <section className="surface overflow-hidden">
             <div className="border-b border-border p-5">
               <h2 className="font-bold">Histórico de preços</h2>
-              <p className="mt-1 text-sm text-muted">Observações dos últimos 90 dias em cada loja.</p>
+              <p className="mt-1 text-sm text-muted">Como o preço mudou nos últimos 90 dias em cada mercado.</p>
             </div>
             <LockedPriceHistory />
           </section>
@@ -104,7 +104,7 @@ export function ProductDetailPage() {
           <section className="surface p-5">
             <h2 className="font-bold">Histórico de preços</h2>
             <p className="mt-1 text-sm text-muted">
-              Escolha uma loja para consultar as observações dos últimos 90 dias.
+              Escolha um mercado para ver como o preço mudou nos últimos 90 dias.
             </p>
             <div className="mt-5 max-w-md">
               <SelectField
@@ -113,7 +113,7 @@ export function ProductDetailPage() {
                 value={storeId}
                 onChange={(event) => setStoreId(event.target.value)}
               >
-                <option value="">Selecione uma loja</option>
+                <option value="">Selecione um mercado</option>
                 {stores.data?.content.map((store) => (
                   <option key={store.id} value={store.id}>
                     {store.name}
@@ -124,8 +124,8 @@ export function ProductDetailPage() {
             <div className="mt-6">
               {!storeId ? (
                 <EmptyState
-                  title="Selecione uma loja"
-                  description="O histórico depende do produto e da loja escolhidos."
+                  title="Escolha um mercado"
+                  description="O histórico mostra o preço deste produto no mercado escolhido."
                 />
               ) : history.isLoading ? (
                 <LoadingState label="Carregando histórico…" />
@@ -134,7 +134,7 @@ export function ProductDetailPage() {
               ) : !history.data?.content.length ? (
                 <EmptyState
                   title="Sem histórico disponível"
-                  description="Ainda não há observações para esta combinação."
+                  description="Ainda não vimos este produto à venda neste mercado."
                 />
               ) : (
                 <div className="overflow-x-auto">
@@ -163,15 +163,15 @@ export function ProductDetailPage() {
                           </td>
                           <td>
                             {record.availability === "AVAILABLE"
-                              ? "Em estoque"
+                              ? "Disponível"
                               : record.availability === "UNAVAILABLE"
-                                ? "Sem estoque"
-                                : "Desconhecida"}
+                                ? "Em falta"
+                                : "Não informada"}
                           </td>
                           <td>
                             {record.originType === "USER_CONTRIBUTION"
                               ? "Comunidade"
-                              : "Fonte cadastrada"}
+                              : "Site do mercado"}
                           </td>
                         </tr>
                       ))}

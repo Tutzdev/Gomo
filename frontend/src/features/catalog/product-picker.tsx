@@ -137,7 +137,7 @@ export function ProductPicker({ id, value, onChange, excludedIds = [], onSearchC
     </p>
     {expanded ? <div style={{ "--search-height": `${panel.height}px` } as CSSProperties} className={cn("mt-2 overflow-hidden rounded-lg border border-border bg-white lg:absolute lg:inset-x-0 lg:z-30 lg:flex lg:max-h-[var(--search-height)] lg:flex-col lg:shadow-lg", panel.above ? "lg:bottom-full lg:mb-2" : "lg:top-full")}>
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <p className="text-xs font-semibold text-muted">{Object.keys(filters).some((key) => filters[key as keyof ProductFilters]) ? "Resultados filtrados" : "Resultados do catálogo"}</p>
+        <p className="text-xs font-semibold text-muted">{Object.keys(filters).some((key) => filters[key as keyof ProductFilters]) ? "Resultados filtrados" : "Produtos encontrados"}</p>
         <button type="button" aria-expanded={showFilters} aria-controls={`${id}-filters`} className="flex min-h-9 items-center gap-1 rounded-md px-2 text-xs font-semibold hover:bg-surface-strong focus-visible:outline-2 focus-visible:outline-focus" onClick={() => setShowFilters(!showFilters)}><SlidersHorizontal className="size-3.5" aria-hidden />Filtros</button>
       </div>
       {showFilters ? <div id={`${id}-filters`} className="max-h-[28dvh] shrink-0 overflow-y-auto"><ProductSearchFilters id={id} query={query} value={filters} onChange={(next) => { setFilters(next); setPage(0); setActive(-1); }} /></div> : null}

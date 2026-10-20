@@ -23,8 +23,8 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
             tone={price.availability === "AVAILABLE" ? "success" : "warning"}
           >
             {price.availability === "AVAILABLE"
-              ? "Em estoque"
-              : "Estoque não informado"}
+              ? "Disponível"
+              : "Disponibilidade a confirmar"}
           </StatusBadge>
         </>
       ) : (
@@ -35,7 +35,7 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
       {observation?.promotionalPrice != null ? (
         <div className="rounded-lg bg-surface-strong p-3 text-sm">
           <p>
-            Promoção observada:{" "}
+            Promoção no site:{" "}
             <strong>{formatCurrency(observation.promotionalPrice)}</strong>
           </p>
           {observation.promotionCondition ? (
@@ -43,12 +43,12 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
           ) : null}
           <p className="mt-1 text-xs text-muted">
             {observation.promotionValidUntil
-              ? `Validade informada: ${formatDate(observation.promotionValidUntil)}`
-              : "Validade da promoção não informada pela fonte."}
+              ? `Válida até ${formatDate(observation.promotionValidUntil)}`
+              : "O mercado não informou até quando vale a promoção."}
           </p>
           {!price.promotionApplied ? (
             <p className="mt-1 text-xs text-muted">
-              Esse valor promocional não compõe o preço atual da comparação.
+              Na comparação usamos o preço normal, porque a promoção tem condição ou prazo desconhecido.
             </p>
           ) : null}
         </div>
@@ -58,35 +58,35 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
           {observation.salesChannel === "ONLINE" || observation.salesChannel === "PHYSICAL_FLYER" ? (
             <p className="text-xs text-muted">
               {observation.salesChannel === "ONLINE"
-                ? "Preço da loja online; pode diferir do preço na loja física."
-                : "Oferta de encarte da loja física."}
+                ? "Preço do site do mercado. Na loja física pode ser diferente."
+                : "Oferta do encarte da loja."}
             </p>
           ) : null}
           <p className="flex items-center gap-2 text-xs text-muted">
             <Clock3 className="size-3.5" aria-hidden />
-            Coletado em {formatDate(observation.collectedAt)}
+            Visto no site do mercado em {formatDate(observation.collectedAt)}
           </p>
           {price.expiresAt ? (
             <p className="text-xs text-muted">
-              Limite de atualização: {formatDate(price.expiresAt)}
+              Considerado atual até {formatDate(price.expiresAt)}
             </p>
           ) : null}
           <details className="text-xs text-muted">
             <summary className="cursor-pointer font-semibold">
-              Origem da observação
+              De onde vem este preço
             </summary>
             <p className="mt-2">
               {observation.originType === "USER_CONTRIBUTION"
                 ? "Preço enviado pela comunidade."
-                : "Preço obtido de uma fonte pública da loja."}
+                : "Do site do próprio mercado."}
             </p>
             <p className="mt-2">
-              A coleta indica quando consultamos a fonte. A data de alteração do
-              preço pela loja não foi informada.
+              O horário é quando o Gomo consultou o site. O mercado não informa
+              quando mudou o preço.
             </p>
             {observation.sourceProductReference ? (
               <p className="mt-2 break-all">
-                Código na fonte: {observation.sourceProductReference}
+                Código no site do mercado: {observation.sourceProductReference}
               </p>
             ) : null}
             {observation.originUrl ? (
@@ -96,7 +96,7 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
                 target="_blank"
                 rel="noreferrer"
               >
-                Conferir na fonte
+                Ver no site do mercado
               </a>
             ) : null}
           </details>

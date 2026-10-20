@@ -134,8 +134,8 @@ export function StoresPage() {
                 <p className="mt-4 text-xs text-muted">
                   {store.priceSourceNote ??
                     (store.lastPriceCollectedAt
-                      ? `Última coleta de preços: ${formatDate(store.lastPriceCollectedAt)}`
-                      : "Aguardando a primeira coleta de preços")}
+                      ? `Preços atualizados em ${formatDate(store.lastPriceCollectedAt)}`
+                      : "Os preços deste mercado chegam em breve")}
                 </p>
                 <NativeButton
                   className="mt-4"

@@ -48,7 +48,7 @@ export function ProductSearchFilters({
         </SelectField>
         <SelectField
           id={`${id}-market`}
-          label="Catálogo de origem"
+          label="Mercado"
           value={value.storeId ?? ""}
           disabled={facets.isPending}
           onChange={(event) => change("storeId", event.target.value)}
@@ -126,7 +126,7 @@ export function ProductSearchFilters({
       </div>
       {value.sort?.startsWith("price") ? (
         <p className="text-xs text-muted">
-          Ordenação pelo menor preço atual por produto nas lojas consultadas.
+          Do menor para o maior preço atual entre os mercados escolhidos.
           Sem preço fica ao final.
         </p>
       ) : null}

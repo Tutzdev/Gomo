@@ -197,8 +197,8 @@ export function ShoppingListDetailPage() {
         <section className="surface p-5">
           <h2 className="font-bold">Comparar a lista</h2>
           <p className="mt-1 text-sm text-muted">
-            Veja preços por item, cobertura de cada loja e a melhor combinação
-            entre mercados.
+            Veja o total em cada mercado, o preço de cada item e quanto dá para
+            economizar dividindo a compra.
           </p>
           <div className="mt-5">
             {cities.isError ? (
