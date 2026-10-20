@@ -4,11 +4,29 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type HtmlTagDescriptor, type Plugin } from "vite";
 
-const repositoryRoot = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
+const frontendRoot = fileURLToPath(new URL(".", import.meta.url));
+const repositoryRoot = path.resolve(frontendRoot, "..");
 
 const SHARE_TITLE = "Gomo — compare antes de comprar";
 const SHARE_DESCRIPTION =
   "Monte sua lista e veja em qual mercado de Volta Redonda ela sai mais barata. Preços dos sites dos mercados, atualizados 4 vezes por dia.";
+
+export default defineConfig(({ mode }) => {
+  const siteUrl = loadEnv(mode, frontendRoot, "VITE_").VITE_SITE_URL;
+  return {
+    plugins: [react(), tailwindcss(), socialPreview(siteUrl), robotsTxt(siteUrl)],
+    resolve: {
+      alias: {
+        "@": fileURLToPath(new URL("./src", import.meta.url)),
+      },
+    },
+    server: {
+      fs: {
+        allow: [repositoryRoot],
+      },
+    },
+  };
+});
 
 /**
  * The tags WhatsApp, Facebook and X read to draw a link preview. Their crawlers do not run JavaScript, so the
@@ -50,19 +68,34 @@ function socialPreview(siteUrl: string | undefined): Plugin {
   };
 }
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "VITE_");
+/**
+ * robots.txt gerado no build: o app e a API ficam fora da busca, menos o sitemap e as consultas públicas que a
+ * página /precos faz para mostrar os preços (o Google não indexa uma página cujos dados ele não pode buscar).
+ * O Sitemap precisa de URL absoluta, então só entra quando VITE_SITE_URL está definida.
+ */
+function robotsTxt(siteUrl: string | undefined): Plugin {
+  const site = siteUrl?.trim().replace(/\/+$/, "");
+  const lines = [
+    "User-agent: *",
+    "Disallow: /app",
+    "Disallow: /api/",
+    "Allow: /api/v1/sitemap.xml",
+    "Allow: /api/v1/catalog/items/",
+    "Allow: /api/v1/stores?",
+    "Allow: /api/v1/cities?",
+    ...(site ? ["", `Sitemap: ${site}/api/v1/sitemap.xml`] : []),
+  ];
+  const content = `${lines.join("\n")}\n`;
   return {
-    plugins: [react(), tailwindcss(), socialPreview(env.VITE_SITE_URL)],
-    resolve: {
-      alias: {
-        "@": fileURLToPath(new URL("./src", import.meta.url)),
-      },
+    name: "gomo-robots-txt",
+    configureServer(server) {
+      server.middlewares.use("/robots.txt", (_request, response) => {
+        response.setHeader("Content-Type", "text/plain; charset=utf-8");
+        response.end(content);
+      });
     },
-    server: {
-      fs: {
-        allow: [repositoryRoot],
-      },
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "robots.txt", source: content });
     },
   };
-});
+}
