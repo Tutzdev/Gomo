@@ -47,8 +47,8 @@ export function ProductsPage() {
   return (
     <>
       <PageHeading
-        title="Produtos"
-        description="Cada produto aparece uma vez, com o preço de todos os mercados que o vendem."
+        title="Buscar preços"
+        description="Digite o produto como você falaria no mercado. Cada um aparece uma vez, com o preço de todos os mercados que o vendem."
       />
       <section className="surface mb-6" aria-label="Pesquisa no catálogo">
         <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_16rem_auto] lg:items-end">

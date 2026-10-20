@@ -1,4 +1,4 @@
-import { Menu, Sparkles } from "lucide-react";
+import { Bell, Menu, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
@@ -9,15 +9,14 @@ import type { User } from "@/types/api";
 import { cn } from "@/lib/cn";
 
 const pageNames: Record<string, string> = {
-  "/app": "Visão geral",
-  "/app/comparar": "Comparar preços",
-  "/app/produtos": "Produtos",
+  "/app": "Início",
+  "/app/produtos": "Buscar preços",
   "/app/supermercados": "Supermercados",
   "/app/listas": "Minhas listas",
   "/app/alertas": "Alertas de preço",
   "/app/contribuir": "Contribuir com preço",
   "/app/notificacoes": "Notificações",
-  "/app/perfil": "Perfil e preferências",
+  "/app/perfil": "Perfil",
   "/app/admin": "Administração",
 };
 
@@ -63,9 +62,11 @@ export function AppShell() {
     pageNames[location.pathname] ??
     (location.pathname.startsWith("/app/listas/")
       ? "Detalhes da lista"
-      : location.pathname.startsWith("/app/comparar/")
-        ? "Comparar preços"
-        : "Gomo");
+      : location.pathname.startsWith("/app/comparar/") || location.pathname.startsWith("/app/produtos/")
+        ? "Preços do produto"
+        : location.pathname.startsWith("/app/supermercados/")
+          ? "Produtos do mercado"
+          : "Gomo");
 
   return (
     <UpsellProvider>
@@ -111,6 +112,14 @@ export function AppShell() {
                   Conhecer o Premium
                 </Link>
               ) : null}
+              <Link
+                to="/app/notificacoes"
+                className="icon-button"
+                aria-label="Notificações"
+                title="Notificações"
+              >
+                <Bell className="size-5" aria-hidden />
+              </Link>
               <div className="min-w-0 text-right">
                 <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
                 <p className="text-xs text-muted">{planLabel(user)}</p>

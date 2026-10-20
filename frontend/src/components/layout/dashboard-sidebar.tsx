@@ -1,19 +1,17 @@
 import {
-  Bell,
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
-  LayoutDashboard,
+  House,
   ListChecks,
   LogOut,
-  PackageSearch,
+  Search,
   Settings,
   ShieldCheck,
   Store,
-  Tags,
   type LucideIcon,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { BrandLogo } from "@/components/brand-logo";
 import { cn } from "@/lib/cn";
 import type { UserRole } from "@/types/api";
@@ -22,19 +20,22 @@ type NavigationItem = {
   label: string;
   to: string;
   icon: LucideIcon;
+  /** Other pages that belong to this item, so it stays highlighted on them. */
+  alsoActiveOn?: string[];
   admin?: boolean;
 };
 
+/**
+ * Kept short on purpose: searching and comparing are one task, so they share one entry. Notifications live
+ * behind the bell in the header, and price contributions stay out of the menu until there is time to moderate them.
+ */
 const navigation: NavigationItem[] = [
-  { label: "Visão geral", to: "/app", icon: LayoutDashboard },
-  { label: "Comparar preços", to: "/app/comparar", icon: Tags },
-  { label: "Produtos", to: "/app/produtos", icon: PackageSearch },
-  { label: "Supermercados", to: "/app/supermercados", icon: Store },
+  { label: "Início", to: "/app", icon: House },
+  { label: "Buscar preços", to: "/app/produtos", icon: Search, alsoActiveOn: ["/app/comparar"] },
   { label: "Minhas listas", to: "/app/listas", icon: ListChecks },
   { label: "Alertas de preço", to: "/app/alertas", icon: CircleDollarSign },
-  { label: "Contribuir com preço", to: "/app/contribuir", icon: Tags },
-  { label: "Notificações", to: "/app/notificacoes", icon: Bell },
-  { label: "Perfil e preferências", to: "/app/perfil", icon: Settings },
+  { label: "Supermercados", to: "/app/supermercados", icon: Store },
+  { label: "Perfil", to: "/app/perfil", icon: Settings },
   { label: "Administração", to: "/app/admin", icon: ShieldCheck, admin: true },
 ];
 
@@ -55,6 +56,7 @@ export function DashboardSidebar({
   onLogout,
   mobile = false,
 }: DashboardSidebarProps) {
+  const { pathname } = useLocation();
   const visibleNavigation = navigation.filter((item) => !item.admin || role === "ADMIN");
 
   return (
@@ -62,7 +64,7 @@ export function DashboardSidebar({
       <div className={cn("flex h-18 items-center border-b border-white/10 px-4", collapsed ? "justify-center" : "justify-between")}>
         <NavLink
           to="/app"
-          aria-label="Gomo — visão geral"
+          aria-label="Gomo — início"
           onClick={onNavigate}
           className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
@@ -95,8 +97,10 @@ export function DashboardSidebar({
                   className={({ isActive }) =>
                     cn(
                       "dashboard-nav-action flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#8e1612]",
-                      isActive ? "bg-white text-[#991b16]" : "text-white/78 hover:bg-white/10 hover:text-white",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
+                      isActive || item.alsoActiveOn?.some((path) => pathname.startsWith(path))
+                        ? "bg-white text-sidebar"
+                        : "text-white/78 hover:bg-white/10 hover:text-white",
                       collapsed && "justify-center px-0",
                     )
                   }

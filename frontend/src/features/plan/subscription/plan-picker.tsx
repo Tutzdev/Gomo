@@ -173,7 +173,7 @@ export function TrialButton({ action, compact = false }: { action: TrialAction; 
           <p role="status" className="rounded-lg bg-success-soft px-3 py-2.5 text-center text-sm font-semibold text-success">
             {action.trialEndsAt ? `Premium ativo até ${formatDate(action.trialEndsAt)}` : "Sua conta já tem o Premium"}
           </p>
-          <NativeButton to="/app/comparar" size="lg" className="pill-button w-full">Ir comparar preços</NativeButton>
+          <NativeButton to="/app/produtos" size="lg" className="pill-button w-full">Buscar preços</NativeButton>
         </div>
       );
     case "trial-used":

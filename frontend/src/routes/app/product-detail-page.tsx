@@ -43,7 +43,7 @@ export function ProductDetailPage() {
         className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden />
-        Voltar aos produtos
+        Voltar à busca
       </Link>
       <div className="mb-4 flex items-start gap-4">
         <ProductImage product={product.data} large />

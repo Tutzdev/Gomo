@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { RouteLoadingPage } from "@/app/route-loading-page";
 
 const hydrateFallbackElement = <RouteLoadingPage />;
@@ -69,10 +69,9 @@ export const router = createBrowserRouter([
         lazy: () => import("@/routes/app/overview-page").then(({ OverviewPage }) => ({ Component: OverviewPage })),
       },
       {
+        // Searching and comparing are one page now; old links without a product land on the search.
         path: "comparar",
-        lazy: () => import("@/routes/app/comparison-page").then(({ ComparisonPage }) => ({
-          Component: ComparisonPage,
-        })),
+        element: <Navigate to="/app/produtos" replace />,
       },
       {
         path: "comparar/:id",

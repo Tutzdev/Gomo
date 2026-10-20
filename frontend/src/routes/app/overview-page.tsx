@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bell, CircleDollarSign, ListChecks, MapPin, Store } from "lucide-react";
+import { Bell, CircleDollarSign, ListChecks, MapPin, Search, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/feedback";
 import { NativeButton } from "@/components/ui/native-button";
@@ -19,7 +19,7 @@ export function OverviewPage() {
 
   return (
     <>
-      <PageHeading title="Visão geral" description="Retome suas compras, alertas e preferências sem dados artificiais." action={<NativeButton to="/app/comparar"><CircleDollarSign className="size-4" aria-hidden />Comparar preços</NativeButton>} />
+      <PageHeading title="Início" description="Suas listas, alertas e preferências em um só lugar." action={<NativeButton to="/app/produtos"><Search className="size-4" aria-hidden />Buscar preços</NativeButton>} />
 
       {hasError ? <ErrorState message="Parte das informações não pôde ser carregada." retry={() => void Promise.all([lists.refetch(), alerts.refetch(), notifications.refetch(), preferences.refetch()])} /> : null}
 

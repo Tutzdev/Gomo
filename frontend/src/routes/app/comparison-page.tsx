@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { EmptyState, ErrorState } from "@/components/ui/feedback";
 import { SelectField } from "@/components/ui/form-field";
 import { PageHeading } from "@/components/page/page-elements";
@@ -30,9 +31,16 @@ export function ComparisonPage() {
 
   return (
     <>
+      <Link
+        to="/app/produtos"
+        className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" aria-hidden />
+        Voltar à busca
+      </Link>
       <PageHeading
-        title="Comparar preços"
-        description="Digite o produto como você falaria no mercado. Mostramos só mercados com preço atual."
+        title="Preços do produto"
+        description="Quanto cada mercado cobra agora. Para ver outro produto, é só digitar abaixo."
       />
       <div className="surface grid gap-4 p-4 sm:p-5 lg:grid-cols-[1.6fr_1fr] lg:items-start">
         <CatalogItemPicker

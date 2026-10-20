@@ -11,7 +11,7 @@ import "@/features/landing/landing.css";
 
 export function LandingPage() {
   const { user } = useAuth();
-  const signUpPath = user ? "/app/comparar" : "/entrar?modo=cadastro";
+  const signUpPath = user ? "/app/produtos" : "/entrar?modo=cadastro";
 
   return (
     <div className="landing min-h-screen text-foreground">

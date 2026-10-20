@@ -17,7 +17,7 @@ const pageLinks: FooterLink[] = [
 ];
 
 const appLinks: FooterLink[] = [
-  { label: "Comparar preços", to: "/app/comparar" },
+  { label: "Buscar preços", to: "/app/produtos" },
   { label: "Minhas listas", to: "/app/listas" },
   { label: "Alertas de preço", to: "/app/alertas" },
   { label: "Supermercados", to: "/app/supermercados" },

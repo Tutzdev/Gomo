@@ -16,7 +16,7 @@ export function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
   const platformPath = user ? "/app" : "/entrar";
-  const signUpPath = user ? "/app/comparar" : "/entrar?modo=cadastro";
+  const signUpPath = user ? "/app/produtos" : "/entrar?modo=cadastro";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
