@@ -338,7 +338,7 @@ class ApiIntegrationTests {
                         .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "authorization,content-type"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://frontend.example.test"))
-                .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS));
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
         mvc.perform(options("/api/v1/users/me")
                         .header(HttpHeaders.ORIGIN, "https://untrusted.example.test")
                         .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PATCH"))

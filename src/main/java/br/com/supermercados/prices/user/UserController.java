@@ -7,7 +7,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import br.com.supermercados.prices.auth.AccountDeletionService;
 import br.com.supermercados.prices.auth.AuthenticatedUser;
+import br.com.supermercados.prices.auth.SessionCookies;
 import br.com.supermercados.prices.subscription.PaidSubscriptionService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,12 +25,14 @@ public class UserController {
     private final UserService users;
     private final AccountDeletionService deletion;
     private final PaidSubscriptionService paidSubscriptions;
+    private final SessionCookies cookies;
 
     public UserController(UserService users, AccountDeletionService deletion,
-            PaidSubscriptionService paidSubscriptions) {
+            PaidSubscriptionService paidSubscriptions, SessionCookies cookies) {
         this.users = users;
         this.deletion = deletion;
         this.paidSubscriptions = paidSubscriptions;
+        this.cookies = cookies;
     }
 
     @GetMapping
@@ -49,10 +53,11 @@ public class UserController {
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCurrentUser(@AuthenticationPrincipal AuthenticatedUser principal,
-            @Valid @RequestBody DeleteAccountRequest request) {
+            @Valid @RequestBody DeleteAccountRequest request, HttpServletResponse response) {
         deletion.verifyPassword(principal.id(), request.password());
         paidSubscriptions.cancelBeforeAccountDeletion(principal.id());
         deletion.delete(principal.id(), request.password());
+        cookies.clear(response);
     }
 
     public record DeleteAccountRequest(@NotBlank @Size(max = 72) String password) {

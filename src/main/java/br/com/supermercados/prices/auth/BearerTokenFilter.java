@@ -18,16 +18,23 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Authenticates the opaque token from "Authorization: Bearer" (app and API clients) or, without that header,
+ * from the site's session cookie. A bad Bearer token is rejected outright; a stale cookie is cleared and the
+ * request goes on anonymously, so public pages keep working after the session ends.
+ */
 class BearerTokenFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(BearerTokenFilter.class);
 
     private final TokenService tokens;
     private final SecurityProblemWriter problems;
+    private final SessionCookies cookies;
 
-    BearerTokenFilter(TokenService tokens, SecurityProblemWriter problems) {
+    BearerTokenFilter(TokenService tokens, SecurityProblemWriter problems, SessionCookies cookies) {
         this.tokens = tokens;
         this.problems = problems;
+        this.cookies = cookies;
     }
 
     @Override
@@ -35,7 +42,12 @@ class BearerTokenFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         List<String> authorization = Collections.list(request.getHeaders(HttpHeaders.AUTHORIZATION));
         if (authorization.isEmpty()) {
-            chain.doFilter(request, response);
+            Optional<String> cookie = cookies.read(request);
+            if (cookie.isPresent()) {
+                authenticateCookie(cookie.orElseThrow(), request, response, chain);
+            } else {
+                chain.doFilter(request, response);
+            }
             return;
         }
         if (authorization.size() != 1 || !authorization.getFirst().regionMatches(true, 0, "Bearer ", 0, 7)) {
@@ -46,20 +58,46 @@ class BearerTokenFilter extends OncePerRequestFilter {
         try {
             principal = tokens.authenticate(authorization.getFirst().substring(7));
         } catch (DataAccessException exception) {
-            log.error("Falha de persistência durante autenticação: {}", exception.getClass().getSimpleName());
-            problems.write(request, response, HttpStatus.SERVICE_UNAVAILABLE,
-                    "Autenticação temporariamente indisponível.");
+            unavailable(request, response, exception);
             return;
         }
         if (principal.isEmpty()) {
             reject(request, response);
             return;
         }
+        continueAs(principal.orElseThrow(), request, response, chain);
+    }
+
+    private void authenticateCookie(String rawToken, HttpServletRequest request, HttpServletResponse response,
+            FilterChain chain) throws ServletException, IOException {
+        Optional<AuthenticatedUser> principal;
+        try {
+            principal = tokens.authenticate(rawToken);
+        } catch (DataAccessException exception) {
+            unavailable(request, response, exception);
+            return;
+        }
+        if (principal.isEmpty()) {
+            cookies.clear(response);
+            chain.doFilter(request, response);
+            return;
+        }
+        continueAs(principal.orElseThrow(), request, response, chain);
+    }
+
+    private void continueAs(AuthenticatedUser principal, HttpServletRequest request, HttpServletResponse response,
+            FilterChain chain) throws ServletException, IOException {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
-                principal.orElseThrow(), null, List.of(principal.orElseThrow().authority())));
+                principal, null, List.of(principal.authority())));
         SecurityContextHolder.setContext(context);
         chain.doFilter(request, response);
+    }
+
+    private void unavailable(HttpServletRequest request, HttpServletResponse response, DataAccessException exception)
+            throws IOException {
+        log.error("Falha de persistência durante autenticação: {}", exception.getClass().getSimpleName());
+        problems.write(request, response, HttpStatus.SERVICE_UNAVAILABLE, "Autenticação temporariamente indisponível.");
     }
 
     private void reject(HttpServletRequest request, HttpServletResponse response) throws IOException {

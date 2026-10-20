@@ -30,11 +30,13 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, TokenService tokens,
-            SecurityProblemWriter problems, CorsConfigurationSource corsConfigurationSource) throws Exception {
+            SecurityProblemWriter problems, CorsConfigurationSource corsConfigurationSource, SessionCookies cookies,
+            @Value("${app.cors.allowed-origins:}") String configuredOrigins) throws Exception {
         CorsFilter corsFilter = new CorsFilter(corsConfigurationSource);
         corsFilter.setCorsProcessor(new ProblemCorsProcessor(problems));
         return http
                 .cors(AbstractHttpConfigurer::disable)
+                // Only the cookie session needs CSRF protection; SessionOriginFilter checks its Origin instead.
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -52,6 +54,8 @@ public class SecurityConfiguration {
                                 "/api/v1/auth/password-resets", "/api/v1/auth/password-resets/confirm").permitAll()
                         // The payment provider has no Gomo account; the webhook authenticates it by secret and HMAC.
                         .requestMatchers(HttpMethod.POST, "/api/v1/billing/abacatepay/webhook").permitAll()
+                        // Answers 204 without a session, so the site can ask on every visit without a 401.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/session").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/actuator", "/actuator/info", "/actuator/metrics", "/actuator/metrics/**")
                                 .hasRole("ADMIN")
@@ -68,29 +72,37 @@ public class SecurityConfiguration {
                                 "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterAt(corsFilter, CorsFilter.class)
-                .addFilterBefore(new BearerTokenFilter(tokens, problems), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new SessionOriginFilter(cookies, problems, origins(configuredOrigins)),
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new BearerTokenFilter(tokens, problems, cookies), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
     @Bean
     CorsConfigurationSource corsConfigurationSource(
             @Value("${app.cors.allowed-origins:}") String configuredOrigins) {
-        List<String> origins = Arrays.stream(configuredOrigins.split(","))
-                .map(String::strip).filter(origin -> !origin.isEmpty()).distinct().toList();
-        origins.forEach(this::validateOrigin);
+        List<String> origins = origins(configuredOrigins);
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", SessionCookies.MODE_HEADER));
         configuration.setExposedHeaders(List.of("Location"));
-        configuration.setAllowCredentials(false);
+        // The local site (another port) sends the session cookie; origins are always explicit, never "*".
+        configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 
-    private void validateOrigin(String origin) {
+    private static List<String> origins(String configuredOrigins) {
+        List<String> origins = Arrays.stream(configuredOrigins.split(","))
+                .map(String::strip).filter(origin -> !origin.isEmpty()).distinct().toList();
+        origins.forEach(SecurityConfiguration::validateOrigin);
+        return origins;
+    }
+
+    private static void validateOrigin(String origin) {
         URI uri = URI.create(origin);
         if (origin.contains("*") || !("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()))
                 || uri.getHost() == null || uri.getRawUserInfo() != null || uri.getRawQuery() != null
