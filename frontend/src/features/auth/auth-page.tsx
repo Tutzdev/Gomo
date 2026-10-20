@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
@@ -38,7 +38,6 @@ export function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">(
     searchParams.get("modo") === "cadastro" ? "register" : "login",
   );
-  const [message, setMessage] = useState<string | null>(null);
   const destination = internalPath(searchParams.get("depois")) ?? "/app";
 
   if (user) return <Navigate to={destination} replace />;
@@ -49,16 +48,16 @@ export function AuthPage() {
   };
 
   const handleRegister = async (values: RegisterValues) => {
+    // A conta nova já entra pelo cookie de sessão; o aviso de verificar o e-mail aparece dentro do app.
     await register(values.name, values.email, values.password);
-    setMessage("Conta criada. Entre para solicitar a verificação do seu e-mail.");
-    setMode("login");
+    navigate(destination, { replace: true });
   };
 
   return (
     <AuthFrame>
       <div className={`auth-switcher ${mode === "register" ? "auth-switcher--register" : ""}`}>
         <div className="auth-form-panel auth-form-panel--login">
-          <LoginForm onSubmit={handleLogin} message={message} />
+          <LoginForm onSubmit={handleLogin} />
         </div>
         <div className="auth-form-panel auth-form-panel--register">
           <RegisterForm onSubmit={handleRegister} />
@@ -78,7 +77,6 @@ export function AuthPage() {
               type="button"
               className="mt-8 min-h-11 rounded-lg border border-white/35 px-5 font-bold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               onClick={() => {
-                setMessage(null);
                 setMode(mode === "login" ? "register" : "login");
               }}
             >
@@ -98,7 +96,7 @@ export function AuthPage() {
   );
 }
 
-function LoginForm({ onSubmit, message }: { onSubmit: (values: LoginValues) => Promise<void>; message: string | null }) {
+function LoginForm({ onSubmit }: { onSubmit: (values: LoginValues) => Promise<void> }) {
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
@@ -113,7 +111,6 @@ function LoginForm({ onSubmit, message }: { onSubmit: (values: LoginValues) => P
       <p className="text-sm font-extrabold uppercase tracking-[0.14em] text-primary">Acessar a Gomo</p>
       <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.04em]">Entre na sua conta</h1>
       <p className="mt-2 text-sm leading-6 text-muted">Continue suas listas, comparações e alertas.</p>
-      {message ? <p className="mt-5 flex gap-2 rounded-lg bg-success-soft p-3 text-sm text-success" role="status"><CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden />{message}</p> : null}
       <div className="mt-7 space-y-4">
         <TextField id="login-email" label="E-mail" type="email" autoComplete="email" error={errors.email?.message} {...register("email")} />
         <PasswordField id="login-password" label="Senha" visible={showPassword} onVisibilityChange={setShowPassword} autoComplete="current-password" error={errors.password?.message} registration={register("password")} />

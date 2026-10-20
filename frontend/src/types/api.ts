@@ -93,8 +93,9 @@ export interface CatalogItemHistory {
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  tokenType: string;
+  /** null no site: a sessão vai num cookie HttpOnly. */
+  accessToken: string | null;
+  tokenType: "Bearer" | "Cookie";
   expiresAt: string;
   user: User;
 }

@@ -1,32 +1,41 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AuthContext, type AuthContextValue } from "@/features/auth/auth-context";
-import { ApiError, sessionStorageService } from "@/lib/api";
+import { ApiError, legacySessionStorage } from "@/lib/api";
 import { authApi } from "@/services/gomo-api";
 import type { User } from "@/types/api";
 
+/*
+ * O cookie de sessão é HttpOnly: o site não sabe se ele existe e pergunta à API a cada carregamento.
+ * Quem entrou antes do cookie ainda tem o token no localStorage; ele é trocado por um cookie uma vez.
+ */
+async function loadSessionUser(): Promise<User | null> {
+  const legacyToken = legacySessionStorage.read();
+  if (legacyToken) {
+    try {
+      const user = await authApi.moveSessionToCookie(legacyToken);
+      legacySessionStorage.clear();
+      return user;
+    } catch (error) {
+      // Token vencido ou recusado: apaga e segue como visitante. Falha de rede ou do servidor tenta de novo depois.
+      if (!(error instanceof ApiError && error.status >= 400 && error.status < 500)) throw error;
+      legacySessionStorage.clear();
+    }
+  }
+  return (await authApi.session()) ?? null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(() => Boolean(sessionStorageService.read()));
+  const [loading, setLoading] = useState(true);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   const refreshUser = useCallback(async () => {
     setSessionError(null);
-    if (!sessionStorageService.read()) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     try {
-      setUser(await authApi.currentUser());
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        sessionStorageService.clear();
-        setUser(null);
-      } else {
-        setSessionError("Não foi possível verificar sua sessão. Tente novamente em instantes.");
-      }
+      setUser(await loadSessionUser());
+    } catch {
+      setSessionError("Não foi possível verificar sua sessão. Tente novamente em instantes.");
     } finally {
       setLoading(false);
     }
@@ -50,17 +59,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionError,
       login: async (email, password) => {
         const response = await authApi.login({ email, password });
-        sessionStorageService.write(response.accessToken);
+        legacySessionStorage.clear();
         setUser(response.user);
         setSessionError(null);
         return response.user;
       },
-      register: (name, email, password) => authApi.register({ name, email, password }),
+      register: async (name, email, password) => {
+        // O cadastro pelo site já abre a sessão no cookie.
+        const created = await authApi.register({ name, email, password });
+        legacySessionStorage.clear();
+        setUser(created);
+        setSessionError(null);
+        return created;
+      },
       logout: async () => {
         try {
           await authApi.logout();
         } finally {
-          sessionStorageService.clear();
+          legacySessionStorage.clear();
           setUser(null);
           setSessionError(null);
         }

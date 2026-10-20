@@ -60,6 +60,15 @@ export const authApi = {
       authenticated: false,
     }),
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }),
+  /** Usuário da sessão atual, ou undefined (204) para quem não entrou. */
+  session: () => apiRequest<User | undefined>("/auth/session", { authenticated: false }),
+  /** Troca o token antigo do localStorage por um cookie de sessão. */
+  moveSessionToCookie: (legacyToken: string) =>
+    apiRequest<User>("/auth/session", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${legacyToken}` },
+      authenticated: false,
+    }),
   deleteAccount: (password: string) =>
     apiRequest<void>("/users/me", { method: "DELETE", body: { password } }),
   currentUser: () => apiRequest<User>("/users/me"),

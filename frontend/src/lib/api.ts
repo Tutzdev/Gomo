@@ -23,7 +23,7 @@ function isLocalAddress(url: string) {
   }
 }
 
-const TOKEN_KEY = "gomo.session";
+const LEGACY_TOKEN_KEY = "gomo.session";
 
 export class ApiError extends Error {
   constructor(
@@ -34,10 +34,25 @@ export class ApiError extends Error {
   }
 }
 
-export const sessionStorageService = {
-  read: () => window.localStorage.getItem(TOKEN_KEY),
-  write: (token: string) => window.localStorage.setItem(TOKEN_KEY, token),
-  clear: () => window.localStorage.removeItem(TOKEN_KEY),
+/*
+ * A sessão fica num cookie HttpOnly que o JavaScript não lê. Antes dele, o token ficava no localStorage;
+ * esse token antigo só é lido uma vez, para ser trocado por um cookie, e depois apagado.
+ */
+export const legacySessionStorage = {
+  read: () => {
+    try {
+      return window.localStorage.getItem(LEGACY_TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  },
+  clear: () => {
+    try {
+      window.localStorage.removeItem(LEGACY_TOKEN_KEY);
+    } catch {
+      // Sem acesso ao armazenamento (modo privado bloqueado), não há nada para apagar.
+    }
+  },
 };
 
 interface RequestOptions extends Omit<RequestInit, "body"> {
@@ -48,14 +63,11 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
+  // Pede a sessão em cookie e marca o pedido para a checagem de origem (proteção contra CSRF) da API.
+  headers.set("X-Gomo-Session", "cookie");
 
   if (options.body !== undefined) {
     headers.set("Content-Type", "application/json");
-  }
-
-  if (options.authenticated !== false) {
-    const token = sessionStorageService.read();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
   }
 
   let response: Response;
@@ -64,6 +76,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers,
+      credentials: "include",
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
   } catch {
@@ -74,7 +87,6 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (response.status === 401 && options.authenticated !== false) {
-    sessionStorageService.clear();
     window.dispatchEvent(new Event("gomo:session-expired"));
   }
 
