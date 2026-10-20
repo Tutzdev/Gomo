@@ -9,8 +9,17 @@ import { LockedStores } from "@/features/plan/plan-locks";
 import { ShoppingRoute } from "@/features/plan/shopping-route";
 import { SplitSavingsBanner } from "@/features/plan/split-savings-banner";
 import { useUpsell } from "@/features/plan/upsell-context";
+import { ShareButton } from "@/components/ui/share-button";
+import { siteUrl } from "@/lib/site-url";
 import { ComparisonItems } from "./comparison-items";
 import type { ShoppingListItem } from "@/types/api";
+
+function listShareText(storeName: string, total: number, items: number, priciestTotal: number | null) {
+  const savings = priciestTotal !== null && priciestTotal > total ? priciestTotal - total : 0;
+  return savings > 0
+    ? `Comparei minha lista de ${items} itens no Gomo: no ${storeName} sai ${formatCurrency(total)}, ${formatCurrency(savings)} a menos que no mercado mais caro.`
+    : `Comparei minha lista de ${items} itens no Gomo: o menor total é no ${storeName}, ${formatCurrency(total)}.`;
+}
 
 export function ListComparison({
   id,
@@ -75,6 +84,14 @@ export function ListComparison({
         (a.subtotalKnown ?? Number.POSITIVE_INFINITY) -
           (b.subtotalKnown ?? Number.POSITIVE_INFINITY),
     );
+  // The most expensive market that has the whole list too: the honest comparison for "how much did I save".
+  const priciestCompleteTotal = comparison.data.stores.content.reduce<number | null>(
+    (priciest, store) =>
+      store.completeShoppingList && store.subtotalKnown !== null && store.subtotalKnown > (priciest ?? 0)
+        ? store.subtotalKnown
+        : priciest,
+    null,
+  );
   const bestTotals = new Map(
     combination.stores.flatMap((store) =>
       store.items.flatMap((item) =>
@@ -116,6 +133,15 @@ export function ListComparison({
                 <p className="mt-2 text-sm text-warning">
                   O mercado não informa se alguns itens estão disponíveis. Vale conferir.
                 </p>
+              ) : null}
+              {winner.total !== null ? (
+                <div className="mt-4">
+                  <ShareButton
+                    label="Compartilhar economia"
+                    text={listShareText(winner.storeName, winner.total, winner.requestedItems, priciestCompleteTotal)}
+                    url={siteUrl()}
+                  />
+                </div>
               ) : null}
             </>
           ) : (

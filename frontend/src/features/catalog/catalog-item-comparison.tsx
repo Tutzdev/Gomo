@@ -8,8 +8,15 @@ import { DailyComparisonsMeter, DailyLimitNotice, LockedStores } from "@/feature
 import { PriceHistoryPanel } from "@/features/plan/price-history-panel";
 import { catalogApi } from "@/services/gomo-api";
 import type { CatalogItemDetail } from "@/types/api";
+import { ShareButton } from "@/components/ui/share-button";
+import { siteUrl } from "@/lib/site-url";
 import { AddToList } from "./add-to-list";
 import { CatalogItemThumbnail } from "./catalog-item-picker";
+
+function productShareText(name: string, cheapest: number, cheapestStore: string, priciest: number | null) {
+  const elsewhere = priciest !== null && priciest > cheapest ? `, e chega a ${formatCurrency(priciest)} em outro mercado` : "";
+  return `${name} está ${formatCurrency(cheapest)} no ${cheapestStore}${elsewhere}. Vi no Gomo:`;
+}
 
 /**
  * One product, every market that sells it at a real, current price, cheapest first.
@@ -66,7 +73,12 @@ function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
             <DailyComparisonsMeter access={access} />
           </div>
         </div>
-        <AddToList catalogItem={item} />
+        <div className="flex flex-wrap gap-2">
+          <AddToList catalogItem={item} />
+          {cheapest !== null ? (
+            <ShareButton text={productShareText(item.name, cheapest, offers[0].storeName, priciest)} url={siteUrl()} />
+          ) : null}
+        </div>
       </header>
 
       <DailyLimitNotice access={access} />
