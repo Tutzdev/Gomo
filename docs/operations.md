@@ -87,6 +87,12 @@ VITE_LEGAL_CONTACT_EMAIL="contato@seudominio.com.br"
 
 Sem eles, as páginas omitem essas linhas. Os textos descrevem o que o código realmente coleta e guarda. Vale a revisão de um advogado antes de escalar o produto.
 
+No mesmo arquivo, informe o endereço público do site. Ele entra nas tags Open Graph (a prévia com imagem quando alguém cola o link no WhatsApp) e nos links do botão "Compartilhar". Sem ele, a prévia aparece sem imagem:
+
+```bash
+VITE_SITE_URL="https://seudominio.com.br"
+```
+
 
 ## 6. Pagamento do Premium (AbacatePay)
 
