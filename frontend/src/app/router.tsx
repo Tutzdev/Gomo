@@ -53,6 +53,11 @@ export const router = createBrowserRouter([
     lazy: () => import("@/routes/legal-pages").then(({ PrivacyPage }) => ({ Component: PrivacyPage })),
   },
   {
+    path: "/precos/:slug",
+    hydrateFallbackElement,
+    lazy: () => import("@/routes/product-price-page").then(({ ProductPricePage }) => ({ Component: ProductPricePage })),
+  },
+  {
     path: "/acesso-negado",
     hydrateFallbackElement,
     lazy: () => import("@/routes/error-pages").then(({ AccessDeniedPage }) => ({

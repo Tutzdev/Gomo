@@ -101,6 +101,9 @@ export const catalogApi = {
     apiRequest<CatalogItemDetail>(
       `/catalog/items/${id}?${queryString({ cityId, storeIds: storeIds?.join(",") })}`,
     ),
+  // The public price page shows the same view to everyone and never spends an account's daily comparisons.
+  publicCatalogItem: (id: string, cityId: string) =>
+    apiRequest<CatalogItemDetail>(`/catalog/items/${id}?${queryString({ cityId })}`, { authenticated: false }),
   catalogItemHistory: (id: string, cityId: string, storeIds?: string[]) =>
     apiRequest<CatalogItemHistory>(
       `/catalog/items/${id}/history?${queryString({ cityId, storeIds: storeIds?.join(",") })}`,

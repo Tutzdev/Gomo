@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_LEGAL_RESPONSIBLE?: string;
   /** E-mail para pedidos sobre dados pessoais (LGPD). */
   readonly VITE_LEGAL_CONTACT_EMAIL?: string;
+  /** Endereço público do site (ex.: https://gomo.com.br): link canônico, JSON-LD e o Sitemap do robots.txt. */
+  readonly VITE_SITE_URL?: string;
 }
 
 declare module "*.png" {
