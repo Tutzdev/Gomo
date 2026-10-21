@@ -1,0 +1,706 @@
+/*
+ * Hero da landing. Referência: a hero da AbacatePay (frase de impacto com pílulas no meio do texto,
+ * CTA em pílula e o produto logo abaixo, cortado pela borda do painel), refeita com o conteúdo do Gomo.
+ * Fredoka no título, Nunito no resto; o vermelho só no preço que importa e no botão.
+ */
+
+.hero {
+  --hero-ink: #2b1d1c;
+  --hero-panel-top: #fffaf8;
+  --hero-panel-bottom: #ffe0d9;
+  --hero-board-height: clamp(22rem, 40vw, 33rem);
+
+  padding-top: clamp(0.75rem, 2vw, 1.5rem);
+  font-family: var(--font-landing-body);
+}
+
+/* O painel: cantos bem redondos e um degradê quente que fica mais forte atrás do produto. */
+.hero__panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: clamp(1.75rem, 3.5vw, 3rem);
+  background:
+    radial-gradient(60% 45% at 50% 100%, rgb(229 43 36 / 0.14), transparent 70%),
+    radial-gradient(40% 30% at 12% 8%, rgb(255 255 255 / 0.9), transparent 70%),
+    linear-gradient(180deg, var(--hero-panel-top) 0%, var(--hero-panel-bottom) 100%);
+  padding: clamp(3rem, 7vw, 5.5rem) clamp(1rem, 4vw, 4rem) 0;
+  text-align: center;
+}
+
+.hero__copy {
+  max-width: 62rem;
+  margin-inline: auto;
+}
+
+.hero__title {
+  color: var(--hero-ink);
+  font-family: var(--font-landing-hero);
+  font-size: clamp(2.125rem, 5.2vw, 4.25rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* As pílulas no meio da frase, como campos que o visitante preenche. */
+.hero__pill {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.15em;
+  vertical-align: baseline;
+  border-radius: 999px;
+  padding: 0.02em 0.38em 0.06em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.hero__pill--product {
+  background: #fff1c9;
+  color: #6b4a00;
+}
+
+.hero__pill--price {
+  background: var(--primary-soft-strong);
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero__picker {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.hero__pill--button {
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  transition:
+    background-color 200ms var(--landing-ease-standard),
+    box-shadow 200ms var(--landing-ease-standard);
+}
+
+.hero__pill--button:hover {
+  background: #ffe8a8;
+}
+
+.hero__pill--button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* Nomes longos do catálogo não quebram a frase: a pílula corta com reticências. */
+.hero__pill-label {
+  overflow: hidden;
+  max-width: min(11em, 72vw);
+  text-overflow: ellipsis;
+}
+
+.hero__pill-chevron {
+  width: 0.5em;
+  height: 0.5em;
+  flex-shrink: 0;
+  stroke-width: 3;
+  transition: transform 250ms var(--landing-ease-out);
+}
+
+.hero__pill--button[aria-expanded="true"] .hero__pill-chevron {
+  transform: rotate(180deg);
+}
+
+.hero__options {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  width: max-content;
+  min-width: 16rem;
+  max-width: min(24rem, 88vw);
+  transform: translateX(-50%);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: white;
+  box-shadow: 0 18px 40px -12px rgb(43 29 28 / 0.25);
+  margin: 0;
+  padding: 0.375rem;
+  font-family: var(--font-landing-body);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.3;
+  list-style: none;
+  text-align: left;
+  animation: hero-pop-in 180ms var(--landing-ease-out);
+}
+
+.hero__options:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.hero__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  border-radius: 0.875rem;
+  padding: 0.625rem 0.75rem;
+  color: var(--foreground);
+}
+
+.hero__option.is-active {
+  background: var(--surface-strong);
+}
+
+.hero__option[aria-selected="true"] {
+  color: var(--primary);
+}
+
+.hero__was {
+  color: #9a8c8a;
+  white-space: nowrap;
+}
+
+.hero__was s {
+  text-decoration-thickness: 0.07em;
+}
+
+.hero__lead {
+  max-width: 40rem;
+  margin: clamp(1.25rem, 2.5vw, 1.75rem) auto 0;
+  color: var(--landing-ink-soft);
+  font-size: clamp(1rem, 1.4vw, 1.1875rem);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.hero__lead strong {
+  color: var(--hero-ink);
+  font-weight: 800;
+}
+
+.hero__lead strong.text-primary {
+  color: var(--primary);
+}
+
+.hero__actions {
+  display: grid;
+  justify-items: center;
+  gap: 0.875rem;
+  margin-top: clamp(1.75rem, 3vw, 2.25rem);
+}
+
+.hero__cta {
+  gap: 0.5rem;
+  padding-inline: 1.75rem 1.5rem;
+  font-family: var(--font-landing-body);
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.hero__cta-arrow {
+  transition: transform 250ms var(--landing-ease-out);
+}
+
+.hero__cta:hover .hero__cta-arrow {
+  transform: translateX(3px);
+}
+
+.hero__note {
+  color: var(--landing-ink-soft);
+  font-size: 0.875rem;
+}
+
+.hero__note strong {
+  color: var(--hero-ink);
+  font-weight: 800;
+}
+
+/* A anotação à mão, como um bilhete colado ao lado do painel. Só no desktop. */
+.hero__scribble {
+  display: none;
+}
+
+/* ---------- O painel do Gomo ---------- */
+
+.hero-board {
+  position: relative;
+  height: var(--hero-board-height);
+  max-width: 72rem;
+  margin: clamp(2.5rem, 5vw, 4rem) auto 0;
+  text-align: left;
+}
+
+/* A borda de vidro em volta do app, aberta embaixo: o painel corta a janela. */
+.hero-board__frame {
+  height: calc(var(--hero-board-height) + 2rem);
+  border: 1px solid rgb(255 255 255 / 0.9);
+  border-radius: 2rem 2rem 0 0;
+  background: rgb(255 255 255 / 0.45);
+  box-shadow: 0 -20px 60px -30px rgb(169 28 24 / 0.35);
+  padding: 0.625rem 0.625rem 0;
+  backdrop-filter: blur(6px);
+  animation: hero-board-in 900ms var(--landing-ease-out) both;
+}
+
+.hero-board__app {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: #fbfbfc;
+  font-family: var(--font-sans);
+  color: var(--foreground);
+}
+
+.hero-board__app svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.hero-board__sidebar {
+  display: none;
+  width: 14rem;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 1rem;
+  border-right: 1px solid var(--border);
+  background: white;
+  padding: 1.25rem 0.875rem;
+}
+
+.hero-board__logo {
+  width: 6rem;
+  margin: 0 0 0.25rem 0.5rem;
+}
+
+.hero-board__city {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.hero-board__city svg {
+  color: var(--primary);
+}
+
+.hero-board__sidebar ul {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-board__sidebar li {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.hero-board__sidebar li.is-active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 8px 18px -10px rgb(229 43 36 / 0.8);
+}
+
+.hero-board__main {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  align-content: start;
+  gap: 0.875rem;
+  padding: clamp(0.875rem, 2vw, 1.5rem);
+}
+
+.hero-board__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hero-board__search {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: white;
+  padding: 0.5rem 0.875rem;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.hero-board__search svg {
+  color: var(--muted);
+}
+
+.hero-board__chip {
+  display: none;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--primary-soft-strong);
+  border-radius: 999px;
+  background: var(--primary-soft);
+  padding: 0.4375rem 0.75rem;
+  color: var(--primary-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.hero-board__chip svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.hero-board__summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: white;
+  animation: hero-rise-in 600ms 200ms var(--landing-ease-out) both;
+}
+
+.hero-board__stat {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+  padding: clamp(0.875rem, 2vw, 1.25rem);
+}
+
+.hero-board__stat + .hero-board__stat {
+  border-left: 1px solid var(--border);
+}
+
+.hero-board__label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.hero-board__money {
+  color: var(--foreground);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-board__stat--best .hero-board__money {
+  color: var(--primary);
+}
+
+.hero-board__currency {
+  margin-right: 0.15em;
+  color: var(--muted);
+  font-size: 0.6em;
+  font-weight: 700;
+}
+
+.hero-board__cents {
+  font-size: 0.55em;
+  font-weight: 700;
+}
+
+.hero-board__trend {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.25rem;
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-board__trend svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.hero-board__trend.is-down {
+  color: var(--success);
+}
+
+.hero-board__trend.is-up {
+  color: var(--muted);
+}
+
+/* O troféu do mais barato, numa base com brilho, como as ilustrações dos cards da referência. */
+.hero-board__badge {
+  position: absolute;
+  top: 50%;
+  right: clamp(0.875rem, 2vw, 1.5rem);
+  display: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  transform: translateY(-50%) rotate(-6deg);
+  border-radius: 1.125rem;
+  background: linear-gradient(145deg, #ff6b5f, var(--primary) 55%, var(--primary-dark));
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.35),
+    0 12px 24px -10px rgb(229 43 36 / 0.7);
+  color: white;
+}
+
+.hero-board__app .hero-board__badge svg {
+  width: 1.625rem;
+  height: 1.625rem;
+}
+
+.hero-board__facts {
+  display: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: white;
+  margin: 0;
+  padding: 1rem 1.25rem;
+  animation: hero-rise-in 600ms 320ms var(--landing-ease-out) both;
+}
+
+.hero-board__facts div {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.hero-board__facts dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.hero-board__facts dd {
+  overflow: hidden;
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-board__ranking {
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: white;
+  padding: 1rem clamp(0.875rem, 2vw, 1.25rem);
+  animation: hero-rise-in 600ms 440ms var(--landing-ease-out) both;
+}
+
+.hero-board__ranking-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.hero-board__ranking ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-board__ranking li {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.375rem;
+  font-size: 0.8125rem;
+  animation: hero-row-in 500ms calc(560ms + var(--row) * 70ms) var(--landing-ease-out) both;
+}
+
+.hero-board__ranking li + li {
+  border-top: 1px solid var(--surface-strong);
+}
+
+.hero-board__ranking li.is-cheapest {
+  background: var(--primary-soft);
+}
+
+.hero-board__ranking li strong {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-board__ranking li.is-cheapest strong {
+  color: var(--primary);
+}
+
+.hero-board__rank {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 800;
+}
+
+.is-cheapest .hero-board__rank {
+  background: var(--primary);
+  color: white;
+}
+
+.hero-board__store {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A barra do preço: quanto mais caro, mais longa. Só aparece onde há largura. */
+.hero-board__bar {
+  display: none;
+}
+
+.hero-board__ranking li.hero-board__locked {
+  display: flex;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+@keyframes hero-board-in {
+  from {
+    opacity: 0;
+    transform: translateY(2.5rem);
+  }
+}
+
+@keyframes hero-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+@keyframes hero-row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-0.75rem);
+  }
+}
+
+@keyframes hero-pop-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -0.375rem) scale(0.98);
+  }
+}
+
+@keyframes hero-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* ---------- Responsivo ---------- */
+
+@media (min-width: 40rem) {
+  .hero-board__chip {
+    display: inline-flex;
+  }
+
+  .hero-board__badge {
+    display: grid;
+  }
+
+  .hero-board__ranking li {
+    grid-template-columns: 1.5rem minmax(8rem, 13rem) minmax(0, 1fr) auto;
+  }
+
+  .hero-board__bar {
+    display: block;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--surface-strong) calc(var(--share) * 100%), transparent 0);
+    transform-origin: left;
+    animation: hero-bar-grow 700ms calc(640ms + var(--row) * 70ms) var(--landing-ease-out) both;
+  }
+
+  .is-cheapest .hero-board__bar {
+    background: linear-gradient(90deg, rgb(229 43 36 / 0.35) calc(var(--share) * 100%), transparent 0);
+  }
+}
+
+@media (min-width: 56rem) {
+  .hero-board__sidebar {
+    display: flex;
+  }
+
+  .hero-board__facts {
+    display: grid;
+  }
+}
+
+@media (min-width: 72rem) {
+  .hero__scribble {
+    position: absolute;
+    z-index: 1;
+    top: clamp(17rem, 27vw, 22rem);
+    right: clamp(2rem, 7vw, 7rem);
+    display: block;
+    max-width: 11rem;
+    transform: rotate(-8deg);
+    color: var(--landing-ink-soft);
+    font-family: "Caveat", cursive;
+    font-size: 1.5rem;
+    line-height: 1.1;
+  }
+
+  .hero__scribble svg {
+    display: block;
+    width: 3rem;
+    height: 3.5rem;
+    margin: 0.25rem 0 0 1rem;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-board__frame,
+  .hero-board__summary,
+  .hero-board__facts,
+  .hero-board__ranking,
+  .hero-board__ranking li,
+  .hero-board__bar,
+  .hero__options {
+    animation: none;
+  }
+}

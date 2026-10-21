@@ -20,8 +20,8 @@ export function PublicNavbar() {
   const signUpPath = user ? "/app/produtos" : "/entrar?modo=cadastro";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
-      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-5 px-4 sm:px-6 lg:px-16">
+    <header className="public-navbar sticky top-0 z-40 border-b border-border/60 bg-white/90 backdrop-blur-md supports-[backdrop-filter]:bg-white/75">
+      <div className="mx-auto flex h-18 max-w-[88rem] items-center justify-between gap-5 px-[clamp(1.5rem,5vw,4.5rem)]">
         <Link to="/" aria-label="Gomo — página inicial" className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
           <BrandLogo />
         </Link>
@@ -31,7 +31,7 @@ export function PublicNavbar() {
             <a
               key={item.href}
               href={item.href}
-              className="rounded-lg px-3 py-2 text-sm font-semibold text-muted transition-colors hover:bg-surface-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="rounded-full px-4 py-2 text-[0.9375rem] font-bold text-muted transition-colors hover:bg-surface-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
               {item.label}
             </a>
