@@ -6,7 +6,7 @@
  * Uma fonte arredondada para cada parte (tokens --font-landing-*); a Manrope fica no resto.
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@500..700&family=Nunito:wght@400..800&family=Quicksand:wght@500..700&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Caveat:wght@600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@500..700&family=Nunito:wght@400..800&family=Quicksand:wght@500..700&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap");
 
 .landing {
   /* Largura das seções redesenhadas: mais aberta que a moldura, sem encostar nas bordas da tela. */

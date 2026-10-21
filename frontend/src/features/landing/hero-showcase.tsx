@@ -1,17 +1,16 @@
 import type { CSSProperties } from "react";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   CircleDollarSign,
   Clock3,
   House,
   ListChecks,
   Lock,
   MapPin,
+  Plus,
   Search,
   Settings,
+  Share2,
   Store,
-  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import gomoLogo from "../../../../gomo-logo.png";
@@ -34,13 +33,13 @@ const VISIBLE_ROWS = 6;
 
 /*
  * O painel do Gomo desenhado em código (nítido em qualquer tela), com a mesma comparação da frase de cima.
+ * O miolo é a tela de comparação do app: o produto, quanto dá para economizar e o ranking dos mercados.
  * É uma figura: o leitor de tela ouve a legenda, não cada número da tela.
  */
 export function HeroShowcase({ comparison }: { comparison: HeroComparison }) {
   const { product, offers, lowest, highest, cityName } = comparison;
-  const savings = highest - lowest;
-  const savingsPercent = Math.round((savings / highest) * 100);
   const rows = offers.slice(0, VISIBLE_ROWS);
+  const cheapest = rows[0]?.price ?? lowest;
   const updatedAt = comparison.collectedAt
     ? new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(comparison.collectedAt)
     : null;
@@ -83,62 +82,47 @@ export function HeroShowcase({ comparison }: { comparison: HeroComparison }) {
               </span>
             </div>
 
-            <div className="hero-board__summary">
-              <div className="hero-board__stat hero-board__stat--best">
-                <span className="hero-board__label">Mais barato</span>
-                <Money value={lowest} />
-                <span className="hero-board__trend is-down">
-                  <ArrowDownRight />
-                  {offers[0].store}
+            <section className="hero-board__compare">
+              <header className="hero-board__product">
+                <div className="min-w-0">
+                  <p className="hero-board__product-name">{product.name}</p>
+                  <p className="hero-board__product-meta">
+                    Preço atual em {comparison.pricedStores} mercados de {cityName}
+                  </p>
+                </div>
+                <span className="hero-board__actions">
+                  <span className="hero-board__button">
+                    <Plus />À lista
+                  </span>
+                  <span className="hero-board__button hero-board__button--icon">
+                    <Share2 />
+                  </span>
                 </span>
-                <span className="hero-board__badge">
-                  <Trophy />
-                </span>
-              </div>
-              <div className="hero-board__stat">
-                <span className="hero-board__label">Mais caro</span>
-                <Money value={highest} />
-                <span className="hero-board__trend is-up">
-                  <ArrowUpRight />+{savingsPercent}% que o mais barato
-                </span>
-              </div>
-            </div>
+              </header>
 
-            <dl className="hero-board__facts">
-              <div>
-                <dt>Mercados com preço</dt>
-                <dd>{comparison.pricedStores}</dd>
-              </div>
-              <div>
-                <dt>Diferença</dt>
-                <dd>{formatCurrency(savings)}</dd>
-              </div>
-              <div>
-                <dt>Economia</dt>
-                <dd className="text-primary">{savingsPercent}%</dd>
-              </div>
-              <div>
-                <dt>Cidade</dt>
-                <dd>{cityName}</dd>
-              </div>
-            </dl>
+              {highest > lowest ? (
+                <p className="hero-board__savings">
+                  Comprando no mais barato você economiza até <strong>{formatCurrency(highest - lowest)}</strong> por
+                  unidade.
+                </p>
+              ) : null}
 
-            <div className="hero-board__ranking">
-              <p className="hero-board__ranking-title">
-                <Store />
-                Preço em cada mercado
-              </p>
-              <ol>
+              <ol className="hero-board__ranking">
                 {rows.map((offer, index) => (
                   <li
                     key={offer.store}
                     className={cn(index === 0 && "is-cheapest")}
-                    style={{ "--row": index, "--share": offer.price / highest } as CSSProperties}
+                    style={{ "--row": index } as CSSProperties}
                   >
                     <span className="hero-board__rank">{index + 1}</span>
-                    <span className="hero-board__store">{offer.store}</span>
-                    <span className="hero-board__bar" />
-                    <strong>{formatCurrency(offer.price)}</strong>
+                    <span className="hero-board__store">
+                      <Store />
+                      <span className="truncate">{offer.store}</span>
+                    </span>
+                    <span className="hero-board__price">
+                      <strong>{formatCurrency(offer.price)}</strong>
+                      <span>{index === 0 ? "Mais barato" : `+${formatCurrency(offer.price - cheapest)}`}</span>
+                    </span>
                   </li>
                 ))}
                 {comparison.lockedStores > 0 ? (
@@ -148,22 +132,10 @@ export function HeroShowcase({ comparison }: { comparison: HeroComparison }) {
                   </li>
                 ) : null}
               </ol>
-            </div>
+            </section>
           </div>
         </div>
       </div>
     </figure>
-  );
-}
-
-/** "R$ 10,49" with the cents smaller, like the totals in the app. */
-function Money({ value }: { value: number }) {
-  const [reais, cents] = formatCurrency(value).replace("R$", "").trim().split(",");
-  return (
-    <span className="hero-board__money">
-      <span className="hero-board__currency">R$</span>
-      {reais}
-      <span className="hero-board__cents">,{cents}</span>
-    </span>
   );
 }

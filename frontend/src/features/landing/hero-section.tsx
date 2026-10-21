@@ -14,7 +14,6 @@ import "./hero.css";
 export function HeroSection({ signUpPath }: { signUpPath: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const comparison = useHeroComparison(selectedId);
-  const savings = comparison.highest - comparison.lowest;
 
   return (
     <section className="hero landing-wide" aria-labelledby="hero-title">
@@ -39,9 +38,7 @@ export function HeroSection({ signUpPath }: { signUpPath: string }) {
           </h1>
 
           <p className="hero__lead">
-            No <strong>{comparison.lowestStore}</strong> sai <strong className="text-primary">{formatCurrency(savings)}</strong>{" "}
-            mais barato que no mercado mais caro de {comparison.cityName}. O Gomo compara os mercados da sua cidade
-            antes de você sair de casa.
+            Compare os supermercados da sua cidade e descubra onde a sua compra sai mais barata, antes de sair de casa.
           </p>
 
           <div className="hero__actions">
@@ -49,19 +46,9 @@ export function HeroSection({ signUpPath }: { signUpPath: string }) {
               Comparar preços grátis
               <ArrowRight className="hero__cta-arrow size-[1.125rem]" aria-hidden />
             </NativeButton>
-            <p className="hero__note">
-              <strong>Grátis para usar.</strong> Sem cartão de crédito.
-            </p>
+            <p className="hero__note">Sem cartão de crédito. Você cria a conta e já compara.</p>
           </div>
         </div>
-
-        <p className="hero__scribble" aria-hidden>
-          Os preços de hoje, lado a lado!
-          <svg viewBox="0 0 64 72" fill="none">
-            <path d="M52 4 C 30 8, 12 24, 14 52" />
-            <path d="M5 42 L 14 56 L 25 45" />
-          </svg>
-        </p>
 
         <HeroShowcase comparison={comparison} />
       </div>
