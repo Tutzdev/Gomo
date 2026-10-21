@@ -57,16 +57,25 @@ export const legacySessionStorage = {
 
 interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
+  /** false nas rotas de login e cadastro: um 401 nelas é senha errada, não sessão vencida. */
   authenticated?: boolean;
+  /**
+   * Dados públicos pedidos sem a sessão, como o visitante os veria. A página pública de um produto, por
+   * exemplo, não gasta as comparações do dia de quem está logado.
+   */
+  anonymous?: boolean;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers = new Headers(options.headers);
+  const { authenticated, anonymous = false, body, ...init } = options;
+  const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
-  // Pede a sessão em cookie e marca o pedido para a checagem de origem (proteção contra CSRF) da API.
-  headers.set("X-Gomo-Session", "cookie");
+  if (!anonymous) {
+    // Pede a sessão em cookie e marca o pedido para a checagem de origem (proteção contra CSRF) da API.
+    headers.set("X-Gomo-Session", "cookie");
+  }
 
-  if (options.body !== undefined) {
+  if (body !== undefined) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -74,10 +83,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
+      ...init,
       headers,
-      credentials: "include",
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      credentials: anonymous ? "omit" : "include",
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, {
@@ -86,7 +95,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     });
   }
 
-  if (response.status === 401 && options.authenticated !== false) {
+  if (response.status === 401 && authenticated !== false && !anonymous) {
     window.dispatchEvent(new Event("gomo:session-expired"));
   }
 

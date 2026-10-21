@@ -103,7 +103,7 @@ export const catalogApi = {
   ) =>
     apiRequest<PageResponse<CatalogItem>>(
       `/catalog/items?${queryString({ ...filters, storeIds: filters.storeIds?.join(",") })}`,
-      { authenticated: false, signal },
+      { anonymous: true, signal },
     ),
   // Sent with the session (when there is one) so the API can apply the account's plan.
   catalogItem: (id: string, cityId?: string, storeIds?: string[]) =>
@@ -112,7 +112,7 @@ export const catalogApi = {
     ),
   // The public price page shows the same view to everyone and never spends an account's daily comparisons.
   publicCatalogItem: (id: string, cityId: string) =>
-    apiRequest<CatalogItemDetail>(`/catalog/items/${id}?${queryString({ cityId })}`, { authenticated: false }),
+    apiRequest<CatalogItemDetail>(`/catalog/items/${id}?${queryString({ cityId })}`, { anonymous: true }),
   catalogItemHistory: (id: string, cityId: string, storeIds?: string[]) =>
     apiRequest<CatalogItemHistory>(
       `/catalog/items/${id}/history?${queryString({ cityId, storeIds: storeIds?.join(",") })}`,
@@ -120,34 +120,34 @@ export const catalogApi = {
   discoverProducts: (filters: ProductFilters & { cityId?: string; storeIds?: string[] } = {}, signal?: AbortSignal) =>
     apiRequest<PageResponse<ProductDiscoveryResult>>(
       `/products/discovery?${queryString({ ...filters, storeIds: filters.storeIds?.join(",") })}`,
-      { authenticated: false, signal },
+      { anonymous: true, signal },
     ),
   states: (page = 0, size = 100) =>
     apiRequest<PageResponse<State>>(`/states?${queryString({ page, size })}`, {
-      authenticated: false,
+      anonymous: true,
     }),
   cities: (stateId?: string, page = 0, size = 100) =>
     apiRequest<PageResponse<City>>(
       `/cities?${queryString({ stateId, page, size })}`,
       {
-        authenticated: false,
+        anonymous: true,
       },
     ),
   products: (filters: ProductFilters = {}, signal?: AbortSignal) =>
     apiRequest<PageResponse<Product>>(
       `/products?${queryString({ size: 20, ...filters })}`,
       {
-        authenticated: false,
+        anonymous: true,
         signal,
       },
     ),
   productFilters: (query: string, signal?: AbortSignal) =>
     apiRequest<ProductSearchFacets>(
       `/products/filters?${queryString({ query })}`,
-      { authenticated: false, signal },
+      { anonymous: true, signal },
     ),
   product: (id: string) =>
-    apiRequest<Product>(`/products/${id}`, { authenticated: false }),
+    apiRequest<Product>(`/products/${id}`, { anonymous: true }),
   offers: (
     ids: string[],
     cityId: string,
@@ -156,13 +156,13 @@ export const catalogApi = {
   ) =>
     apiRequest<ProductOffers[]>(
       `/products/offers?${queryString({ ids: ids.join(","), cityId, storeIds: storeIds.join(",") })}`,
-      { authenticated: false, signal },
+      { anonymous: true, signal },
     ),
   stores: (cityId?: string, page = 0, size = 100) =>
     apiRequest<PageResponse<Store>>(
       `/stores?${queryString({ cityId, page, size })}`,
       {
-        authenticated: false,
+        anonymous: true,
       },
     ),
   allStores: async (cityId: string) => {
@@ -202,11 +202,11 @@ export const catalogApi = {
     return { ...first, stores: { ...first.stores, content } };
   },
   store: (id: string) =>
-    apiRequest<Store>(`/stores/${id}`, { authenticated: false }),
+    apiRequest<Store>(`/stores/${id}`, { anonymous: true }),
   storeProducts: (id: string, query: string, page = 0) =>
     apiRequest<PageResponse<StoreProduct>>(
       `/stores/${id}/products?${queryString({ query, page, size: 30 })}`,
-      { authenticated: false },
+      { anonymous: true },
     ),
   priceHistory: (productId: string, storeId: string, page = 0, size = 20) =>
     apiRequest<PageResponse<PriceRecord>>(
