@@ -35,6 +35,12 @@
 			<artifactId>jsoup</artifactId>
 			<version>1.23.2</version>
 		</dependency>
+		<!-- Erros do backend no Sentry; só liga com a variável SENTRY_DSN. -->
+		<dependency>
+			<groupId>io.sentry</groupId>
+			<artifactId>sentry-spring-boot-4</artifactId>
+			<version>8.56.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-api</artifactId>

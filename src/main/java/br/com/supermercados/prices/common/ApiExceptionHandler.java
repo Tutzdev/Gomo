@@ -1,6 +1,7 @@
 package br.com.supermercados.prices.common;
 
 import br.com.supermercados.prices.subscription.PlanLimitException;
+import io.sentry.Sentry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -77,6 +78,8 @@ public class ApiExceptionHandler {
         }
         // Exception messages may contain SQL parameters or credentials from upstream systems.
         log.error("Falha inesperada: {}", exception.getClass().getName());
+        // No-op unless SENTRY_DSN is set; ErrorMonitoringConfiguration drops the message before sending.
+        Sentry.captureException(exception);
         return ResponseEntity.internalServerError().body(problems.create(
                 HttpStatus.INTERNAL_SERVER_ERROR, "Não foi possível concluir a operação.", request));
     }

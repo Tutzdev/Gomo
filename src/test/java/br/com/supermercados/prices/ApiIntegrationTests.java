@@ -59,6 +59,9 @@ class ApiIntegrationTests {
     @Autowired
     private jakarta.persistence.EntityManager entityManager;
 
+    @Autowired
+    private org.springframework.context.ApplicationContext context;
+
     @DynamicPropertySource
     static void configureDatabase(DynamicPropertyRegistry registry) {
         PostgresTestDatabase.register(registry);
@@ -328,6 +331,12 @@ class ApiIntegrationTests {
         mvc.perform(get("/actuator/health")).andExpect(status().isOk());
         mvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk());
         mvc.perform(get("/actuator/metrics")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void errorReportingStaysOffWithoutSentryDsn() {
+        assertThat(context.getBeanNamesForType(io.sentry.SentryOptions.class)).isEmpty();
+        assertThat(io.sentry.Sentry.isEnabled()).isFalse();
     }
 
     @Test
