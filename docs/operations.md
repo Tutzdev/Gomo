@@ -125,3 +125,17 @@ O Premium pago usa o checkout hospedado de assinatura da AbacatePay (API v2): o 
 6. **Teste o fluxo** com o cartão `4242 4242 4242 4242` (validade futura e qualquer CVV): assinar, voltar para `/assinar?pagamento=concluido`, ver o Premium ativo e cancelar no perfil. Os logs de entrega do webhook ficam no painel da AbacatePay.
 
 Como o acesso funciona: cada pagamento confirmado (`subscription.completed` ou `subscription.renewed`) estende o Premium por um ciclo, contado no horário de Brasília, mais 3 dias, que cobrem as retentativas de uma renovação recusada. Cancelar pelo perfil para as cobranças e mantém o período já pago. Se as retentativas esgotarem, a AbacatePay cancela a assinatura e o Premium termina na hora. Excluir a conta cancela a assinatura antes; se a AbacatePay não confirmar, a exclusão espera.
+
+## 7. Sessão em cookie
+
+O site guarda a sessão no cookie `__Host-gomo_session` (HttpOnly, Secure, SameSite=Lax). Em produção não há nada para configurar: o cookie exige HTTPS, e o Nginx do item 1 já repassa `X-Forwarded-Proto` e `X-Forwarded-Host`, que a API usa para conferir o `Origin` dos pedidos que mudam dados. Sem esses cabeçalhos, todo POST do site é recusado com 403 "Pedido de outra origem recusado.". Só o ambiente local em http usa `AUTH_COOKIE_SECURE=false`, que o perfil `development` já liga.
+
+## 8. Medição de uso e de erros (opcional)
+
+Tudo fica desligado até as variáveis existirem. Sem elas, nenhum script de terceiros é carregado.
+
+- **Erros do backend:** `SENTRY_DSN` (e, se quiser, `SENTRY_ENVIRONMENT`) em `/etc/gomo/gomo.env`. Só os erros 500 inesperados são enviados, sem a mensagem da exceção, sem dados da requisição e sem usuário.
+- **Erros do site:** `VITE_SENTRY_DSN` (e `VITE_SENTRY_ENVIRONMENT`) no `frontend/.env` do build. Use um projeto JavaScript separado no Sentry.
+- **Uso do site, sem cookie:** `VITE_ANALYTICS_PROVIDER` (`plausible` ou `umami`), `VITE_ANALYTICS_SCRIPT_URL` (o `script.js` do serviço, em https) e `VITE_ANALYTICS_SITE_ID` (o domínio no Plausible ou o website id no Umami), também no build.
+
+No Sentry, ative **Settings > Security & Privacy > Prevent Storing of IP Addresses** nos dois projetos. A Política de Privacidade diz que o IP não é guardado. As variáveis `VITE_*` entram no build, então é preciso gerar o frontend de novo depois de mudá-las. A página de privacidade passa a descrever o que estiver ligado.
