@@ -1,11 +1,16 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { BrandLogo } from "@/components/brand-logo";
+import { analyticsSettings } from "@/lib/observability";
 
-const UPDATED_AT = "7 de outubro de 2026";
+const UPDATED_AT = "20 de outubro de 2026";
 /** Quem responde pelo Gomo e o canal para pedidos sobre dados pessoais, definidos no build (frontend/.env). */
 const RESPONSIBLE = import.meta.env.VITE_LEGAL_RESPONSIBLE?.trim();
 const CONTACT_EMAIL = import.meta.env.VITE_LEGAL_CONTACT_EMAIL?.trim();
+/** A medição só existe quando o build a liga (frontend/.env); a política descreve o que está ligado. */
+const ANALYTICS = analyticsSettings();
+const ANALYTICS_NAME = ANALYTICS?.provider === "umami" ? "Umami" : "Plausible";
+const ERROR_REPORTING = Boolean(import.meta.env.VITE_SENTRY_DSN?.trim());
 
 export function PrivacyPage() {
   return (
@@ -21,10 +26,11 @@ export function PrivacyPage() {
         <li><strong>Conta:</strong> nome, e-mail e a confirmação do e-mail. A senha é guardada apenas como hash (BCrypt): ninguém, nem a equipe do Gomo, consegue lê-la.</li>
         <li><strong>O que você cria no app:</strong> listas de compras, alertas de preço e as notificações deles, cidade preferida, mercados favoritos e preços que você enviar como contribuição.</li>
         <li><strong>Plano:</strong> se a conta é grátis ou Premium, as datas do teste grátis e quantas comparações completas você fez no dia (para o limite do plano grátis).</li>
-        <li><strong>Sessão:</strong> um código de acesso, guardado no seu navegador e, do nosso lado, só como hash, com validade de 12 horas.</li>
+        <li><strong>Sessão:</strong> um código de acesso guardado num cookie do Gomo, que só o nosso servidor lê (o cookie é HttpOnly e não serve para rastrear você). Do nosso lado ele fica só como hash e vale por 12 horas; sair da conta apaga o cookie.</li>
         <li><strong>Segurança:</strong> o endereço IP de quem tenta entrar ou criar conta é usado, apenas na memória do servidor e por no máximo uma hora, para limitar tentativas repetidas. O servidor também mantém registros técnicos de acesso por um período curto, para investigar falhas e abusos.</li>
       </ul>
-      <p>Não usamos cookies de publicidade nem ferramentas de rastreamento ou análise de terceiros.</p>
+      <p>O cookie de sessão é o único cookie do Gomo. Não usamos cookies de publicidade nem de rastreamento.</p>
+      <Measurement />
 
       <h2>Para que usamos</h2>
       <ul>
@@ -37,8 +43,11 @@ export function PrivacyPage() {
       <h2>Com quem os dados são compartilhados</h2>
       <p>
         Somente com os fornecedores que fazem o Gomo funcionar: a empresa que hospeda o servidor e o banco de dados
-        e o serviço de envio de e-mails. Eles tratam os dados apenas para prestar esse serviço. Os preços exibidos vêm
-        dos sites públicos dos supermercados; nenhum dado seu é enviado a eles.
+        e o serviço de envio de e-mails.
+        {ANALYTICS ? <> Para medir o uso, o {ANALYTICS_NAME} recebe os dados de visita descritos acima.</> : null}
+        {ERROR_REPORTING ? <> Para corrigir erros, o Sentry recebe os relatórios de erro descritos acima.</> : null}
+        {" "}Eles tratam os dados apenas para prestar esse serviço. Os preços exibidos vêm dos sites públicos dos
+        supermercados; nenhum dado seu é enviado a eles.
       </p>
 
       <h2>Por quanto tempo</h2>
@@ -60,6 +69,35 @@ export function PrivacyPage() {
       <h2>Mudanças nesta política</h2>
       <p>Se a forma de tratar seus dados mudar, esta página será atualizada e a data no topo mudará.</p>
     </LegalPage>
+  );
+}
+
+function Measurement() {
+  if (!ANALYTICS && !ERROR_REPORTING) {
+    return <p>Não usamos ferramentas de análise de uso nem de relatório de erros de terceiros.</p>;
+  }
+  return (
+    <>
+      <h2>O que medimos</h2>
+      <ul>
+        {ANALYTICS ? (
+          <li>
+            <strong>Uso do site ({ANALYTICS_NAME}):</strong> qual página foi aberta, de qual site a visita veio, o
+            tipo de aparelho e navegador e o país. Sem cookie, sem guardar seu IP e sem criar um perfil seu: as visitas
+            são contadas no total e não dá para saber quem é você. O endereço é registrado sem a parte depois do
+            &quot;?&quot;, onde ficam os códigos dos links enviados por e-mail.
+          </li>
+        ) : null}
+        {ERROR_REPORTING ? (
+          <li>
+            <strong>Erros (Sentry):</strong> quando algo quebra, enviamos o tipo do erro, o trecho do código onde
+            ele aconteceu, o endereço da página (sem a parte depois do &quot;?&quot;), o navegador e o sistema. Não
+            enviamos seu nome, e-mail, IP, senha, cookies nem o que você digitou.
+          </li>
+        ) : null}
+      </ul>
+      <p>Usamos esses dados só para entender o uso do Gomo e corrigir falhas (legítimo interesse, art. 7º, IX).</p>
+    </>
   );
 }
 
