@@ -9,6 +9,7 @@ import { PriceHistoryPanel } from "@/features/plan/price-history-panel";
 import { catalogApi } from "@/services/gomo-api";
 import type { CatalogItemDetail } from "@/types/api";
 import { ShareButton } from "@/components/ui/share-button";
+import { productPagePath } from "@/lib/product-page-path";
 import { siteUrl } from "@/lib/site-url";
 import { AddToList } from "./add-to-list";
 import { CatalogItemThumbnail } from "./catalog-item-picker";
@@ -76,7 +77,10 @@ function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
         <div className="flex flex-wrap gap-2">
           <AddToList catalogItem={item} />
           {cheapest !== null ? (
-            <ShareButton text={productShareText(item.name, cheapest, offers[0].storeName, priciest)} url={siteUrl()} />
+            <ShareButton
+              text={productShareText(item.name, cheapest, offers[0].storeName, priciest)}
+              url={siteUrl(productPagePath(item.id, item.name))}
+            />
           ) : null}
         </div>
       </header>

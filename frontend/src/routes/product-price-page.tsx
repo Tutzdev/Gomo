@@ -6,6 +6,7 @@ import { PublicNavbar } from "@/components/layout/public-navbar";
 import { StatusBadge } from "@/components/page/page-elements";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { NativeButton } from "@/components/ui/native-button";
+import { ShareButton } from "@/components/ui/share-button";
 import { useAuth } from "@/features/auth/auth-context";
 import { LandingFooter } from "@/features/landing/landing-footer";
 import { ApiError } from "@/lib/api";
@@ -13,6 +14,7 @@ import { BRAND, formatCurrency, formatDate } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { absoluteUrl, usePageMeta } from "@/lib/page-meta";
 import { productIdFromSlug, productPagePath } from "@/lib/product-page-path";
+import { siteUrl } from "@/lib/site-url";
 import { useDefaultCityId } from "@/lib/use-default-city";
 import { catalogApi } from "@/services/gomo-api";
 import type { CatalogItemDetail } from "@/types/api";
@@ -122,10 +124,18 @@ function ProductPrices({ detail, cityName }: { detail: CatalogItemDetail; cityNa
               {item.pricesCollectedAt ? (
                 <span className="inline-flex items-center gap-1">
                   <Clock3 className="size-3.5" aria-hidden />
-                  Coletado em {formatDate(item.pricesCollectedAt)}
+                  Atualizado em {formatDate(item.pricesCollectedAt)}
                 </span>
               ) : null}
             </p>
+            {item.lowestPrice !== null ? (
+              <div className="mt-4">
+                <ShareButton
+                  text={`${item.name} está ${formatCurrency(item.lowestPrice)}${item.lowestPriceStore ? ` no ${item.lowestPriceStore}` : ""}. Vi no Gomo:`}
+                  url={siteUrl(productPagePath(item.id, item.name))}
+                />
+              </div>
+            ) : null}
           </div>
         </header>
 
@@ -163,7 +173,7 @@ function ProductPrices({ detail, cityName }: { detail: CatalogItemDetail; cityNa
                     </h2>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
                       {offer.price.promotionApplied ? <StatusBadge tone="success">Promoção</StatusBadge> : null}
-                      {observation ? <span>Coletado em {formatDate(observation.collectedAt)}</span> : null}
+                      {observation ? <span>Visto em {formatDate(observation.collectedAt)}</span> : null}
                     </div>
                   </div>
                   <div className="text-right">
@@ -195,7 +205,7 @@ function ProductPrices({ detail, cityName }: { detail: CatalogItemDetail; cityNa
       </article>
 
       <p className="mt-3 text-xs text-muted">
-        Preços publicados pelos próprios mercados nos seus sites e coletados várias vezes por dia. Confira no mercado
+        Preços publicados pelos próprios mercados nos seus sites e atualizados várias vezes por dia. Confira no mercado
         antes de comprar.
       </p>
 
