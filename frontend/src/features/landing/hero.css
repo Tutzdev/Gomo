@@ -1,38 +1,29 @@
 /*
  * Hero da landing: a frase do visitante, com o produto como um campo a preencher e o preço como a etiqueta
- * de gôndola do encarte de supermercado. Fundo de papel quente com pontinhos, sem brilho; o painel do Gomo
+ * de gôndola do encarte de supermercado. Fundo num degradê vermelho suave; o painel do Gomo
  * logo abaixo, cortado pela borda. Fredoka no título, Nunito no resto; o vermelho só no preço e no botão.
  */
 
 .hero {
   --hero-ink: #2b1d1c;
   --hero-panel-top: #fffaf8;
+  --hero-panel-bottom: #ffe0d9;
   --hero-board-height: clamp(22rem, 40vw, 33rem);
 
   padding-top: clamp(0.75rem, 2vw, 1.5rem);
   font-family: var(--font-landing-body);
 }
 
-/* O painel: papel quente, um tom só que esquenta de leve até embaixo, com borda fina em vez de brilho. */
+/* O painel: um degradê vermelho suave que esquenta até embaixo, com borda fina. */
 .hero__panel {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--primary-soft-strong) 70%, white);
   border-radius: clamp(1.75rem, 3.5vw, 3rem);
-  background: linear-gradient(180deg, var(--hero-panel-top) 0%, var(--primary-soft) 100%);
+  background: linear-gradient(180deg, var(--hero-panel-top) 0%, var(--hero-panel-bottom) 100%);
   padding: clamp(3rem, 7vw, 5.5rem) clamp(1rem, 4vw, 4rem) 0;
   text-align: center;
-}
-
-/* A grade de pontinhos de papel quadriculado, que some antes de chegar no painel do app. */
-.hero__panel::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background: radial-gradient(circle at 1px 1px, var(--landing-dots) 1.25px, transparent 1.75px) 0 0 / 22px 22px;
-  content: "";
-  mask-image: linear-gradient(180deg, black 0%, transparent 62%);
 }
 
 .hero__copy {
@@ -61,17 +52,12 @@
   white-space: nowrap;
 }
 
-/* O produto riscado de marca-texto, como um item marcado na lista de compras. */
+/* O produto numa pílula colorida, para chamar atenção como um campo que o visitante preenche. */
 .hero__pill--product {
-  border-radius: 0.3em;
-  background: linear-gradient(
-    transparent 52%,
-    var(--primary-soft-strong) 52%,
-    var(--primary-soft-strong) 84%,
-    transparent 84%
-  );
-  padding: 0 0.1em;
-  color: var(--hero-ink);
+  border-radius: 999px;
+  background: #fff1c9;
+  padding: 0.02em 0.38em 0.06em;
+  color: #6b4a00;
 }
 
 /* A etiqueta: ponta à esquerda com o furinho do barbante, levemente torta como quem cola na prateleira. */
@@ -114,15 +100,9 @@
     box-shadow 200ms var(--landing-ease-standard);
 }
 
-/* Trocável: o marca-texto engrossa ao passar o mouse; a setinha numa bolinha branca avisa que abre. */
 .hero__pill--button:hover,
 .hero__pill--button[aria-expanded="true"] {
-  background: linear-gradient(
-    transparent 36%,
-    var(--primary-soft-strong) 36%,
-    var(--primary-soft-strong) 86%,
-    transparent 86%
-  );
+  background: #ffe8a8;
 }
 
 .hero__pill--button:focus-visible {
@@ -138,15 +118,9 @@
 }
 
 .hero__pill-chevron {
-  width: 0.62em;
-  height: 0.62em;
+  width: 0.5em;
+  height: 0.5em;
   flex-shrink: 0;
-  margin-left: 0.1em;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface);
-  padding: 0.12em;
-  color: var(--primary);
   stroke-width: 3;
   transition: transform 250ms var(--landing-ease-out);
 }
