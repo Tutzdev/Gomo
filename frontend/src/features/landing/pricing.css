@@ -1,0 +1,206 @@
+/*
+ * Planos: uma caixa só, dividida por linhas finas. A primeira coluna apresenta, as outras duas comparam.
+ * Sem degradê nem brilho: o vermelho fica no preço do que se assina e no botão de ação.
+ */
+
+.plans {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: var(--landing-radius-xl);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.plans > * + * {
+  border-top: 1px solid var(--border);
+}
+
+.plans__intro,
+.plan {
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.plans__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.plans__intro-text {
+  max-width: 26rem;
+  color: var(--muted);
+  font-family: var(--font-landing-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+/* Tablet: apresentação em cima, os dois planos lado a lado. */
+@media (min-width: 44rem) {
+  .plans {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plans__intro {
+    grid-column: 1 / -1;
+  }
+
+  .plans > .plan + .plan {
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+}
+
+/* Desktop: três colunas, como uma tabela de preço que se lê da esquerda para a direita. */
+@media (min-width: 68rem) {
+  .plans {
+    grid-template-columns: minmax(0, 0.9fr) repeat(2, minmax(0, 1fr));
+  }
+
+  .plans__intro {
+    grid-column: auto;
+    justify-content: space-between;
+  }
+
+  .plans > * + * {
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+}
+
+/* ---------- Coluna de plano ---------- */
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-landing-body);
+}
+
+.plan--premium {
+  background: color-mix(in srgb, var(--primary-soft) 40%, var(--surface));
+}
+
+.plan__head {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.plan__name {
+  font-family: var(--font-landing-price);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.plan__badge {
+  border: 1px solid var(--primary-soft-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  padding: 0.125rem 0.625rem;
+  color: var(--primary-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.plan__price {
+  display: flex;
+  align-items: baseline;
+  margin-top: 1rem;
+  font-family: var(--font-landing-price);
+  font-size: clamp(3rem, 6vw, 3.75rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.plan--premium .plan__price {
+  color: var(--primary);
+}
+
+.plan__currency {
+  align-self: flex-start;
+  margin: 0.3em 0.2em 0 0;
+  font-size: 0.36em;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.plan__period {
+  margin-left: 0.35em;
+  color: var(--muted);
+  font-family: var(--font-landing-body);
+  font-size: 0.26em;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.plan__text {
+  margin-top: 0.875rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.plan__text strong {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.plan__features {
+  flex: 1;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+}
+
+.plan__lead {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.plan__items {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.875rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan__items li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.plan__icon {
+  flex-shrink: 0;
+  width: 1.0625rem;
+  height: 1.0625rem;
+  margin-top: 0.05rem;
+  color: var(--muted);
+}
+
+.plan__button {
+  align-self: flex-start;
+  margin-top: 2rem;
+}
+
+/* Celular: botão na largura toda, mais fácil de acertar com o dedo. */
+@media (max-width: 43.99rem) {
+  .plan__button {
+    align-self: stretch;
+  }
+}
+
+/* O título da seção na mesma fonte arredondada dos preços. */
+#preco .landing-heading__title {
+  font-family: var(--font-landing-price);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}

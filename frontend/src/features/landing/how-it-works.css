@@ -1,0 +1,285 @@
+/*
+ * "Como funciona": quatro cartões brancos de borda fina, um objeto desenhado em cada um e uma frase curta.
+ * Os objetos são neutros (creme quente); só a sacola, que é a promessa do Gomo, leva o vermelho da marca.
+ */
+
+#como-funciona {
+  /* Tons quentes só dos desenhos: não existem no index.css porque não são cor de interface. */
+  --how-cream-50: #fffcf6;
+  --how-cream-100: #f7f0e3;
+  --how-cream-200: #ebe1cf;
+  --how-cream-300: #dccfb8;
+  --how-cream-400: #c4b497;
+  --how-red-light: #ff8a84;
+  --how-red-hi: #f4524b;
+}
+
+.how-intro {
+  max-width: 44rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.how-intro__eyebrow {
+  margin-bottom: 0.875rem;
+  color: var(--muted);
+  font-family: var(--font-landing-steps);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* ---------- Cartões ---------- */
+
+.how-grid {
+  display: grid;
+  gap: 1rem;
+  margin: clamp(2.5rem, 5vw, 3.75rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 36rem) {
+  .how-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .how-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+.how-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, white);
+  border-radius: var(--landing-radius-xl);
+  background: var(--surface);
+  padding: 2.75rem 1.5rem 2.5rem;
+  text-align: center;
+  transition: border-color 200ms var(--landing-ease-standard);
+}
+
+.how-card__step {
+  position: absolute;
+  top: 1.125rem;
+  left: 1.375rem;
+  color: var(--border-strong);
+  font-family: var(--font-landing-steps);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.how-card__text {
+  max-width: 15rem;
+  color: var(--foreground);
+  font-family: var(--font-landing-steps);
+  font-size: 1.1875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+/* No celular, o cartão vira uma linha: objeto à esquerda, frase à direita. */
+@media (max-width: 35.99rem) {
+  .how-card {
+    flex-direction: row;
+    gap: 1rem;
+    border-radius: var(--landing-radius-lg);
+    padding: 1rem 1.25rem 1rem 1rem;
+    text-align: left;
+  }
+
+  .how-card__step {
+    top: 0.625rem;
+    left: auto;
+    right: 0.875rem;
+  }
+
+  .how-card__text {
+    max-width: none;
+    padding-right: 0.75rem;
+    font-size: 1.0625rem;
+  }
+}
+
+/* ---------- Objetos ---------- */
+
+.how-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.how-stop--cream-hi { stop-color: var(--how-cream-100); }
+.how-stop--cream-lo { stop-color: var(--how-cream-200); }
+.how-stop--red-hi { stop-color: var(--how-red-hi); }
+.how-stop--red-lo { stop-color: var(--primary-strong); }
+.how-stop--shadow { stop-color: var(--foreground); stop-opacity: 0.13; }
+.how-stop--shadow-fade { stop-color: var(--foreground); stop-opacity: 0; }
+
+.how-art {
+  --tone-face: url(#how-face-cream);
+  --tone-side: var(--how-cream-300);
+  --tone-deep: var(--how-cream-400);
+  --tone-light: var(--how-cream-50);
+
+  flex-shrink: 0;
+  width: 8.5rem;
+  aspect-ratio: 1;
+}
+
+.how-art--accent {
+  --tone-face: url(#how-face-red);
+  --tone-side: var(--primary-dark);
+  --tone-deep: var(--primary-dark);
+  --tone-light: var(--how-red-light);
+}
+
+@media (max-width: 35.99rem) {
+  .how-art {
+    width: 4.75rem;
+  }
+}
+
+.how-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.how-face { fill: var(--tone-face); }
+.how-face-stroke { stroke: var(--tone-face); }
+.how-side { fill: var(--tone-side); }
+.how-side-stroke { stroke: var(--tone-side); }
+.how-deep { fill: var(--tone-deep); }
+.how-light-stroke { stroke: var(--tone-light); opacity: 0.85; }
+.how-glass { fill: var(--how-cream-50); }
+.how-glint { stroke: var(--surface); }
+.how-check { stroke: var(--surface); }
+.how-ground { fill: url(#how-ground-shadow); }
+
+/* Tudo que se mexe gira ou sobe em torno do próprio centro. */
+.how-ground,
+.how-lens,
+.how-tag,
+.how-bag,
+.how-bell {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 450ms var(--landing-ease-out);
+}
+
+.how-bell {
+  transform-origin: 50% 0%;
+}
+
+/* ---------- Passar o mouse: o objeto ganha vida, o cartão só acende a borda ---------- */
+
+@media (hover: hover) and (pointer: fine) {
+  .how-card:hover {
+    border-color: var(--border-strong);
+  }
+
+  .how-card:hover .how-ground {
+    transform: scaleX(0.86);
+  }
+
+  .how-card:hover .how-lens {
+    transform: translate(-3px, -4px) rotate(-8deg);
+  }
+
+  .how-card:hover .how-tag--back {
+    transform: rotate(-10deg) translateY(-2px);
+  }
+
+  .how-card:hover .how-tag--front {
+    transform: rotate(7deg) translateX(3px);
+  }
+
+  .how-card:hover .how-bag {
+    transform: translateY(-6px);
+  }
+
+  .how-card:hover .how-bell {
+    animation: how-ring 900ms var(--landing-ease-standard);
+  }
+}
+
+@keyframes how-ring {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(12deg); }
+  35% { transform: rotate(-10deg); }
+  55% { transform: rotate(6deg); }
+  75% { transform: rotate(-3deg); }
+}
+
+/* ---------- Chamada abaixo dos cartões ---------- */
+
+.how-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  text-align: center;
+}
+
+.how-cta__note {
+  max-width: 34rem;
+  color: var(--muted);
+  font-family: var(--font-landing-body);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
+.how-cta__note strong {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+@media (max-width: 22.5rem) {
+  .how-cta .landing-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .how-card,
+  .how-ground,
+  .how-lens,
+  .how-tag,
+  .how-bag,
+  .how-bell {
+    transition: none;
+  }
+
+  .how-card:hover .how-ground,
+  .how-card:hover .how-lens,
+  .how-card:hover .how-tag,
+  .how-card:hover .how-bag {
+    transform: none;
+  }
+
+  .how-card:hover .how-bell {
+    animation: none;
+  }
+}
+
+/* O título da seção na mesma fonte arredondada dos cartões. */
+#como-funciona .landing-heading__title {
+  font-family: var(--font-landing-steps);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
