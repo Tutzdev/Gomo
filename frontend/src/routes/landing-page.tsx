@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import { useAuth } from "@/features/auth/auth-context";
 import { ClosingSection } from "@/features/landing/closing-section";
@@ -7,14 +8,18 @@ import { HeroSection } from "@/features/landing/hero-section";
 import { LandingFooter } from "@/features/landing/landing-footer";
 import { PricingSection } from "@/features/landing/pricing-section";
 import { TestimonialsSection } from "@/features/landing/testimonials-section";
+import { useScrollReveal } from "@/features/landing/use-scroll-reveal";
 import "@/features/landing/landing.css";
+import "@/features/landing/scroll-reveal.css";
 
 export function LandingPage() {
   const { user } = useAuth();
   const signUpPath = user ? "/app/produtos" : "/entrar?modo=cadastro";
+  const pageRef = useRef<HTMLDivElement>(null);
+  useScrollReveal(pageRef);
 
   return (
-    <div className="landing min-h-screen text-foreground">
+    <div ref={pageRef} className="landing min-h-screen text-foreground">
       <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo</a>
       <PublicNavbar />
 

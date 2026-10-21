@@ -1,0 +1,33 @@
+/*
+ * Aparecimento ao rolar: cada bloco sobe um pouco e ganha opacidade na primeira vez que entra na tela.
+ * Usa a propriedade translate (e não transform) e uma animação (e não transition), para não brigar com os
+ * hovers e as transições que os blocos já têm. As classes só são postas pelo use-scroll-reveal: sem JavaScript,
+ * sem IntersectionObserver ou com movimento reduzido, a página aparece inteira e parada.
+ */
+
+.landing .reveal {
+  opacity: 0;
+  translate: 0 1.75rem;
+}
+
+.landing .reveal.is-revealed {
+  opacity: 1;
+  translate: none;
+  animation: landing-reveal 760ms var(--landing-ease-out) calc(var(--reveal-step, 0) * 90ms) backwards;
+}
+
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    translate: 0 1.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing .reveal,
+  .landing .reveal.is-revealed {
+    opacity: 1;
+    translate: none;
+    animation: none;
+  }
+}
