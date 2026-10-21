@@ -12,6 +12,7 @@ interface SheetProps {
   side?: "left" | "right";
   onCloseAutoFocus?: (event: Event) => void;
   bodyClassName?: string;
+  className?: string;
 }
 
 export function Sheet({
@@ -23,6 +24,7 @@ export function Sheet({
   side = "right",
   onCloseAutoFocus,
   bodyClassName,
+  className,
 }: SheetProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -34,6 +36,7 @@ export function Sheet({
             "fixed inset-y-0 z-50 flex w-[min(88vw,22rem)] flex-col bg-white p-5 shadow-2xl",
             "focus:outline-none motion-safe:duration-200",
             side === "right" ? "right-0 border-l border-border" : "left-0 border-r border-border",
+            className,
           )}
         >
           <div className="flex shrink-0 items-start justify-between gap-4">

@@ -69,10 +69,10 @@ function UpgradeDialog({
     <Dialog.Root open={Boolean(trigger)} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="upsell-overlay fixed inset-0 z-50 bg-black/45" />
-        <Dialog.Content className="upsell-dialog fixed left-1/2 top-1/2 z-50 w-[min(92vw,27rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-white shadow-2xl focus:outline-none">
+        <Dialog.Content className="motion-icons upsell-dialog fixed left-1/2 top-1/2 z-50 w-[min(92vw,27rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-white shadow-2xl focus:outline-none">
           {copy && Icon ? (
             <>
-              <div className="upsell-dialog__header px-6 pb-5 pt-6">
+              <div className="upsell-dialog__header anim-trigger px-6 pb-5 pt-6">
                 <div className="flex items-start justify-between gap-4">
                   <span className="grid size-11 place-items-center rounded-xl bg-white text-primary shadow-sm">
                     <Icon className="size-5" aria-hidden />

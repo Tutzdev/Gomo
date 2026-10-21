@@ -1,0 +1,614 @@
+/* ---------- Ícones animados do app logado ---------- */
+
+/*
+ * Every lucide icon inside .motion-icons gets a short motion that matches what it represents (the bell rings,
+ * the arrow slides, the check draws itself…). lucide-react already tags each <svg> with `lucide-<icon-name>`, so
+ * the motion is picked here by icon and no component has to opt in.
+ *
+ * The motion plays when the pointer enters (or keyboard focus reaches) the whole item: a link, a button, a
+ * <summary>, or a non-interactive card marked .anim-trigger. Hovering the icon itself also plays it. Icons inside
+ * a nested link/button of an .anim-trigger card only react to that control, so hovering a list card never shakes
+ * its delete button. Icons that already run an animation (animate-spin loaders) are left alone.
+ *
+ * Keyframes always end at rest and only touch transform/opacity/stroke, so nothing shifts the layout and leaving
+ * mid-animation never snaps. Nothing runs under prefers-reduced-motion.
+ */
+
+.motion-icons {
+  --icon-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --icon-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --icon-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.motion-icons .lucide > * {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @media (hover: hover) and (pointer: fine) {
+    .motion-icons :is(a, button:not(:disabled), summary, label):hover .lucide:not([class*="animate-"]),
+    .motion-icons .anim-trigger:hover .lucide:not([class*="animate-"], :is(a, button, summary, label) .lucide),
+    .motion-icons .lucide:not([class*="animate-"], :disabled .lucide):hover {
+      animation: var(--icon-motion, none) var(--icon-duration, 520ms) var(--icon-ease, var(--icon-ease-spring));
+    }
+
+    .motion-icons :is(a, button:not(:disabled), summary, label):hover .lucide:not([class*="animate-"]) > *,
+    .motion-icons .anim-trigger:hover .lucide:not([class*="animate-"], :is(a, button, summary, label) .lucide) > *,
+    .motion-icons .lucide:not([class*="animate-"], :disabled .lucide):hover > * {
+      animation: var(--part-motion, none) var(--part-duration, 480ms) var(--part-ease, var(--icon-ease-out))
+        var(--part-delay, 0ms) both;
+    }
+  }
+
+  .motion-icons :is(a, button, summary):focus-visible .lucide:not([class*="animate-"]) {
+    animation: var(--icon-motion, none) var(--icon-duration, 520ms) var(--icon-ease, var(--icon-ease-spring));
+  }
+
+  .motion-icons :is(a, button, summary):focus-visible .lucide:not([class*="animate-"]) > * {
+    animation: var(--part-motion, none) var(--part-duration, 480ms) var(--part-ease, var(--icon-ease-out))
+      var(--part-delay, 0ms) both;
+  }
+}
+
+/* ---------- Movimento de cada ícone ---------- */
+
+/* Notificações: o sino balança preso pelo topo. */
+.motion-icons :is(.lucide-bell, .lucide-bell-ring) {
+  --icon-motion: icon-ring;
+  --icon-duration: 720ms;
+  --icon-ease: var(--icon-ease-in-out);
+  transform-origin: 50% 8%;
+}
+
+/* Navegação lateral e paginação: a seta desliza para onde aponta. */
+.motion-icons :is(.lucide-chevron-left, .lucide-arrow-left) {
+  --icon-motion: icon-nudge-left;
+  --icon-duration: 420ms;
+}
+
+.motion-icons .lucide-chevron-right {
+  --icon-motion: icon-nudge-right;
+  --icon-duration: 420ms;
+}
+
+/* Início, caixa de produto, conta, banco de dados e estado vazio: um pulinho. */
+.motion-icons :is(.lucide-house, .lucide-package, .lucide-user-round, .lucide-database, .lucide-inbox, .lucide-store) {
+  --icon-motion: icon-hop;
+  --icon-duration: 560ms;
+  --icon-ease: var(--icon-ease-in-out);
+  transform-origin: 50% 100%;
+}
+
+/* Busca: a lupa dá um zoom inclinado. */
+.motion-icons .lucide-search {
+  --icon-motion: icon-zoom;
+}
+
+/* Preço: a moeda gira como se fosse jogada. */
+.motion-icons .lucide-circle-dollar-sign {
+  --icon-motion: icon-flip;
+  --icon-duration: 700ms;
+  --icon-ease: var(--icon-ease-in-out);
+}
+
+/* Configurações e atualizar: uma volta completa. */
+.motion-icons :is(.lucide-settings, .lucide-refresh-cw) {
+  --icon-motion: icon-spin;
+  --icon-duration: 700ms;
+  --icon-ease: var(--icon-ease-in-out);
+}
+
+/* Adicionar, fechar e localizar: giro de 90° (são simétricos, então terminam iguais). */
+.motion-icons :is(.lucide-plus, .lucide-x, .lucide-locate-fixed) {
+  --icon-motion: icon-turn;
+  --icon-duration: 460ms;
+}
+
+/* Favoritar: o coração bate. */
+.motion-icons .lucide-heart {
+  --icon-motion: icon-beat;
+  --icon-duration: 640ms;
+  --icon-ease: var(--icon-ease-in-out);
+}
+
+/* Localização: o pino cai e quica no lugar. */
+.motion-icons .lucide-map-pin {
+  --icon-motion: icon-drop;
+  --icon-duration: 560ms;
+  --icon-ease: var(--icon-ease-in-out);
+  transform-origin: 50% 100%;
+}
+
+/* Compartilhar: pulso. */
+.motion-icons .lucide-share-2 {
+  --icon-motion: icon-pop;
+}
+
+/* Erro: balança de um lado para o outro. */
+.motion-icons .lucide-circle-alert {
+  --icon-motion: icon-shake;
+  --icon-duration: 480ms;
+  --icon-ease: var(--icon-ease-in-out);
+}
+
+/* Troféu, calendário: comemoração/folhear em leve balanço. */
+.motion-icons :is(.lucide-trophy, .lucide-calendar-range) {
+  --icon-motion: icon-wiggle;
+  --icon-duration: 600ms;
+  --icon-ease: var(--icon-ease-in-out);
+  transform-origin: 50% 90%;
+}
+
+/* Rota: a seta de navegação dispara na direção que aponta. */
+.motion-icons .lucide-navigation {
+  --icon-motion: icon-launch;
+  --icon-duration: 520ms;
+}
+
+/* Check: o traço se desenha. */
+.motion-icons .lucide-check > :last-child {
+  --part-motion: icon-draw;
+  --dash: 23;
+}
+
+.motion-icons :is(.lucide-circle-check, .lucide-badge-check, .lucide-shield-check, .lucide-mail-check) > :last-child {
+  --part-motion: icon-draw;
+  --part-delay: 80ms;
+  --dash: 9;
+}
+
+.motion-icons :is(.lucide-badge-check, .lucide-shield-check, .lucide-mail-check) {
+  --icon-motion: icon-pop-soft;
+}
+
+/* Listas: os dois checks se desenham em sequência, de cima para baixo. */
+.motion-icons .lucide-list-checks > :nth-child(5) {
+  --part-motion: icon-draw;
+  --dash: 9;
+}
+
+.motion-icons .lucide-list-checks > :nth-child(4) {
+  --part-motion: icon-draw;
+  --part-delay: 140ms;
+  --dash: 9;
+}
+
+/* Histórico de preço: a linha do gráfico se desenha. */
+.motion-icons .lucide-chart-line > :nth-child(2) {
+  --part-motion: icon-draw;
+  --part-duration: 620ms;
+  --dash: 18;
+}
+
+/* Rota: o caminho se desenha entre os dois pontos. */
+.motion-icons .lucide-route > :nth-child(2) {
+  --part-motion: icon-draw;
+  --part-duration: 760ms;
+  --part-ease: var(--icon-ease-in-out);
+  --dash: 51;
+}
+
+/* Sair: a seta sai pela porta. */
+.motion-icons .lucide-log-out > :is(:nth-child(1), :nth-child(2)) {
+  --part-motion: icon-exit;
+  --part-duration: 520ms;
+  --part-ease: var(--icon-ease-in-out);
+}
+
+/* Link externo: a seta escapa para fora da caixa. */
+.motion-icons .lucide-external-link > :is(:nth-child(1), :nth-child(2)) {
+  --part-motion: icon-escape;
+  --part-duration: 480ms;
+  --part-ease: var(--icon-ease-in-out);
+}
+
+/* Excluir: a tampa da lixeira abre e fecha. */
+.motion-icons .lucide-trash-2 > :is(:nth-child(4), :nth-child(5)) {
+  --part-motion: icon-lid;
+  --part-duration: 560ms;
+  --part-ease: var(--icon-ease-in-out);
+  transform-box: view-box;
+  transform-origin: 3px 6px;
+}
+
+/* Bloqueado no plano grátis: o cadeado ensaia abrir. */
+.motion-icons .lucide-lock > :nth-child(2) {
+  --part-motion: icon-shackle;
+  --part-duration: 560ms;
+  --part-ease: var(--icon-ease-in-out);
+}
+
+/* Horários: o ponteiro dá uma volta. */
+.motion-icons .lucide-clock-3 > :nth-child(1) {
+  --part-motion: icon-spin;
+  --part-duration: 700ms;
+  --part-ease: var(--icon-ease-in-out);
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+}
+
+.motion-icons .lucide-file-clock > :nth-child(3) {
+  --part-motion: icon-spin;
+  --part-duration: 700ms;
+  --part-ease: var(--icon-ease-in-out);
+  transform-box: view-box;
+  transform-origin: 8px 16px;
+}
+
+/* Menu: as três linhas encolhem e voltam em cascata. */
+.motion-icons .lucide-menu > * {
+  --part-motion: icon-squeeze;
+  --part-duration: 420ms;
+  --part-ease: var(--icon-ease-in-out);
+  transform-origin: left center;
+}
+
+.motion-icons .lucide-menu > :nth-child(2) {
+  --part-delay: 60ms;
+}
+
+.motion-icons .lucide-menu > :nth-child(3) {
+  --part-delay: 120ms;
+}
+
+/* Filtros: os botões deslizantes correm no trilho. */
+.motion-icons .lucide-sliders-horizontal > :nth-child(3) {
+  --part-motion: icon-slide-back;
+  --part-duration: 520ms;
+  --part-ease: var(--icon-ease-in-out);
+}
+
+.motion-icons .lucide-sliders-horizontal > :is(:nth-child(4), :nth-child(8)) {
+  --part-motion: icon-slide-forth;
+  --part-duration: 520ms;
+  --part-ease: var(--icon-ease-in-out);
+}
+
+.motion-icons .lucide-sliders-horizontal > :nth-child(8) {
+  --part-delay: 60ms;
+}
+
+/* Contribuição: as linhas do recibo são impressas uma a uma. */
+.motion-icons .lucide-receipt-text > :not(:first-child) {
+  --part-motion: icon-print;
+  --part-duration: 360ms;
+  transform-box: view-box;
+  transform-origin: 8px 12px;
+}
+
+.motion-icons .lucide-receipt-text > :nth-child(3) {
+  --part-delay: 90ms;
+}
+
+.motion-icons .lucide-receipt-text > :nth-child(4) {
+  --part-delay: 180ms;
+}
+
+/* Premium: a estrela grande cintila e as pequenas piscam. */
+.motion-icons .lucide-sparkles > :first-child {
+  --part-motion: icon-twinkle;
+  --part-duration: 600ms;
+  --part-ease: var(--icon-ease-spring);
+}
+
+.motion-icons .lucide-sparkles > :not(:first-child) {
+  --part-motion: icon-blink;
+  --part-duration: 600ms;
+  --part-ease: var(--icon-ease-in-out);
+  --part-delay: 80ms;
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes icon-ring {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  15% {
+    transform: rotate(14deg);
+  }
+  30% {
+    transform: rotate(-12deg);
+  }
+  45% {
+    transform: rotate(9deg);
+  }
+  60% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes icon-nudge-left {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(-3px);
+  }
+}
+
+@keyframes icon-nudge-right {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes icon-hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  15% {
+    transform: translateY(0) scale(1.06, 0.9);
+  }
+  45% {
+    transform: translateY(-3px) scale(0.96, 1.06);
+  }
+  75% {
+    transform: translateY(0) scale(1.04, 0.95);
+  }
+}
+
+@keyframes icon-zoom {
+  0%,
+  100% {
+    transform: scale(1) rotate(0);
+  }
+  45% {
+    transform: scale(1.18) rotate(-12deg);
+  }
+}
+
+@keyframes icon-flip {
+  from {
+    transform: rotateY(0);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes icon-spin {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes icon-turn {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(90deg);
+  }
+}
+
+@keyframes icon-beat {
+  0%,
+  50%,
+  100% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(1.22);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes icon-drop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-4px);
+  }
+  65% {
+    transform: translateY(0) scale(1.08, 0.9);
+  }
+  82% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes icon-pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.2);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+}
+
+@keyframes icon-pop-soft {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes icon-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px);
+  }
+  40% {
+    transform: translateX(2px);
+  }
+  60% {
+    transform: translateX(-1.5px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
+}
+
+@keyframes icon-wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(-10deg);
+  }
+  45% {
+    transform: rotate(8deg);
+  }
+  70% {
+    transform: rotate(-4deg);
+  }
+}
+
+@keyframes icon-launch {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  40% {
+    transform: translate(2.5px, -2.5px);
+  }
+}
+
+@keyframes icon-draw {
+  from {
+    stroke-dasharray: var(--dash);
+    stroke-dashoffset: var(--dash);
+  }
+  to {
+    stroke-dasharray: var(--dash);
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes icon-exit {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes icon-escape {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  45% {
+    transform: translate(2px, -2px);
+  }
+}
+
+@keyframes icon-lid {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  40% {
+    transform: translateY(-1.5px) rotate(-14deg);
+  }
+  70% {
+    transform: translateY(0) rotate(2deg);
+  }
+}
+
+@keyframes icon-shackle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-2.5px);
+  }
+  70% {
+    transform: translateY(0.5px);
+  }
+}
+
+@keyframes icon-squeeze {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  45% {
+    transform: scaleX(0.6);
+  }
+}
+
+@keyframes icon-slide-back {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes icon-slide-forth {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes icon-print {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes icon-twinkle {
+  0%,
+  100% {
+    transform: scale(1) rotate(0);
+  }
+  40% {
+    transform: scale(0.8) rotate(-15deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(5deg);
+  }
+}
+
+@keyframes icon-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.15;
+  }
+}

@@ -34,7 +34,7 @@ export function ProfilePage() {
     <>
       <PageHeading title="Perfil" description="Seus dados, sua cidade e a confirmação do seu e-mail." />
       <div className="grid gap-6 xl:grid-cols-2">
-        <section className="surface p-5 sm:p-6">
+        <section className="surface anim-trigger p-5 sm:p-6">
           <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary"><UserRound className="size-5" aria-hidden /></span><div><h2 className="font-bold">Dados da conta</h2><p className="text-sm text-muted">Informações suportadas pelo backend.</p></div></div>
           <form className="mt-6 space-y-4" onSubmit={(event) => { event.preventDefault(); updateProfile.mutate(); }}>
             <TextField id="profile-name" label="Nome" value={name} maxLength={120} onChange={(event) => setName(event.target.value)} required />
@@ -45,7 +45,7 @@ export function ProfilePage() {
           </form>
         </section>
 
-        <section className="surface p-5 sm:p-6">
+        <section className="surface anim-trigger p-5 sm:p-6">
           <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary"><MapPin className="size-5" aria-hidden /></span><div><h2 className="font-bold">Preferências de compra</h2><p className="text-sm text-muted">Usamos a cidade para mostrar os mercados certos.</p></div></div>
           <form className="mt-6" onSubmit={(event) => { event.preventDefault(); updateCity.mutate(); }}>
             <SelectField id="preferred-city" label="Cidade preferida" value={preferredCityId} onChange={(event) => setPreferredCityId(event.target.value)}><option value="">Nenhuma cidade definida</option>{cities.data?.content.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}</SelectField>
@@ -77,7 +77,7 @@ function DeleteAccountSection() {
   const error = deletion.error instanceof ApiError ? deletion.error.message : deletion.error ? "Não foi possível excluir a conta." : undefined;
 
   return (
-    <section className="surface mt-6 border-danger/25 p-5 sm:p-6">
+    <section className="surface anim-trigger mt-6 border-danger/25 p-5 sm:p-6">
       <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-danger-soft text-danger"><Trash2 className="size-5" aria-hidden /></span><div><h2 className="font-bold">Excluir conta</h2><p className="text-sm text-muted">Apaga na hora suas listas, alertas, preferências e sessões, e cancela a assinatura paga, se houver. Não dá para desfazer.</p></div></div>
       <form className="mt-6 grid gap-4 sm:max-w-md" onSubmit={(event) => { event.preventDefault(); deletion.reset(); setConfirming(true); }}>
         <TextField id="delete-password" label="Confirme com sua senha" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />

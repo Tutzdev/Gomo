@@ -73,7 +73,7 @@ export function ShoppingRoute({
   const missingCoordinates = combination.stores.length - stops.length;
 
   return (
-    <section className="surface p-5" aria-labelledby="shopping-route-title">
+    <section className="surface anim-trigger p-5" aria-labelledby="shopping-route-title">
       <h3 id="shopping-route-title" className="flex items-center gap-2 font-bold">
         <Route className="size-4 text-primary" aria-hidden />
         Rota da compra dividida

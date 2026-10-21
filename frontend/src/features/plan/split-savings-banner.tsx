@@ -13,7 +13,7 @@ export function SplitSavingsBanner({ recommendation }: { recommendation: Shoppin
   if (!combination.locked || !splitSavings || splitSavings.savings <= 0 || combination.storeCount < 2) return null;
 
   return (
-    <section className="split-savings" aria-labelledby="split-savings-title">
+    <section className="split-savings anim-trigger" aria-labelledby="split-savings-title">
       <span className="split-savings__icon" aria-hidden>
         <Route className="size-5" />
       </span>

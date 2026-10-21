@@ -7,6 +7,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { UpsellProvider } from "@/features/plan/upsell-provider";
 import type { User } from "@/types/api";
 import { cn } from "@/lib/cn";
+import "@/components/ui/animated-icons.css";
 
 const pageNames: Record<string, string> = {
   "/app": "Início",
@@ -70,7 +71,7 @@ export function AppShell() {
 
   return (
     <UpsellProvider>
-      <div className="min-h-screen bg-[#f7f7f8]">
+      <div className="motion-icons min-h-screen bg-[#f7f7f8]">
         <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo</a>
 
         <aside
@@ -137,6 +138,7 @@ export function AppShell() {
           onOpenChange={setMobileOpen}
           title="Menu da Gomo"
           side="left"
+          className="motion-icons"
           bodyClassName="mt-5 -mx-5 -mb-5 overflow-hidden bg-sidebar"
           onCloseAutoFocus={(event) => { event.preventDefault(); menuButton.current?.focus(); }}
         >

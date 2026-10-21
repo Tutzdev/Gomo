@@ -21,7 +21,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="state-panel">
+    <div className="state-panel anim-trigger">
       <span className="grid size-11 place-items-center rounded-lg bg-surface-strong text-muted">
         <Inbox className="size-5" aria-hidden />
       </span>
@@ -36,7 +36,7 @@ export function EmptyState({
 
 export function ErrorState({ message, retry }: { message?: string; retry?: () => void }) {
   return (
-    <div className="state-panel border-danger/25 bg-danger-soft" role="alert">
+    <div className="state-panel anim-trigger border-danger/25 bg-danger-soft" role="alert">
       <AlertCircle className="size-6 text-danger" aria-hidden />
       <div>
         <h3 className="font-semibold text-foreground">Não foi possível carregar</h3>

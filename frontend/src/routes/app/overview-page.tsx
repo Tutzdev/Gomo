@@ -47,8 +47,8 @@ export function OverviewPage() {
         <section className="surface overflow-hidden" aria-labelledby="favorites-title">
           <SurfaceTitle title="Preferências" description="Sua cidade e seus mercados favoritos." action={<Link className="text-sm font-bold text-primary hover:underline" to="/app/perfil">Editar</Link>} />
           <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
-            <div className="rounded-lg border border-border p-4"><MapPin className="size-5 text-primary" aria-hidden /><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted">Cidade preferida</p><p className="mt-1 font-semibold">{preferredCity?.name ?? "Não definida"}</p></div>
-            <div className="rounded-lg border border-border p-4"><Store className="size-5 text-primary" aria-hidden /><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted">Lojas favoritas</p><p className="mt-1 font-semibold">{preferences.data ? preferences.data.favoriteStoreIds.length : "—"}</p></div>
+            <div className="anim-trigger rounded-lg border border-border p-4"><MapPin className="size-5 text-primary" aria-hidden /><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted">Cidade preferida</p><p className="mt-1 font-semibold">{preferredCity?.name ?? "Não definida"}</p></div>
+            <div className="anim-trigger rounded-lg border border-border p-4"><Store className="size-5 text-primary" aria-hidden /><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted">Lojas favoritas</p><p className="mt-1 font-semibold">{preferences.data ? preferences.data.favoriteStoreIds.length : "—"}</p></div>
           </div>
         </section>
       </div>

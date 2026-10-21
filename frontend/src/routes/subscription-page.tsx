@@ -10,6 +10,7 @@ import { dailyCostLabel, priceLabel } from "@/features/plan/subscription/pricing
 import { useCheckoutAction } from "@/features/plan/subscription/use-checkout-action";
 import { useTrialAction } from "@/features/plan/subscription/use-trial-action";
 import { formatCurrency } from "@/lib/brand";
+import "@/components/ui/animated-icons.css";
 import { useDefaultCityId } from "@/lib/use-default-city";
 import { subscriptionApi } from "@/services/gomo-api";
 import type { BillingCycle, PremiumValue } from "@/types/api";
@@ -55,7 +56,7 @@ export function SubscriptionPage() {
   const value = premiumValue.data?.savings ? premiumValue.data : null;
 
   return (
-    <div className="subscription-page min-h-screen bg-white text-foreground">
+    <div className="subscription-page motion-icons min-h-screen bg-white text-foreground">
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-5 sm:px-6">
         <Link to="/" aria-label="Gomo, página inicial" className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
           <BrandLogo />

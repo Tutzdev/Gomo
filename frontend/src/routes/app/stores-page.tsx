@@ -99,7 +99,7 @@ export function StoresPage() {
             const favorite =
               preferences.data?.favoriteStoreIds.includes(store.id) ?? false;
             return (
-              <article key={store.id} className="surface p-5">
+              <article key={store.id} className="surface anim-trigger p-5">
                 <div className="flex items-start justify-between gap-4">
                   <span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary">
                     <StoreIcon className="size-5" aria-hidden />
