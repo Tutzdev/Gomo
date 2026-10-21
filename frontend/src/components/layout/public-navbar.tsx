@@ -16,6 +16,7 @@ export function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
   const platformPath = user ? "/app" : "/entrar";
+  const platformLabel = user ? "Abrir o Gomo" : "Entrar";
   const signUpPath = user ? "/app/produtos" : "/entrar?modo=cadastro";
 
   return (
@@ -38,7 +39,7 @@ export function PublicNavbar() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <NativeButton to={platformPath} variant="ghost" className="landing-button">Acessar plataforma</NativeButton>
+          <NativeButton to={platformPath} variant="ghost" className="landing-button">{platformLabel}</NativeButton>
           <NativeButton to={signUpPath} className="landing-button">Começar grátis</NativeButton>
         </div>
 
@@ -73,7 +74,7 @@ export function PublicNavbar() {
             ))}
           </div>
           <div className="mt-auto grid gap-2 border-t border-border pt-5">
-            <NativeButton to={platformPath} variant="secondary" className="w-full">Acessar plataforma</NativeButton>
+            <NativeButton to={platformPath} variant="secondary" className="w-full">{platformLabel}</NativeButton>
             <NativeButton to={signUpPath} className="w-full">Começar grátis</NativeButton>
           </div>
         </nav>
