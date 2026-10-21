@@ -277,36 +277,38 @@
   flex-shrink: 0;
 }
 
+/* O menu lateral igual ao da plataforma: vermelho-escuro, logo em branco e o item ativo em branco. */
 .hero-board__sidebar {
   display: none;
   width: 14rem;
   flex-shrink: 0;
   flex-direction: column;
   gap: 1rem;
-  border-right: 1px solid var(--border);
-  background: white;
+  background: var(--sidebar);
   padding: 1.25rem 0.875rem;
 }
 
 .hero-board__logo {
   width: 6rem;
   margin: 0 0 0.25rem 0.5rem;
+  filter: brightness(0) invert(1);
 }
 
 .hero-board__city {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(255 255 255 / 0.16);
   border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.08);
   padding: 0.5rem 0.625rem;
-  color: var(--foreground);
+  color: white;
   font-size: 0.8125rem;
   font-weight: 700;
 }
 
 .hero-board__city svg {
-  color: var(--primary);
+  color: white;
 }
 
 .hero-board__sidebar ul {
@@ -321,17 +323,16 @@
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   padding: 0.625rem 0.75rem;
-  color: var(--muted);
+  color: rgb(255 255 255 / 0.78);
   font-size: 0.8125rem;
   font-weight: 600;
 }
 
 .hero-board__sidebar li.is-active {
-  background: var(--primary-soft);
-  color: var(--primary-dark);
-  font-weight: 700;
+  background: white;
+  color: var(--sidebar);
 }
 
 .hero-board__main {
