@@ -32,6 +32,16 @@ class SecurityConfigurationTest {
     }
 
     @Test
+    void theCookieSessionTrustsThePublicSiteEvenWithoutCorsOrigins() {
+        assertThat(SecurityConfiguration.sessionOrigins("", "https://Gomo.example.test/")).containsExactly("https://gomo.example.test");
+        assertThat(SecurityConfiguration.sessionOrigins("http://localhost:5173", "https://gomo.example.test"))
+                .containsExactly("http://localhost:5173", "https://gomo.example.test");
+        assertThat(SecurityConfiguration.sessionOrigins("https://gomo.example.test", "https://gomo.example.test"))
+                .containsExactly("https://gomo.example.test");
+        assertThat(SecurityConfiguration.sessionOrigins("", "")).isEmpty();
+    }
+
+    @Test
     void corsRejectsWildcardsAndPaths() {
         assertThatThrownBy(() -> security.corsConfigurationSource("*"))
                 .isInstanceOf(IllegalArgumentException.class);

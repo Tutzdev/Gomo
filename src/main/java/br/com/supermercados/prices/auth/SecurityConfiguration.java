@@ -1,8 +1,10 @@
 package br.com.supermercados.prices.auth;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,7 +33,8 @@ public class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, TokenService tokens,
             SecurityProblemWriter problems, CorsConfigurationSource corsConfigurationSource, SessionCookies cookies,
-            @Value("${app.cors.allowed-origins:}") String configuredOrigins) throws Exception {
+            @Value("${app.cors.allowed-origins:}") String configuredOrigins,
+            @Value("${app.site-url:}") String siteUrl) throws Exception {
         CorsFilter corsFilter = new CorsFilter(corsConfigurationSource);
         corsFilter.setCorsProcessor(new ProblemCorsProcessor(problems));
         return http
@@ -72,7 +75,7 @@ public class SecurityConfiguration {
                                 "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterAt(corsFilter, CorsFilter.class)
-                .addFilterBefore(new SessionOriginFilter(cookies, problems, origins(configuredOrigins)),
+                .addFilterBefore(new SessionOriginFilter(cookies, problems, sessionOrigins(configuredOrigins, siteUrl)),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new BearerTokenFilter(tokens, problems, cookies), UsernamePasswordAuthenticationFilter.class)
                 .build();
@@ -93,6 +96,25 @@ public class SecurityConfiguration {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    /**
+     * Where the site's cookie requests may come from: the CORS origins plus the public site (SITE_URL). The API
+     * also accepts its own public origin, but that one depends on Nginx forwarding the scheme and host; with
+     * SITE_URL set, a proxy missing those headers does not turn every login into a 403.
+     */
+    static List<String> sessionOrigins(String configuredOrigins, String siteUrl) {
+        List<String> origins = new ArrayList<>(origins(configuredOrigins));
+        String site = siteUrl == null ? "" : siteUrl.strip();
+        if (!site.isEmpty()) {
+            URI uri = URI.create(site);
+            String origin = (uri.getScheme() + "://" + uri.getHost() + (uri.getPort() == -1 ? "" : ":" + uri.getPort()))
+                    .toLowerCase(Locale.ROOT);
+            if (!origins.contains(origin)) {
+                origins.add(origin);
+            }
+        }
+        return List.copyOf(origins);
     }
 
     private static List<String> origins(String configuredOrigins) {
