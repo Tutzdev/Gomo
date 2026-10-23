@@ -50,11 +50,11 @@ class PriceChangeConfirmationIntegrationTests {
         ingestion.ingest(METADATA, catalog(first, "10.00"));
 
         var held = ingestion.ingest(METADATA, catalog(first.plus(Duration.ofHours(5)), "100.00"));
-        assertThat(held.errorMessage()).contains("Variação suspeita");
+        assertThat(held.skipSummary()).contains("variação suspeita");
         assertThat(latestPrice()).isEqualByComparingTo("10.00");
 
         var confirmed = ingestion.ingest(METADATA, catalog(first.plus(Duration.ofHours(10)), "100.00"));
-        assertThat(confirmed.errorMessage()).isNull();
+        assertThat(confirmed.skipSummary()).isNull();
         assertThat(latestPrice()).isEqualByComparingTo("100.00");
     }
 

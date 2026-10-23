@@ -38,7 +38,7 @@ class NagumoProductParser {
             try {
                 CollectedProduct product = parseProduct(externalProduct, catalog.categoryName(), validUntil);
                 if (products.putIfAbsent(product.sourceReference(), product) != null) {
-                    warnings.add("Produto duplicado na resposta da Nagumo: " + product.sourceReference());
+                    warnings.add("Produto Nagumo " + product.sourceReference() + " ignorado: duplicado na resposta da Nagumo");
                 }
             } catch (RuntimeException exception) {
                 String id = externalProduct.path("id").asString("sem identificador");

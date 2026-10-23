@@ -60,7 +60,10 @@ public class CollectedCatalogIngestionService {
                 case UNKNOWN -> result.unknownAvailabilityCount++;
             }
         });
-        collectedCatalog.warnings().forEach(result::addSkippedError);
+        collectedCatalog.warnings().forEach(warning -> {
+            if (CollectedCatalog.isSkippedProduct(warning)) result.addSkippedByRule(warning);
+            else result.addSkippedError(warning);
+        });
         // Read before ingestion: linking a product clears its pending review items.
         var heldPriceChanges = reviews.heldPriceChanges(catalog.sourceId(), catalog.storeId(), PRICE_CHANGE_REVIEW);
 
@@ -149,8 +152,8 @@ public class CollectedCatalogIngestionService {
                     && priceChangeGuard.isSuspicious(product.regularPrice(), previous)
                     && !confirmedByAnEarlierCollection(heldPriceChanges.get(product.sourceReference()), product,
                             collectedCatalog.collectedAt())) {
-                result.skippedCount++;
-                result.addError("Variação suspeita no produto " + product.sourceReference());
+                // Held for review, not lost: a rule at work, not a collection error.
+                result.addSkippedByRule("Produto " + product.sourceReference() + ": variação suspeita de preço");
                 reviews.record(catalog.sourceId(), catalog.storeId(), product, collectedCatalog.collectedAt(),
                         PRICE_CHANGE_REVIEW);
                 LOGGER.warn("Coletor {} rejeitou variação suspeita do produto {}",
@@ -220,6 +223,7 @@ public class CollectedCatalogIngestionService {
 
         private final int foundCount;
         private final List<String> errors = new ArrayList<>();
+        private final Map<String, Integer> skipReasons = new HashMap<>();
         private int createdCount;
         private int updatedCount;
         private int skippedCount;
@@ -241,11 +245,33 @@ public class CollectedCatalogIngestionService {
             addError(message);
         }
 
+        private void addSkippedByRule(String message) {
+            skippedCount++;
+            skipReasons.merge(skipReason(message), 1, Integer::sum);
+        }
+
+        /** "Produto Nagumo 206391 ignorado: peso médio ausente" → "peso médio ausente". */
+        private static String skipReason(String message) {
+            int ignored = message.indexOf(" ignorado: ");
+            if (ignored >= 0) return message.substring(ignored + " ignorado: ".length()).strip();
+            int colon = message.indexOf(": ");
+            return colon >= 0 ? message.substring(colon + 2).strip() : message.strip();
+        }
+
+        /** Most frequent reasons first: "peso médio ausente ou inválido: 8225 | preço por peso …: 12". */
+        private String skipSummary() {
+            if (skipReasons.isEmpty()) return null;
+            return skipReasons.entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed().thenComparing(Map.Entry::getKey))
+                    .map(entry -> entry.getKey() + ": " + entry.getValue())
+                    .collect(java.util.stream.Collectors.joining(" | "));
+        }
+
         private CollectionResult toResult(UUID sourceId, UUID storeId) {
             String errorMessage = errors.isEmpty() ? null : String.join(" | ", errors);
             return new CollectionResult(sourceId, storeId, foundCount, createdCount,
                     updatedCount, skippedCount, errors.size(), errorMessage,
-                    availableCount, unavailableCount, unknownAvailabilityCount, productsUpdatedCount);
+                    availableCount, unavailableCount, unknownAvailabilityCount, productsUpdatedCount, skipSummary());
         }
     }
 }

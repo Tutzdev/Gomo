@@ -74,6 +74,10 @@ public class CollectionRun {
     @Column(length = 2000)
     private String errorMessage;
 
+    /** Products the rules left out, by reason; they do not make the run partial. */
+    @Column(length = 2000)
+    private String skipSummary;
+
     /** Every offer was imported, new products included; otherwise only known products were refreshed. */
     @Column(nullable = false)
     private boolean fullImport;
@@ -101,6 +105,7 @@ public class CollectionRun {
         unknownAvailabilityCount = result.unknownAvailabilityCount();
         productsUpdatedCount = result.productsUpdatedCount();
         errorMessage = cleanMessage(result.errorMessage());
+        skipSummary = cleanMessage(result.skipSummary());
         status = errorCount == 0 ? CollectionStatus.SUCCESS : CollectionStatus.PARTIAL;
         this.finishedAt = finishedAt;
     }

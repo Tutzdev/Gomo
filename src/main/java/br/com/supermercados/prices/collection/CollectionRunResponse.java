@@ -24,7 +24,8 @@ public record CollectionRunResponse(
         int availableCount,
         int unavailableCount,
         int unknownAvailabilityCount,
-        int productsUpdatedCount) {
+        int productsUpdatedCount,
+        String skipSummary) {
 
     @JsonProperty("observationsSkippedCount")
     public int observationsSkippedCount() {
@@ -40,7 +41,7 @@ public record CollectionRunResponse(
             UUID sourceId, UUID storeId, Instant startedAt, Instant finishedAt, CollectionStatus status,
             int foundCount, int createdCount, int updatedCount, int skippedCount, int errorCount, String errorMessage) {
         this(id, collectorCode, supermarketName, storeName, sourceId, storeId, startedAt, finishedAt, status,
-                foundCount, createdCount, updatedCount, skippedCount, errorCount, errorMessage, 0, 0, 0, 0);
+                foundCount, createdCount, updatedCount, skippedCount, errorCount, errorMessage, 0, 0, 0, 0, null);
     }
 
     static CollectionRunResponse from(CollectionRun run) {
@@ -49,6 +50,6 @@ public record CollectionRunResponse(
                 run.getStartedAt(), run.getFinishedAt(), run.getStatus(), run.getFoundCount(),
                 run.getCreatedCount(), run.getUpdatedCount(), run.getSkippedCount(),
                 run.getErrorCount(), run.getErrorMessage(), run.getAvailableCount(), run.getUnavailableCount(),
-                run.getUnknownAvailabilityCount(), run.getProductsUpdatedCount());
+                run.getUnknownAvailabilityCount(), run.getProductsUpdatedCount(), run.getSkipSummary());
     }
 }

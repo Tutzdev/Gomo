@@ -66,7 +66,9 @@ class CollectionPersistenceTests {
         assertThat(reverted.updatedCount()).isEqualTo(1);
         assertThat(suspicious.updatedCount()).isZero();
         assertThat(suspicious.skippedCount()).isEqualTo(1);
-        assertThat(suspicious.errorCount()).isEqualTo(1);
+        // Held for review by the rules, not a collection error: the run stays successful.
+        assertThat(suspicious.errorCount()).isZero();
+        assertThat(suspicious.skipSummary()).isEqualTo("variação suspeita de preço: 1");
 
         assertThat(count("data_sources", "code = 'synthetic_collection'")).isEqualTo(1);
         assertThat(count("supermarket_chains", "name = 'Rede sintética de coleta'")).isEqualTo(1);
@@ -79,6 +81,21 @@ class CollectionPersistenceTests {
         assertThat(jdbc.queryForObject("""
                 select quantity from products where source_reference = 'synthetic:product:1'
                 """, BigDecimal.class)).isEqualByComparingTo("500");
+    }
+
+    @Test
+    void productsLeftOutByTheRulesAreSkipsWhileAnUnfinishedCategoryIsAnError() {
+        CollectedCatalog collected = catalog("10.00", null, COLLECTED_AT.plusSeconds(600));
+        CollectionResult result = ingestion.ingest(metadata(), new CollectedCatalog(collected.store(),
+                collected.products(), 4, collected.collectedAt(), List.of(
+                        "Produto Nagumo 1 ignorado: peso médio ausente ou inválido",
+                        "Produto Nagumo 2 ignorado: peso médio ausente ou inválido",
+                        "Produto Atacadão 3: Preço inválido",
+                        "Categoria Nagumo bebidas incompleta: tempo esgotado")));
+
+        assertThat(result.errorCount()).isEqualTo(1);
+        assertThat(result.errorMessage()).isEqualTo("Categoria Nagumo bebidas incompleta: tempo esgotado");
+        assertThat(result.skipSummary()).isEqualTo("peso médio ausente ou inválido: 2 | Preço inválido: 1");
     }
 
     private int count(String table, String condition) {
