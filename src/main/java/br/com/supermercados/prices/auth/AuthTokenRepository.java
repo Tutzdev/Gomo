@@ -23,4 +23,9 @@ interface AuthTokenRepository extends JpaRepository<AuthToken, UUID> {
     @Modifying
     @Query("delete from AuthToken token where token.userId = :userId")
     void revokeAll(@Param("userId") UUID userId);
+
+    /** Read only by the cleanup of unverified accounts (see AccountCleanupService). */
+    @Modifying
+    @Query(value = "update app_users set last_login_at = :now where id = :userId", nativeQuery = true)
+    void recordSignIn(@Param("userId") UUID userId, @Param("now") Instant now);
 }

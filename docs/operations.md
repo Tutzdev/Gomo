@@ -74,6 +74,8 @@ O mesmo relatório, com o último erro de cada coletor e quantos produtos cada m
 
 A importação ao iniciar existe porque um deploy pode ensinar um coletor a ler ofertas que ele descartava (o hortifrúti pesado dos mercados VIP, os ~4.500 produtos do Atacadão). As coletas do dia só atualizam produtos conhecidos, então sem ela esses produtos esperariam até domingo. Cada execução grava em `collection_runs.full_import` se foi completa.
 
+Fora as coletas, uma limpeza diária às 04h30 (`ACCOUNT_CLEANUP_CRON`, `-` desliga) apaga sessões e links de confirmação/redefinição vencidos, o contador do plano grátis com mais de 7 dias (`COMPARISON_USAGE_RETENTION`, padrão `P7D`) e as contas que nunca confirmaram o e-mail e não entram há 30 dias (`UNVERIFIED_ACCOUNT_RETENTION`, padrão `P30D`). Conta com contribuição, registro de auditoria ou pagamento nunca é apagada por essa rotina. O resultado vai para o log (`Account cleanup: ...`).
+
 Uma coleta manual de um mercado, pela API de admin: `POST /api/v1/admin/collections?collectorCode=royal_retiro` (com `existingOnly=true` para só atualizar preços).
 
 ## 5. Termos e Privacidade

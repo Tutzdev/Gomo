@@ -54,8 +54,9 @@ export function PrivacyPage() {
       <p>
         Enquanto sua conta existir. Ao excluir a conta, apagamos na hora suas listas, alertas, preferências, sessões e
         o registro de uso. Se você enviou preços como contribuição, eles continuam no histórico de preços, mas a conta
-        é anonimizada: sem nome, sem e-mail e sem como entrar nela. Cópias de segurança do banco são mantidas por até
-        14 dias e depois descartadas.
+        é anonimizada: sem nome, sem e-mail e sem como entrar nela. Uma conta que nunca confirmou o e-mail e fica 30
+        dias sem ser usada é apagada do mesmo jeito, automaticamente. O registro de comparações do plano grátis é
+        apagado depois de 7 dias. Cópias de segurança do banco são mantidas por até 14 dias e depois descartadas.
       </p>
 
       <h2>Seus direitos</h2>

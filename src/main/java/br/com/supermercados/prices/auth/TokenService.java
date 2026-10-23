@@ -35,6 +35,7 @@ public class TokenService {
         Instant expiresAt = now.plus(tokenTtl);
         tokens.deleteExpiredForUser(userId, now);
         tokens.save(new AuthToken(userId, SecureTokenValues.hash(rawToken), now, expiresAt));
+        tokens.recordSignIn(userId, now);
         return new IssuedToken(rawToken, expiresAt);
     }
 

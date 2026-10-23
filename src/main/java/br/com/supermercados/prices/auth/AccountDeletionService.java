@@ -3,6 +3,7 @@ package br.com.supermercados.prices.auth;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
@@ -53,6 +54,32 @@ public class AccountDeletionService {
     @Transactional(readOnly = true)
     public void verifyPassword(UUID userId, String password) {
         checkPassword(userId, password, "SELECT password_hash FROM app_users WHERE id = ?");
+    }
+
+    /**
+     * An account {@code u} never confirmed, created and last signed in before the two {@code ?} instants, with no
+     * public records and no payment: nobody relies on it, so it can simply go.
+     */
+    static final String ABANDONED_ACCOUNT = """
+            u.email_verified_at IS NULL AND u.role = 'USER' AND NOT u.subscriber AND u.premium_paid_until IS NULL
+                AND u.created_at < ? AND coalesce(u.last_login_at, u.created_at) < ?
+                AND NOT EXISTS (SELECT 1 FROM price_contributions c WHERE c.contributor_id = u.id OR c.moderator_id = u.id)
+                AND NOT EXISTS (SELECT 1 FROM admin_audit_entries a WHERE a.actor_user_id = u.id)
+                AND NOT EXISTS (SELECT 1 FROM billing_subscriptions b WHERE b.user_id = u.id)
+            """;
+
+    /**
+     * Removes an {@link #ABANDONED_ACCOUNT abandoned account}, checked again under a row lock so a confirmation or
+     * sign-in that happens meanwhile keeps it. Returns whether the account was removed.
+     */
+    @Transactional
+    public boolean deleteAbandonedAccount(UUID userId, Instant inactiveSince) {
+        List<UUID> locked = jdbc.queryForList("SELECT u.id FROM app_users u WHERE u.id = ? AND " + ABANDONED_ACCOUNT
+                + " FOR UPDATE", UUID.class, userId, Timestamp.from(inactiveSince), Timestamp.from(inactiveSince));
+        if (locked.isEmpty()) return false;
+        PERSONAL_DATA.forEach(statement -> jdbc.update(statement, userId));
+        jdbc.update("DELETE FROM app_users WHERE id = ?", userId);
+        return true;
     }
 
     @Transactional
