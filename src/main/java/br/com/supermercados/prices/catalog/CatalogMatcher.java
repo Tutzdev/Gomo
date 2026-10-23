@@ -58,14 +58,19 @@ final class CatalogMatcher {
         return publishedIdentities(productDescriptions);
     }
 
-    /** A SKU is published under its own name; a store's description stands in only when that name has no identity. */
+    /**
+     * A SKU is published under its own name; a store's description stands in only when that name has no identity.
+     * A kit stays out even when the store describes it without the word ("Kit Sh. Elseve 375ml+cond 170m" is
+     * "Shampoo + Condicionador Elseve 545ml" on the shelf).
+     */
     private Map<UUID, Description> describeProducts(Collection<Listing> listings) {
         Map<UUID, Description> productDescriptions = new HashMap<>();
         for (Listing listing : listings) {
             if (!productDescriptions.containsKey(listing.productId())) {
                 productDescriptions.put(listing.productId(), describe(listing.productName()));
             }
-            if (productDescriptions.get(listing.productId()) == null && listing.storeDescription() != null) {
+            if (productDescriptions.get(listing.productId()) == null && listing.storeDescription() != null
+                    && !CatalogKey.isBundle(listing.productName())) {
                 productDescriptions.put(listing.productId(), describe(listing.storeDescription()));
             }
         }

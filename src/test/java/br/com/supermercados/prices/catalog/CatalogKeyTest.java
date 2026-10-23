@@ -197,4 +197,36 @@ class CatalogKeyTest {
         assertThat(CatalogKey.sizeLabel("1x500G")).isEqualTo("500 g");
         assertThat(CatalogKey.sizeLabel("30xUN")).isEqualTo("30 un");
     }
+
+    @Test
+    void kitsWrittenWithAPlusSignAreBundles() {
+        assertThat(CatalogKey.isBundle("Kit Sh. Elseve 375ml+cond 170m")).isTrue();
+        assertThat(CatalogKey.isBundle("Shampoo + Condicionador Elseve Oleo 545ml")).isTrue();
+        assertThat(CatalogKey.isBundle("Creme Dental Oral B 100% L+p 175g")).isTrue();
+        assertThat(CatalogKey.isBundle("Odoriz. Bom Ar Ap+rf Lava 12ml")).isTrue();
+        assertThat(keys.identify("Shampoo + Condicionador Skala Abacate 525ml")).isNull();
+        assertThat(CatalogKey.isBundle("Composto Lácteo Fases 3+ Ninho 400g")).isFalse();
+        assertThat(CatalogKey.isBundle("Shampoo Dove Cachos + Biotina 370ml")).isFalse();
+    }
+
+    @Test
+    void anApostropheSDoesNotSplitTheBrand() {
+        CatalogKey learned = CatalogKey.learn(List.of("Hellmann's"), List.of());
+        assertThat(learned.identify("Maionese Hellmann's 500g").key())
+                .isEqualTo(learned.identify("MAIONESE HELLMANNS 500G").key());
+        assertThat(learned.identify("Maionese Hellmann's 500g").brand()).isEqualTo("HELLMANNS");
+    }
+
+    @Test
+    void aProductWordDeclaredAsBrandOnlyNamesTheBrandLaterInTheDescription() {
+        List<String> descriptions = new java.util.ArrayList<>();
+        for (int index = 0; index < 20; index++) descriptions.add("Oleo Marca" + index + " Soja 900ml");
+        descriptions.addAll(List.of("Oleo Liza Soja 900ml", "Oleo Salada Canola 900ml"));
+        CatalogKey learned = CatalogKey.learn(List.of("OLEO", "Liza", "Salada", "Salada", "Salada"), descriptions);
+
+        assertThat(learned.identify("Oleo Liza Soja 900ml").brand()).isEqualTo("LIZA");
+        assertThat(learned.identify("Oleo Salada Canola 900ml").brand()).isEqualTo("SALADA");
+        assertThat(learned.knownBrand("OLEO")).isFalse();
+        assertThat(learned.knownBrand("Liza")).isTrue();
+    }
 }

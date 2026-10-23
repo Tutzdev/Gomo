@@ -121,6 +121,13 @@ public final class CatalogKey {
      */
     private static final Pattern BUNDLE = Pattern.compile(
             "\\bKIT\\b(?!\\s*KAT\\b)|\\b(?:COMBO|PAGUE|BONUS|GRATIS|BRINDE|GANHE|SORTIDOS?|SORTIDAS)\\b|\\+");
+    private static final Pattern RAW_BUNDLE = Pattern.compile(
+            "\\d\\s*(?:ML|L|LT|G|GR|GRS|KG|M)\\s*\\+|\\+\\s*\\d+(?:[.,]\\d+)?\\s*(?:ML|L|LT|G|GR|GRS|KG|M)\\b"
+                    + "|\\bL\\s*\\+\\s*P\\b|\\b(?:SHAMPOO|SH)\\b.*\\+.*\\b(?:CONDICIONADOR|COND|CONDIC)\\b"
+                    // An insecticide or air freshener device sold with its refill: "Ap+rf", "Apar+lav.".
+                    + "|\\bAPA?R?\\.?\\s*\\+");
+    /** A one-word declared brand starting at least this many descriptions may be a product word. */
+    private static final int PRODUCT_WORD_MINIMUM = 15;
     /** A size starts a word: "B6" (a produce grade) and "A12" (a milk) are not 6 kg or 12 g. */
     private static final Pattern MEASURE = Pattern.compile("\\b(\\d+(?:\\.\\d+)?)\\s*(ML|L|KG|G)\\b");
     /**
@@ -133,7 +140,7 @@ public final class CatalogKey {
     private static final Pattern NUMBER = Pattern.compile("[\\d.]+");
     private static final Set<String> NOT_BRANDS = Set.of("HORTIFRUTI", "NAGUMO", "PADARIA", "CHINA", "ACOUGUE",
             "DIVERSOS", "GENERICO", "PEIXARIA", "FRIOS", "A GRANEL", "GRANEL", "SEM MARCA", "OUTROS", "BRASIL",
-            "IMPORTADO", "NACIONAL");
+            "IMPORTADO", "NACIONAL", "NATURAL");
     /** How big or how chosen a loose fruit or vegetable is; the market prices it per kg either way. */
     private static final Set<String> PRODUCE_GRADES = Set.of(("MEDIA MEDIO MEDIAS MEDIOS GRAUDA GRAUDO GRAUDAS "
             + "GRAUDOS GRANDE GRANDES PEQUENA PEQUENO MIUDA MIUDO SELECIONADA SELECIONADO NACIONAL FRESCA FRESCO "
@@ -177,14 +184,19 @@ public final class CatalogKey {
 
     private final Map<String, List<Brand>> brandsByFirstWord;
     private final Map<String, Integer> documentFrequency;
+    /** Declared one-word brands that also name a kind of product; never the brand when they start a description. */
+    private final Set<String> productWords;
 
-    private CatalogKey(Map<String, List<Brand>> brandsByFirstWord, Map<String, Integer> documentFrequency) {
+    private CatalogKey(Map<String, List<Brand>> brandsByFirstWord, Map<String, Integer> documentFrequency,
+            Set<String> productWords) {
         this.brandsByFirstWord = brandsByFirstWord;
         this.documentFrequency = documentFrequency;
+        this.productWords = productWords;
     }
 
     /** Learns brands from the brand fields retailers publish and word rarity from every description. */
     public static CatalogKey learn(Collection<String> declaredBrands, Collection<String> descriptions) {
+        Set<String> productWords = productWords(declaredBrands, descriptions);
         Map<String, List<Brand>> brands = new HashMap<>();
         for (String declared : declaredBrands) {
             if (declared == null) continue;
@@ -203,10 +215,53 @@ public final class CatalogKey {
                 frequency.merge(word, 1, Integer::sum);
             }
         }
-        return new CatalogKey(brands, frequency);
+        return new CatalogKey(brands, frequency, productWords);
+    }
+
+    /**
+     * One-word "brands" that are also the kind of product: a store declares "OLEO" for Liza and Soya oils and
+     * "TOMATE" for Paganin's peeled tomatoes. Such a word starts many descriptions but is rarely declared, while
+     * a real brand written first ("Veja", "Dalfer", "Nescafé") is declared about as often as it starts one. Later
+     * in a description the word is still a brand: "Vinagre Peixe", "Óleo Salada".
+     */
+    private static Set<String> productWords(Collection<String> declaredBrands, Collection<String> descriptions) {
+        Map<String, Integer> declared = new HashMap<>();
+        for (String brand : declaredBrands) {
+            if (brand != null) declared.merge(words(brand), 1, Integer::sum);
+        }
+        Map<String, Integer> starting = new HashMap<>();
+        for (String description : descriptions) {
+            String first = words(description).split(" ")[0];
+            if (declared.containsKey(first)) starting.merge(first, 1, Integer::sum);
+        }
+        Set<String> productWords = new java.util.HashSet<>();
+        starting.forEach((word, count) -> {
+            if (count >= PRODUCT_WORD_MINIMUM && declared.get(word) * 4 < count) productWords.add(word);
+        });
+        return productWords;
+    }
+
+    /** Whether retailers declare this brand (as words), so it may be shown as the item's brand. */
+    public boolean knownBrand(String brand) {
+        if (brand == null) return false;
+        List<String> tokens = Arrays.stream(words(brand).split(" ")).filter(word -> !NUMBER.matcher(word).matches()).toList();
+        return !tokens.isEmpty() && !productWords.contains(String.join(" ", tokens))
+                && brandsByFirstWord.getOrDefault(tokens.getFirst(), List.of()).stream()
+                .anyMatch(known -> known.tokens().equals(tokens));
+    }
+
+    /**
+     * Kits and multipacks written with a plus sign, checked before punctuation is dropped: "Kit Sh. Elseve
+     * 375ml+cond 170m", "Shampoo + Condicionador Elseve 545ml", "Creme Dental Oral B L+P". A plus inside a name
+     * ("Ninho Fases 3+", "Cachos + Biotina") is not a bundle.
+     */
+    public static boolean isBundle(String name) {
+        String text = ascii(name);
+        return RAW_BUNDLE.matcher(text).find() || BUNDLE.matcher(text.replaceAll("[^A-Z0-9]+", " ")).find();
     }
 
     public Identity identify(String name) {
+        if (isBundle(name)) return null;
         // "600 Grama(s)": the plural marker must not survive as a stray "S" word.
         String text = ascii(name).replace("(S)", "S");
         text = text.replaceAll("(\\d),(\\d)", "$1.$2");
@@ -376,14 +431,21 @@ public final class CatalogKey {
     public record SearchTerms(List<String> tokens, String size) {
     }
 
+    /**
+     * A product word ("OLEO", "TOMATE") is the brand only when no other brand is named and it does not open the
+     * description: "Oleo Liza Soja" is Liza, "Molho Tomate Pomarola" Pomarola, "Vinagre Peixe Maçã" Peixe.
+     */
     private String findBrand(List<String> tokens) {
+        String productWordBrand = null;
         for (int index = 0; index < tokens.size(); index++) {
             for (Brand brand : brandsByFirstWord.getOrDefault(tokens.get(index), List.of())) {
                 int end = index + brand.tokens().size();
-                if (end <= tokens.size() && tokens.subList(index, end).equals(brand.tokens())) return brand.name();
+                if (end > tokens.size() || !tokens.subList(index, end).equals(brand.tokens())) continue;
+                if (brand.tokens().size() > 1 || !productWords.contains(brand.tokens().getFirst())) return brand.name();
+                if (index > 0 && productWordBrand == null) productWordBrand = brand.name();
             }
         }
-        return null;
+        return productWordBrand;
     }
 
     /** Uppercase, accent-free words used for keys and search text. */
@@ -391,9 +453,10 @@ public final class CatalogKey {
         return ascii(value).replaceAll("[^A-Z0-9]+", " ").strip();
     }
 
+    /** "Hellmann's" and "Jack Daniel's" become HELLMANNS and DANIELS, as stores that drop the apostrophe write them. */
     private static String ascii(String value) {
         return Normalizer.normalize(value == null ? "" : value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "").toUpperCase(Locale.ROOT);
+                .replaceAll("\\p{M}+", "").toUpperCase(Locale.ROOT).replaceAll("([A-Z])['’´`]S\\b", "$1S");
     }
 
     /** "1x2000ML" → "2 L", "6x350ML" → "6 × 350 ml", "30xUN" → "30 un". */
