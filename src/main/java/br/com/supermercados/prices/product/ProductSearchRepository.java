@@ -43,6 +43,9 @@ public class ProductSearchRepository {
         Query query = entityManager.createNativeQuery("SELECT p.* FROM products p WHERE " + sql.where()
                 + " ORDER BY " + order + ", p.search_name, p.name, p.id", Product.class);
         bind(query, sql.parameters());
+        if (order.equals(sql.relevance())) {
+            bind(query, sql.relevanceParameters());
+        }
         if (search.sort().startsWith("price_")) {
             query.setParameter("now", clock.instant());
             query.setParameter("freshAfter", clock.instant().minus(maxPriceAge));
@@ -60,6 +63,7 @@ public class ProductSearchRepository {
         SearchSql sql = prepare(search);
         Query query = bind(entityManager.createNativeQuery("SELECT p.* FROM products p WHERE " + sql.where()
                 + " ORDER BY " + sql.relevance() + ", p.search_name, p.name, p.id", Product.class), sql.parameters());
+        bind(query, sql.relevanceParameters());
         return query.getResultList().stream().map(Product.class::cast).toList();
     }
 
@@ -130,20 +134,28 @@ public class ProductSearchRepository {
             conditions.add("EXISTS (SELECT 1 FROM price_records r WHERE r.product_id = p.id AND r.store_id = :storeId)");
             parameters.put("storeId", search.storeId());
         }
+        // Parameters used only in the ranking: count and facet queries leave them out, since binding a
+        // parameter that the statement does not contain is an error.
+        Map<String, Object> relevanceParameters = new LinkedHashMap<>();
         // Size is a strong ranking signal, not a reason to hide other sizes.
         String measurementScore = "0";
         if (terms.quantity() != null) {
-            // Numeric literals originate in BigDecimal, never in unescaped input.
-            measurementScore = "CASE WHEN p.unit = '" + terms.unit() + "' AND p.quantity = "
-                    + terms.quantity().toPlainString() + " THEN 500 ELSE 0 END";
+            String size = "p.unit = :sizeUnit AND p.quantity = :sizeQuantity";
+            Map<String, Object> sizeParameters = tokens.isEmpty() ? parameters : relevanceParameters;
+            sizeParameters.put("sizeUnit", terms.unit());
+            sizeParameters.put("sizeQuantity", terms.quantity());
+            measurementScore = "CASE WHEN " + size + " THEN 500 ELSE 0 END";
             if (tokens.isEmpty()) {
-                conditions.add("p.unit = '" + terms.unit() + "' AND p.quantity = " + terms.quantity().toPlainString());
+                conditions.add(size);
             }
         }
         if (!tokens.isEmpty() && (search.query() == null || !search.query().matches(".*[%_!].*"))) {
             String phrase = String.join(" ", tokens);
-            scores.add("CASE WHEN p.search_name = '" + phrase + "' THEN 2000 "
-                    + "WHEN p.search_name LIKE '" + phrase + " %' THEN 100 ELSE 0 END");
+            // gomo_search_text keeps only [a-z0-9 ], so the phrase has no LIKE wildcards to escape.
+            relevanceParameters.put("phrase", phrase);
+            relevanceParameters.put("phrasePrefix", phrase + " %");
+            scores.add("CASE WHEN p.search_name = :phrase THEN 2000 "
+                    + "WHEN p.search_name LIKE :phrasePrefix THEN 100 ELSE 0 END");
         }
         String score = String.join(" + ", scores);
         if (score.isEmpty()) {
@@ -153,7 +165,7 @@ public class ProductSearchRepository {
                 : "CASE WHEN p.search_name ~ '\\m(kit|pack|combo|mista|alcoolica)\\M' THEN 1 ELSE 0 END, ";
         String exactOrder = exact.isEmpty() ? "" : "(" + String.join(" + ", exact) + ") DESC, ";
         return new SearchSql(conditions.isEmpty() ? "TRUE" : String.join(" AND ", conditions), parameters,
-                kitOrder + exactOrder + "(" + measurementScore + " + " + score + ") DESC");
+                kitOrder + exactOrder + "(" + measurementScore + " + " + score + ") DESC", relevanceParameters);
     }
 
     private void addToken(String token, int index, List<String> conditions, List<String> scores,
@@ -219,6 +231,7 @@ public class ProductSearchRepository {
         return query;
     }
 
-    private record SearchSql(String where, Map<String, Object> parameters, String relevance) {
+    private record SearchSql(String where, Map<String, Object> parameters, String relevance,
+            Map<String, Object> relevanceParameters) {
     }
 }
