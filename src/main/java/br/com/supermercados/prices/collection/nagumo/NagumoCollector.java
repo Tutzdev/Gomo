@@ -30,6 +30,8 @@ public class NagumoCollector implements SupermarketCollector {
     private static final UUID VOLTA_REDONDA_ID =
             UUID.fromString("5c4cb935-52e1-4bf8-8d17-902dc0837c66");
     private static final Instant SOURCE_VERIFIED_AT = Instant.parse("2026-09-17T00:00:00Z");
+    /** How shoppers know the store; the code "036-V.REDONDA" only confirms the unit with the Nagumo API. */
+    private static final String STORE_NAME = "Nagumo Ponte Alta";
 
     private final NagumoProperties properties;
     private final NagumoClient client;
@@ -52,7 +54,7 @@ public class NagumoCollector implements SupermarketCollector {
         return new CollectorMetadata(
                 "nagumo_volta_redonda",
                 "Nagumo",
-                properties.getStoreName(),
+                STORE_NAME,
                 "nagumo_delivery",
                 "E-commerce público Nagumo",
                 properties.getBaseUrl().toString(),
@@ -83,7 +85,7 @@ public class NagumoCollector implements SupermarketCollector {
         }
 
         CollectedStore store = new CollectedStore(
-                "Nagumo Ponte Alta (" + properties.getStoreName() + ")",
+                STORE_NAME,
                 properties.getAddress(),
                 properties.getLatitude(),
                 properties.getLongitude(),

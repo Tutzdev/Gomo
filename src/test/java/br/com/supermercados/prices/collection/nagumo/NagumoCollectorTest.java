@@ -72,7 +72,7 @@ class NagumoCollectorTest {
         assertThat(storeRequests).hasValue(4);
         assertThat(sessionCookieReceived).isTrue();
         assertThat(storeSelected).isTrue();
-        assertThat(catalog.store().name()).isEqualTo("Nagumo Ponte Alta (036-V.REDONDA)");
+        assertThat(catalog.store().name()).isEqualTo("Nagumo Ponte Alta");
         assertThat(catalog.foundCount()).isEqualTo(3);
         assertThat(catalog.products()).hasSize(2);
         assertThat(catalog.warnings()).singleElement().asString().contains("266999", "preço normal");
