@@ -15,6 +15,7 @@ import java.time.Clock;
 import java.time.Instant;
 
 import br.com.supermercados.prices.collection.CatalogCheckpoint;
+import br.com.supermercados.prices.collection.PublicCatalogHttp;
 import br.com.supermercados.prices.collection.vip.VipStorefrontConfiguration;
 
 import org.slf4j.Logger;
@@ -236,7 +237,7 @@ class RoyalClient {
                     HttpRequest.Builder request = HttpRequest.newBuilder(uri)
                             .timeout(properties.getRequestTimeout())
                             .header("Accept", "application/json")
-                            .header("User-Agent", "SupermarketPrices/1.0 public-price-collector");
+                            .header("User-Agent", PublicCatalogHttp.USER_AGENT);
                     if (uri.getAuthority().equals(properties.getApiUrl().getAuthority())) {
                         request.header("organizationid", "255").header("domainkey", DOMAIN);
                         if (token != null) {

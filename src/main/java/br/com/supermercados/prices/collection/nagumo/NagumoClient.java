@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import br.com.supermercados.prices.collection.CatalogCheckpoint;
+import br.com.supermercados.prices.collection.PublicCatalogHttp;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -262,7 +263,7 @@ class NagumoClient {
                     HttpRequest request = HttpRequest.newBuilder(uri)
                             .timeout(properties.getRequestTimeout())
                             .header("Accept", jsonExpected ? "application/json" : "text/html,application/xhtml+xml")
-                            .header("User-Agent", "SupermarketPrices/1.0 public-price-collector")
+                            .header("User-Agent", PublicCatalogHttp.USER_AGENT)
                             .GET()
                             .build();
                     HttpResponse<InputStream> response = httpClient.send(

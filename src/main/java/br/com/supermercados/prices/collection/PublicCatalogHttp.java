@@ -21,6 +21,8 @@ import java.util.concurrent.TimeoutException;
 /** Bounded, sequential access to public storefronts; a new instance belongs to one collection. */
 public final class PublicCatalogHttp {
 
+    /** One name for every collector, with a way for a market to reach the project (the public repository). */
+    public static final String USER_AGENT = "Gomo/1.0 public-price-collector (+https://github.com/Tutzdev/Gomo)";
     private static final Set<Integer> RETRYABLE = Set.of(502, 503, 504);
     private static final int MAX_BYTES = 8_000_000;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -48,7 +50,7 @@ public final class PublicCatalogHttp {
                 if (requested) Thread.sleep(delay.toMillis() * attempt);
                 requested = true;
                 HttpRequest.Builder builder = HttpRequest.newBuilder(uri).timeout(timeout)
-                        .header("User-Agent", "Gomo/1.0 public-price-collector")
+                        .header("User-Agent", USER_AGENT)
                         .header("Accept", "application/json, text/html");
                 headers.forEach(builder::header);
                 if (body == null) builder.GET();
