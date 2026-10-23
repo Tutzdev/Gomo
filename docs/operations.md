@@ -1,30 +1,42 @@
 # Operação na VPS
 
-O que precisa estar configurado no servidor para o Gomo funcionar de verdade: o Nginx repassando o IP de quem acessa, o backup do banco e um monitor que avise quando um mercado para de atualizar. Nada disso fica no repositório. São arquivos do servidor, configurados uma vez.
+O que precisa estar configurado no servidor para o Gomo funcionar de verdade: o Nginx com limites e cabeçalhos de segurança, o backup do banco e um monitor que avise quando um mercado para de atualizar. A configuração do Nginx e os scripts ficam no repositório, mas são instalados à mão no servidor, uma vez (o deploy não mexe neles).
 
-## 1. Nginx: repassar o IP real
+## 1. Nginx
 
-A API roda atrás do Nginx, em `127.0.0.1:8087`. O backend usa `server.forward-headers-strategy=native` e só confia nesses cabeçalhos quando eles vêm do próprio servidor. **Sem eles, todo acesso parece vir de `127.0.0.1`**. Aí os limites por pessoa viram limites do site inteiro: 5 cadastros por hora e 10 logins por minuto para todo mundo somado.
+A configuração está em [`deploy/nginx/gomo.conf`](../deploy/nginx/gomo.conf) (o site) e [`deploy/nginx/gomo-proxy.conf`](../deploy/nginx/gomo-proxy.conf) (o repasse para a API). O domínio de produção não fica no repositório: os arquivos usam `gomo.example.com`, trocado na instalação.
 
-No bloco `server` do domínio:
+O que ela faz:
 
-```nginx
-location /api/ {
-    proxy_pass http://127.0.0.1:8087;
-    proxy_set_header Host              $host;
-    proxy_set_header X-Real-IP         $remote_addr;
-    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Host  $host;
-}
-```
+- **Repassa o IP real e o endereço público para a API**, que roda em `127.0.0.1:8087`. O backend usa `server.forward-headers-strategy=native` e só confia nesses cabeçalhos quando eles vêm do próprio servidor. **Sem eles, todo acesso parece vir de `127.0.0.1`**: os limites por pessoa viram limites do site inteiro (5 cadastros por hora e 10 logins por minuto para todo mundo somado), e sem `X-Forwarded-Proto`/`X-Forwarded-Host` o cookie `__Host-` e a checagem de `Origin` recusam os pedidos do site (item 7). `X-Forwarded-For` recebe só o IP de quem conectou, então ninguém consegue se passar por outro IP mandando o cabeçalho.
+- **Limita pedidos por IP.** `/api/` inteira: 10 por segundo com rajada de 60, o que cobre a navegação normal e deixa lento quem tenta baixar o catálogo todo. `/api/v1/auth/` (entrar, criar conta, e-mails de conta): 20 por minuto com rajada de 10. A conferência de sessão (`/api/v1/auth/session`, chamada a cada página) segue o limite geral, e o webhook da AbacatePay não tem limite. Quem passa do limite recebe 429. Muita gente atrás do mesmo IP (rede móvel com CGNAT, wi-fi de empresa) divide o limite; se aparecer 429 em uso normal no log (`limiting requests`), aumente `burst` antes de `rate`.
+- **Cabeçalhos de segurança:** `Content-Security-Policy`, `Strict-Transport-Security` (1 ano, só o domínio), `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` e `Permissions-Policy` (só a localização, usada pela rota entre mercados, fica liberada).
+- Serve o frontend de `/var/www/gomo/frontend/dist`, com cache longo em `/assets/` e o `index.html` sempre novo; `www` e `http` redirecionam para `https://SEU_DOMINIO`.
 
-Aplicar e conferir:
+A CSP libera só o que o site usa: scripts próprios, Google Fonts (`fonts.googleapis.com` e `fonts.gstatic.com`), fotos de produto em qualquer endereço https (vêm dos sites dos mercados, em domínios que mudam) e os domínios de ingestão do Sentry. **Ligou o analytics** (item 8)? Acrescente o domínio do script (por exemplo `https://plausible.io`) em `script-src` e `connect-src`, senão o navegador o bloqueia. Se as fontes passarem a ser servidas pelo próprio site, os dois domínios do Google podem sair.
+
+Instalar (como root, a partir do clone em `/var/www/gomo`), trocando `SEU_DOMINIO`:
 
 ```bash
-sudo nginx -t && sudo systemctl reload nginx
-curl -s https://SEU_DOMINIO/api/v1/status/collections | head -c 300
+sed 's/gomo.example.com/SEU_DOMINIO/g' deploy/nginx/gomo.conf > /etc/nginx/sites-available/gomo
+install -m 644 deploy/nginx/gomo-proxy.conf /etc/nginx/gomo-proxy.conf
+ln -sf /etc/nginx/sites-available/gomo /etc/nginx/sites-enabled/gomo
+mkdir -p /var/www/letsencrypt
+nginx -t && systemctl reload nginx
 ```
+
+Antes, confira: o certificado precisa cobrir `SEU_DOMINIO` e `www.SEU_DOMINIO` (`certbot certonly --webroot -w /var/www/letsencrypt -d SEU_DOMINIO -d www.SEU_DOMINIO`), e o arquivo antigo do site em `sites-enabled` sai, para não haver dois `server` com o mesmo nome. Guarde uma cópia dele: se algo der errado, é só voltar o link e recarregar.
+
+Conferir:
+
+```bash
+curl -sI https://SEU_DOMINIO/ | grep -iE 'content-security|strict-transport|referrer|permissions'
+curl -s https://SEU_DOMINIO/api/v1/status/collections | head -c 300
+# 429 depois da rajada:
+for i in $(seq 1 15); do curl -s -o /dev/null -w '%{http_code} ' -X POST https://SEU_DOMINIO/api/v1/auth/login; done
+```
+
+Depois abra o site com o console do navegador aberto: nenhuma mensagem "Refused to load ... Content Security Policy" deve aparecer.
 
 ## 2. Backup do banco
 
