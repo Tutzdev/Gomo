@@ -14,6 +14,8 @@ export function ComparisonStoreFilter({
   const stores = useQuery({
     queryKey: ["comparison-stores", cityId],
     queryFn: () => catalogApi.allStores(cityId),
+    // A market without a current price is listed on its page but never enters a comparison.
+    select: (all) => all.filter((store) => store.priceStatus === "CURRENT"),
     enabled: Boolean(cityId),
   });
   if (!cityId) return null;

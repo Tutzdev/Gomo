@@ -2,7 +2,8 @@ import { productMetadata } from "@/features/catalog/product-label";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { PageHeading, Pagination } from "@/components/page/page-elements";
+import { PageHeading, Pagination, StatusBadge } from "@/components/page/page-elements";
+import { storeStatus } from "@/features/catalog/store-status";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { TextField } from "@/components/ui/form-field";
 import { catalogApi } from "@/services/gomo-api";
@@ -25,6 +26,7 @@ export function StoreCatalogPage() {
     queryKey: ["store-products", id, query, page],
     queryFn: () => catalogApi.storeProducts(id, query, page),
   });
+  const status = store.data ? storeStatus(store.data) : null;
   return (
     <>
       <Link
@@ -39,10 +41,12 @@ export function StoreCatalogPage() {
           store.data?.address ?? "Produtos e preços deste mercado."
         }
       />
-      {store.data?.priceSourceNote ? (
-        <p className="surface mb-5 p-5 text-sm text-muted">
-          {store.data.priceSourceNote}
-        </p>
+      {status &&
+      (store.data?.priceSourceNote || store.data?.priceStatus !== "CURRENT") ? (
+        <div className="surface mb-5 p-5 text-sm text-muted">
+          <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+          <p className="mt-2">{status.help}</p>
+        </div>
       ) : null}
       {store.isError ? <ErrorState retry={() => void store.refetch()} /> : null}
       <div className="surface mb-5 p-5">

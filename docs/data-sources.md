@@ -31,7 +31,7 @@ A migração `V34` desativou (`active = false`) as duas unidades sem loja online
 
 A fonte `atacadao_reviewed_flyers` continua existindo com o nome "Diretório oficial de lojas Atacadão": ela é dona da unidade São Geraldo em produção, e trocar o código criaria uma segunda unidade separada do histórico.
 
-Mercados sem preço atual não aparecem na lista de supermercados nem nas comparações. O monitoramento de cada coletor está em [operations.md](operations.md#3-monitor-das-coletas).
+A lista de supermercados (`GET /api/v1/stores`) mostra todos os mercados ativos com `priceStatus`: `CURRENT` (online, preço dentro de `PRICE_MAX_AGE`), `OUTDATED` (fora do ar: a coleta parou e os preços venceram) ou `NO_PRICES`, além de `lastPriceCollectedAt`. Só os mercados `CURRENT` entram nas buscas e comparações. O monitoramento de cada coletor está em [operations.md](operations.md#3-monitor-das-coletas).
 
 ### Mercados de Volta Redonda pesquisados em 20/10/2026
 

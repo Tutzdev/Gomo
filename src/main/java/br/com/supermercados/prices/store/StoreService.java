@@ -13,7 +13,6 @@ import br.com.supermercados.prices.price.PriceRecordRepository;
 import br.com.supermercados.prices.price.StorePriceUpdate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -45,47 +44,42 @@ public class StoreService {
         return withPriceUpdates(storeRepository.findPricedActiveStores(cityId, pageable));
     }
 
-    /** The markets shown to shoppers: only those with a current price (see {@link #currentlyPriced}). */
+    /**
+     * The markets shown to shoppers: every active one, each with its price status. A market whose collection
+     * stopped stays listed as {@link StorePriceStatus#OUTDATED} (and out of searches and comparisons) until the
+     * next successful collection, so the page does not empty out while the collectors are behind.
+     */
     public Page<StoreResponse> findListedStores(UUID cityId, Pageable pageable) {
         if (cityId != null) locationService.requireCity(cityId);
-        return currentlyPriced(cityId, pageable);
-    }
-
-    /**
-     * Stores whose newest price is still current. A market whose collection stopped would otherwise be listed
-     * with nothing to compare; it comes back on its own with the next successful collection.
-     */
-    private Page<StoreResponse> currentlyPriced(UUID cityId, Pageable pageable) {
-        Pageable everything = Pageable.unpaged(pageable.getSort());
-        List<Store> priced = (cityId == null ? storeRepository.findByActiveTrue(everything)
-                : storeRepository.findPricedActiveStores(cityId, everything)).getContent();
-        if (priced.isEmpty()) return Page.empty(pageable);
-        Map<UUID, Instant> updates = prices.findStoreUpdates(priced.stream().map(Store::getId).toList()).stream()
-                .collect(Collectors.toMap(StorePriceUpdate::storeId, StorePriceUpdate::collectedAt));
-        Instant oldestCurrent = clock.instant().minus(pricePolicy.maxAge());
-        List<StoreResponse> current = priced.stream()
-                .filter(store -> updates.containsKey(store.getId()) && updates.get(store.getId()).isAfter(oldestCurrent))
-                .map(store -> StoreResponse.from(store, updates.get(store.getId()))).toList();
-        if (pageable.isUnpaged()) return new PageImpl<>(current);
-        int from = (int) Math.min(pageable.getOffset(), current.size());
-        int to = Math.min(from + pageable.getPageSize(), current.size());
-        return new PageImpl<>(current.subList(from, to), pageable, current.size());
+        Page<Store> stores = cityId == null ? storeRepository.findByActiveTrue(pageable)
+                : storeRepository.findByCityIdAndActiveTrue(cityId, pageable);
+        if (stores.isEmpty()) return stores.map(StoreResponse::from);
+        Map<UUID, Instant> updates = lastPriceUpdates(stores.stream().map(Store::getId).toList());
+        return stores.map(store -> withStatus(store, updates.get(store.getId())));
     }
 
     public StoreResponse findStore(UUID storeId) {
         Store store = requireStore(storeId);
-        Instant lastUpdate = prices.findStoreUpdates(List.of(storeId)).stream()
-                .map(StorePriceUpdate::collectedAt).findFirst().orElse(null);
-        return StoreResponse.from(store, lastUpdate);
+        return withStatus(store, lastPriceUpdates(List.of(storeId)).get(storeId));
+    }
+
+    private StoreResponse withStatus(Store store, Instant lastUpdate) {
+        StorePriceStatus status = lastUpdate == null ? StorePriceStatus.NO_PRICES
+                : lastUpdate.isAfter(clock.instant().minus(pricePolicy.maxAge())) ? StorePriceStatus.CURRENT
+                : StorePriceStatus.OUTDATED;
+        return StoreResponse.from(store, lastUpdate, status);
+    }
+
+    private Map<UUID, Instant> lastPriceUpdates(List<UUID> storeIds) {
+        return prices.findStoreUpdates(storeIds).stream()
+                .collect(Collectors.toMap(StorePriceUpdate::storeId, StorePriceUpdate::collectedAt));
     }
 
     private Page<StoreResponse> withPriceUpdates(Page<Store> stores) {
         if (stores.isEmpty()) {
             return stores.map(StoreResponse::from);
         }
-        List<UUID> storeIds = stores.stream().map(Store::getId).toList();
-        Map<UUID, Instant> updates = prices.findStoreUpdates(storeIds).stream()
-                .collect(Collectors.toMap(StorePriceUpdate::storeId, StorePriceUpdate::collectedAt));
+        Map<UUID, Instant> updates = lastPriceUpdates(stores.stream().map(Store::getId).toList());
         return stores.map(store -> StoreResponse.from(store, updates.get(store.getId())));
     }
 

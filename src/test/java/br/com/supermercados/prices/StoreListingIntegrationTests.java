@@ -54,16 +54,25 @@ class StoreListingIntegrationTests {
     }
 
     @Test
-    void onlyMarketsWithACurrentPriceAreListed() throws Exception {
+    void everyActiveMarketIsListedWithItsPriceStatus() throws Exception {
         price(STORE_A, Instant.now().minus(Duration.ofHours(2)));
         price(STORE_B, Instant.now().minus(Duration.ofDays(5)));
+        UUID withoutPrices = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO stores (id, supermarket_chain_id, city_id, name, active, source_id, source_reference,
+                                    collected_at, updated_at)
+                VALUES (?, '00000000-0000-0000-0000-000000000151', ?, 'Loja fictícia C', true, ?, 'test-store-c',
+                        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)""", withoutPrices, UUID.fromString(CITY), SOURCE);
 
-        for (var request : new org.springframework.test.web.servlet.RequestBuilder[] {
-                get("/api/v1/stores"), get("/api/v1/stores").param("cityId", CITY)}) {
-            mvc.perform(request).andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content[*].id", contains(STORE_A.toString())))
-                    .andExpect(jsonPath("$.totalElements").value(1));
-        }
+        mvc.perform(get("/api/v1/stores").param("cityId", CITY)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].id",
+                        contains(STORE_A.toString(), STORE_B.toString(), withoutPrices.toString())))
+                .andExpect(jsonPath("$.content[*].priceStatus", contains("CURRENT", "OUTDATED", "NO_PRICES")))
+                .andExpect(jsonPath("$.content[2].lastPriceCollectedAt").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(3));
+        mvc.perform(get("/api/v1/stores/{id}", STORE_B)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.priceStatus").value("OUTDATED"))
+                .andExpect(jsonPath("$.lastPriceCollectedAt").isNotEmpty());
     }
 
     @Test

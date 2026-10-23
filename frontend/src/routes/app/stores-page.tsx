@@ -4,9 +4,9 @@ import { useState } from "react";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/feedback";
 import { SelectField, TextField } from "@/components/ui/form-field";
 import { NativeButton } from "@/components/ui/native-button";
-import { PageHeading } from "@/components/page/page-elements";
+import { PageHeading, StatusBadge } from "@/components/page/page-elements";
 import { catalogApi, preferenceApi } from "@/services/gomo-api";
-import { formatDate } from "@/lib/brand";
+import { storeStatus } from "@/features/catalog/store-status";
 
 export function StoresPage() {
   const queryClient = useQueryClient();
@@ -37,12 +37,19 @@ export function StoresPage() {
         : preferenceApi.addFavoriteStore(storeId),
     onSuccess: (data) => queryClient.setQueryData(["preferences"], data),
   });
+  // Markets with current prices first; the API keeps the name order inside each group.
   const filtered =
-    stores.data?.content.filter((store) =>
-      `${store.name} ${store.address ?? ""}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    ) ?? [];
+    stores.data?.content
+      .filter((store) =>
+        `${store.name} ${store.address ?? ""}`
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+      )
+      .sort(
+        (a, b) =>
+          Number(b.priceStatus === "CURRENT") -
+          Number(a.priceStatus === "CURRENT"),
+      ) ?? [];
 
   return (
     <>
@@ -98,6 +105,7 @@ export function StoresPage() {
           {filtered.map((store) => {
             const favorite =
               preferences.data?.favoriteStoreIds.includes(store.id) ?? false;
+            const status = storeStatus(store);
             return (
               <article key={store.id} className="surface anim-trigger p-5">
                 <div className="flex items-start justify-between gap-4">
@@ -131,12 +139,10 @@ export function StoresPage() {
                   <MapPin className="mt-1 size-4 shrink-0" aria-hidden />
                   {store.address ?? "Endereço não informado"}
                 </p>
-                <p className="mt-4 text-xs text-muted">
-                  {store.priceSourceNote ??
-                    (store.lastPriceCollectedAt
-                      ? `Preços atualizados em ${formatDate(store.lastPriceCollectedAt)}`
-                      : "Os preços deste mercado chegam em breve")}
-                </p>
+                <div className="mt-4">
+                  <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+                  <p className="mt-2 text-xs text-muted">{status.help}</p>
+                </div>
                 <NativeButton
                   className="mt-4"
                   variant="secondary"

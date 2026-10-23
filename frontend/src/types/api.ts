@@ -130,6 +130,8 @@ export interface Product {
   updatedAt: string;
 }
 
+export type StorePriceStatus = "CURRENT" | "OUTDATED" | "NO_PRICES";
+
 export interface Store {
   id: string;
   supermarketChainId: string;
@@ -145,6 +147,8 @@ export interface Store {
   updatedAt: string;
   lastPriceCollectedAt: string | null;
   priceSourceNote: string | null;
+  /** Only filled by /stores and /stores/{id}; null in comparison responses. */
+  priceStatus?: StorePriceStatus | null;
 }
 
 export interface PriceRecord {
