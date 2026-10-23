@@ -185,7 +185,12 @@ function CatalogItemCard({
           </h3>
           <p className="mt-1 flex items-center gap-1 text-xs text-muted">
             <Store className="size-3.5 shrink-0" aria-hidden />
-            {item.pricedStores === 1 ? "Preço atual em 1 mercado" : `Preço atual em ${item.pricedStores} mercados`}
+            {/* Without a city there are no current prices to count: say where it is sold instead of "0 mercados". */}
+            {!cityChosen
+              ? `Vendido em ${item.storeCount} mercados`
+              : item.pricedStores === 1
+                ? "Preço atual em 1 mercado"
+                : `Preço atual em ${item.pricedStores} mercados`}
           </p>
         </div>
       </div>
