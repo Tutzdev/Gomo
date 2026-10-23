@@ -35,17 +35,22 @@ public class AuthService {
         this.dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
+    /**
+     * Creates the account and sends the confirmation e-mail. An e-mail that already has an account gets a notice
+     * instead, after the same password hashing, so the caller cannot tell the two cases apart.
+     */
     @Transactional
-    public UserResponse register(RegisterRequest request) {
+    public void register(RegisterRequest request) {
         passwordPolicy.validate(request.password());
         String email = User.normalizeEmail(request.email());
-        if (users.existsByEmail(email)) {
-            throw new ApiException(HttpStatus.CONFLICT, "E-mail já cadastrado.");
+        String passwordHash = passwordEncoder.encode(request.password());
+        Optional<User> existing = users.findByEmail(email);
+        if (existing.isPresent()) {
+            accounts.notifyExistingAccount(existing.get());
+            return;
         }
-        User user = new User(request.name(), email, passwordEncoder.encode(request.password()), clock.instant());
-        User savedUser = users.saveAndFlush(user);
+        User savedUser = users.saveAndFlush(new User(request.name(), email, passwordHash, clock.instant()));
         accounts.issueEmailVerification(savedUser);
-        return UserResponse.from(savedUser, clock.instant());
     }
 
     public AuthResponse login(LoginRequest request) {

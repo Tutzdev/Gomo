@@ -70,12 +70,9 @@ class ApiIntegrationTests {
     @Test
     void registrationLoginProfileAndLogoutWorkWithHashedCredentials() throws Exception {
         String email = uniqueEmail();
-        JsonNode user = read(register(email.toUpperCase())
-                .andExpect(status().isCreated())
-                .andExpect(header().string(HttpHeaders.LOCATION, "/api/v1/users/me"))
-                .andExpect(jsonPath("$.email").value(email))
-                .andExpect(jsonPath("$.passwordHash").doesNotExist())
-                .andExpect(jsonPath("$.password").doesNotExist()));
+        register(email.toUpperCase())
+                .andExpect(status().isAccepted())
+                .andExpect(content().string(""));
         String storedHash = jdbc.queryForObject("select password_hash from app_users where email = ?", String.class, email);
         assertThat(storedHash).startsWith("$2").isNotEqualTo(PASSWORD);
 
@@ -83,8 +80,12 @@ class ApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.expiresAt").isString()));
+                .andExpect(jsonPath("$.expiresAt").isString())
+                .andExpect(jsonPath("$.user.email").value(email))
+                .andExpect(jsonPath("$.user.passwordHash").doesNotExist())
+                .andExpect(jsonPath("$.user.password").doesNotExist()));
         String token = login.path("accessToken").asString();
+        JsonNode user = login.path("user");
 
         perform(get("/api/v1/users/me"), token)
                 .andExpect(status().isOk())
@@ -108,14 +109,19 @@ class ApiIntegrationTests {
     }
 
     @Test
-    void duplicateEmailAndInvalidCredentialsHaveConsistentErrors() throws Exception {
+    void registrationDoesNotRevealExistingEmailsAndInvalidCredentialsHaveConsistentErrors() throws Exception {
         String email = uniqueEmail();
-        register(email).andExpect(status().isCreated());
+        register(email).andExpect(status().isAccepted());
 
-        register(email.toUpperCase())
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("CONFLICT"))
-                .andExpect(jsonPath("$.path").value("/api/v1/auth/register"));
+        // Same answer as a new e-mail; the account keeps its password and no second account appears.
+        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("name", "Someone Else", "email", email.toUpperCase(),
+                                "password", "another-test-password"))))
+                .andExpect(status().isAccepted())
+                .andExpect(content().string(""));
+        assertThat(jdbc.queryForObject("select count(*) from app_users where email = ?", Integer.class, email)).isOne();
+        login(email, "another-test-password").andExpect(status().isUnauthorized());
+        login(email, PASSWORD).andExpect(status().isOk());
         String wrongPasswordDetail = read(login(email, "incorrect-test-password")
                 .andExpect(status().isUnauthorized())).path("detail").asString();
         login(uniqueEmail(), PASSWORD)
@@ -292,7 +298,7 @@ class ApiIntegrationTests {
     @Sql("/fixtures/catalog.sql")
     void retiredMarketKeepsItsFavouriteRowsButTakesNoNewFavouriteOrContribution() throws Exception {
         String email = uniqueEmail();
-        register(email).andExpect(status().isCreated());
+        register(email).andExpect(status().isAccepted());
         jdbc.update("update app_users set email_verified_at = CURRENT_TIMESTAMP where email = ?", email);
         String token = read(login(email, PASSWORD).andExpect(status().isOk())).path("accessToken").asString();
         String favourites = "/api/v1/users/me/preferences/favorite-stores/";
@@ -398,7 +404,7 @@ class ApiIntegrationTests {
 
     private String registerAndLogin() throws Exception {
         String email = uniqueEmail();
-        register(email).andExpect(status().isCreated());
+        register(email).andExpect(status().isAccepted());
         return read(login(email, PASSWORD).andExpect(status().isOk())).path("accessToken").asString();
     }
 

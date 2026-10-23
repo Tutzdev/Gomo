@@ -239,7 +239,7 @@ class PaidSubscriptionIntegrationTests {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of("name", "Pessoa sintética", "email", email,
                                 "password", PASSWORD))))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
         var response = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of("email", email, "password", PASSWORD))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();

@@ -47,10 +47,13 @@ export function AuthPage() {
     navigate(destination, { replace: true });
   };
 
+  /** Returns false when the account did not sign in, so the form shows the "check your e-mail" message. */
   const handleRegister = async (values: RegisterValues) => {
-    // A conta nova já entra pelo cookie de sessão; o aviso de verificar o e-mail aparece dentro do app.
-    await register(values.name, values.email, values.password);
+    // A conta nova entra em seguida; o aviso de verificar o e-mail aparece dentro do app.
+    const created = await register(values.name, values.email, values.password);
+    if (!created) return false;
     navigate(destination, { replace: true });
+    return true;
   };
 
   return (
@@ -122,14 +125,37 @@ function LoginForm({ onSubmit }: { onSubmit: (values: LoginValues) => Promise<vo
   );
 }
 
-function RegisterForm({ onSubmit }: { onSubmit: (values: RegisterValues) => Promise<void> }) {
+function RegisterForm({ onSubmit }: { onSubmit: (values: RegisterValues) => Promise<boolean> }) {
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterValues>({ resolver: zodResolver(registerSchema) });
   const submit = handleSubmit(async (values) => {
     setApiError(null);
-    try { await onSubmit(values); } catch (error) { setApiError(error instanceof ApiError ? error.message : "Não foi possível criar a conta."); }
+    try {
+      if (!(await onSubmit(values))) setPendingEmail(values.email);
+    } catch (error) {
+      setApiError(error instanceof ApiError ? error.message : "Não foi possível criar a conta.");
+    }
   });
+
+  if (pendingEmail) {
+    // Mesma mensagem para quem já tinha conta: o dono do e-mail recebe um aviso e pode redefinir a senha.
+    return (
+      <div className="mx-auto w-full max-w-sm" role="status">
+        <p className="text-sm font-extrabold uppercase tracking-[0.14em] text-primary">Quase lá</p>
+        <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.04em]">Confira seu e-mail</h1>
+        <p className="mt-3 text-sm leading-6 text-muted">
+          Enviamos uma mensagem para <strong className="text-foreground">{pendingEmail}</strong> com o próximo passo.
+          Se este e-mail já tinha uma conta, entre com a senha dela ou redefina a senha.
+        </p>
+        <NativeButton to="/recuperar-senha" variant="secondary" className="mt-6 w-full">Esqueci minha senha</NativeButton>
+        <button type="button" className="mt-4 w-full text-sm font-bold text-primary underline-offset-4 hover:underline" onClick={() => setPendingEmail(null)}>
+          Usar outro e-mail
+        </button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={submit} className="mx-auto w-full max-w-sm" noValidate>

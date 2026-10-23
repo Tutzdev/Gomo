@@ -53,27 +53,30 @@ class AuthServiceTest {
     void registrationNormalizesEmailAndPersistsOnlyPasswordHash() {
         when(users.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = auth.register(new RegisterRequest("  Test User  ", "USER@EXAMPLE.TEST", PASSWORD));
+        auth.register(new RegisterRequest("  Test User  ", "USER@EXAMPLE.TEST", PASSWORD));
 
         ArgumentCaptor<User> storedUser = ArgumentCaptor.forClass(User.class);
         verify(users).saveAndFlush(storedUser.capture());
         verify(accounts).issueEmailVerification(storedUser.getValue());
-        assertThat(response.name()).isEqualTo("Test User");
-        assertThat(response.email()).isEqualTo("user@example.test");
-        assertThat(response.createdAt()).isEqualTo(NOW);
+        verify(accounts, never()).notifyExistingAccount(any());
+        assertThat(storedUser.getValue().getName()).isEqualTo("Test User");
+        assertThat(storedUser.getValue().getEmail()).isEqualTo("user@example.test");
+        assertThat(storedUser.getValue().getCreatedAt()).isEqualTo(NOW);
         assertThat(storedUser.getValue().getPasswordHash()).isNotEqualTo(PASSWORD);
         assertThat(passwordEncoder.matches(PASSWORD, storedUser.getValue().getPasswordHash())).isTrue();
     }
 
     @Test
-    void duplicateEmailFailsBeforeSavingUser() {
-        when(users.existsByEmail("user@example.test")).thenReturn(true);
+    void existingEmailNotifiesTheOwnerInsteadOfFailingOrSaving() {
+        User owner = new User("Owner", "user@example.test", passwordEncoder.encode(PASSWORD), NOW);
+        when(users.findByEmail("user@example.test")).thenReturn(Optional.of(owner));
 
-        assertThatThrownBy(() -> auth.register(new RegisterRequest("Test User", "USER@EXAMPLE.TEST", PASSWORD)))
-                .isInstanceOfSatisfying(ApiException.class,
-                        exception -> assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT));
+        auth.register(new RegisterRequest("Test User", "USER@EXAMPLE.TEST", "another-password-123"));
 
+        verify(accounts).notifyExistingAccount(owner);
+        verify(accounts, never()).issueEmailVerification(any());
         verify(users, never()).saveAndFlush(any());
+        assertThat(passwordEncoder.matches(PASSWORD, owner.getPasswordHash())).isTrue();
     }
 
     @Test
@@ -91,9 +94,9 @@ class AuthServiceTest {
     void registrationAcceptsPasswordAtExactBcryptByteLimit() {
         when(users.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = auth.register(new RegisterRequest("Test User", "user@example.test", "é".repeat(36)));
+        auth.register(new RegisterRequest("Test User", "user@example.test", "é".repeat(36)));
 
-        assertThat(response.id()).isNotNull();
+        verify(users).saveAndFlush(any(User.class));
     }
 
     @Test

@@ -105,7 +105,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     throw new ApiError(response.status, problem);
   }
 
-  if (response.status === 204) return undefined as T;
+  // 204 e os 202 da API (cadastro, e-mails de conta) não têm corpo.
+  if (response.status === 204 || response.status === 202) return undefined as T;
 
   if (!response.headers.get("Content-Type")?.includes("json")) {
     throw new ApiError(response.status, {

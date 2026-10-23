@@ -93,15 +93,16 @@ class SessionCookieIntegrationTests {
     }
 
     @Test
-    void siteRegistrationSignsTheNewAccountIn() throws Exception {
+    void siteRegistrationOpensNoSessionSoItLooksTheSameForAnExistingEmail() throws Exception {
         String email = UUID.randomUUID() + "@example.com";
 
-        MockHttpServletResponse response = mvc.perform(site(post("/api/v1/auth/register"))
+        mvc.perform(site(post("/api/v1/auth/register"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of("name", "Pessoa sintética", "email", email, "password", PASSWORD))))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse();
+                .andExpect(status().isAccepted())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
 
+        MockHttpServletResponse response = siteLogin(email).andExpect(status().isOk()).andReturn().getResponse();
         mvc.perform(get("/api/v1/users/me").cookie(sessionCookie(response))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(email));
     }
@@ -192,7 +193,7 @@ class SessionCookieIntegrationTests {
         String email = UUID.randomUUID() + "@example.com";
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of("name", "Pessoa sintética", "email", email, "password", PASSWORD))))
-                .andExpect(status().isCreated())
+                .andExpect(status().isAccepted())
                 .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
         return email;
     }

@@ -65,12 +65,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return response.user;
       },
       register: async (name, email, password) => {
-        // O cadastro pelo site já abre a sessão no cookie.
-        const created = await authApi.register({ name, email, password });
-        legacySessionStorage.clear();
-        setUser(created);
-        setSessionError(null);
-        return created;
+        // O cadastro não abre sessão nem diz se o e-mail já tinha conta; a conta nova entra pelo login normal.
+        await authApi.register({ name, email, password });
+        try {
+          const response = await authApi.login({ email, password });
+          legacySessionStorage.clear();
+          setUser(response.user);
+          setSessionError(null);
+          return response.user;
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 401) return null;
+          throw error;
+        }
       },
       logout: async () => {
         try {

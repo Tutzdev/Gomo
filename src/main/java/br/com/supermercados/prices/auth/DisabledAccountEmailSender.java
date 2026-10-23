@@ -20,4 +20,9 @@ class DisabledAccountEmailSender implements AccountEmailSender {
     public void sendPasswordReset(String recipient, String token) {
         log.warn("E-mail delivery is disabled; password reset message was not sent");
     }
+
+    @Override
+    public void sendExistingAccountNotice(String recipient) {
+        log.warn("E-mail delivery is disabled; existing account notice was not sent");
+    }
 }

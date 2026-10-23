@@ -27,8 +27,10 @@ public class AbuseProtectionService {
         this.contributionLimit = requirePositive(contributionLimit, "app.rate-limit.contributions");
     }
 
-    public void checkRegistration(String remoteAddress) {
+    /** Every sign-up sends an e-mail (confirmation or existing-account notice), so it also counts per address. */
+    public void checkRegistration(String remoteAddress, String email) {
         limiter.check("registration-ip", safe(remoteAddress), registrationLimit, Duration.ofHours(1));
+        limiter.check("registration-account", emailKey(email), accountMessageLimit, Duration.ofHours(1));
     }
 
     public void checkLogin(String remoteAddress, String email) {

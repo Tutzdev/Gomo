@@ -53,8 +53,9 @@ export const authApi = {
       body: input,
       authenticated: false,
     }),
+  /** 202 sem corpo e sem sessão, exista ou não conta com o e-mail (o dono recebe um aviso). */
   register: (input: { name: string; email: string; password: string }) =>
-    apiRequest<User>("/auth/register", {
+    apiRequest<void>("/auth/register", {
       method: "POST",
       body: input,
       authenticated: false,

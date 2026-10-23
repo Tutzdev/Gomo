@@ -66,6 +66,12 @@ public class AccountService {
         deliverAfterCommit(() -> emailSender.sendEmailVerification(user.getEmail(), rawToken));
     }
 
+    /** Tells the owner that someone tried to sign up with their e-mail; the sign-up itself answers as usual. */
+    @Transactional
+    public void notifyExistingAccount(User user) {
+        deliverAfterCommit(() -> emailSender.sendExistingAccountNotice(user.getEmail()));
+    }
+
     @Transactional
     public void requestEmailVerification(UUID userId) {
         User user = users.findById(userId)

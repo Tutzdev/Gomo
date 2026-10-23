@@ -6,7 +6,6 @@ import br.com.supermercados.prices.user.UserService;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.net.URI;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,17 +38,15 @@ public class AuthController {
         this.users = users;
     }
 
-    /** With "X-Gomo-Session: cookie" (the site) the new account is also signed in through the session cookie. */
+    /**
+     * Always 202 with no body or session, whether or not the e-mail already had an account (its owner gets an
+     * e-mail instead), so registration does not reveal who uses the Gomo. The client signs in afterwards.
+     */
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(
-            @Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest,
-            HttpServletResponse httpResponse) {
-        abuseProtection.checkRegistration(httpRequest.getRemoteAddr());
-        UserResponse user = auth.register(request);
-        if (SessionCookies.requested(httpRequest)) {
-            cookies.write(httpResponse, tokens.issue(user.id()));
-        }
-        return ResponseEntity.created(URI.create("/api/v1/users/me")).body(user);
+    public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        abuseProtection.checkRegistration(httpRequest.getRemoteAddr(), request.email());
+        auth.register(request);
+        return ResponseEntity.accepted().build();
     }
 
     /** The site asks for the cookie and gets no token in the body; other clients keep the Bearer token. */

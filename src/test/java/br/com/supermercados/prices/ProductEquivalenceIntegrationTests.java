@@ -360,7 +360,7 @@ class ProductEquivalenceIntegrationTests {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of("name", "Synthetic user", "email", email,
                                 "password", "synthetic-test-password"))))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
         return read(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of("email", email, "password", "synthetic-test-password"))))
                 .andExpect(status().isOk())).path("accessToken").asString();
