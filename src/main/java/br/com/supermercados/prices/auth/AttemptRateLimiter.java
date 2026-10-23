@@ -9,6 +9,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+/**
+ * Fixed windows kept in memory: they reset when the API restarts. Deliberate for a single instance (see
+ * docs/operations.md, "Limite de tentativas da API"); the Nginx limit on /api/v1/auth/ survives deploys.
+ */
 @Component
 class AttemptRateLimiter {
 

@@ -38,6 +38,17 @@ for i in $(seq 1 15); do curl -s -o /dev/null -w '%{http_code} ' -X POST https:/
 
 Depois abra o site com o console do navegador aberto: nenhuma mensagem "Refused to load ... Content Security Policy" deve aparecer.
 
+### Limite de tentativas da API (em memória)
+
+Além do Nginx, a API limita cadastros, logins, e-mails de conta e contribuições por IP e por conta (`AttemptRateLimiter`). Esse limite fica na memória da API e zera quando ela reinicia, a cada deploy. Foi mantido assim de propósito no MVP:
+
+- há uma única instância da API, então a memória enxerga todos os pedidos;
+- as janelas são curtas (1 minuto para login, 1 hora para cadastro e e-mails); um deploy dá a quem ataca, no máximo, uma janela a mais, e ninguém de fora consegue provocar um deploy;
+- o limite do Nginx em `/api/v1/auth/` não zera com o deploy da API e cobre esse intervalo; a senha ainda passa pelo BCrypt (custo 12) a cada tentativa;
+- a política de privacidade diz que o IP usado nesses limites fica só na memória do servidor, por no máximo uma hora. Guardar no Postgres exigiria mudar esse texto e gravar IPs no banco, além de uma escrita por tentativa.
+
+Vale rever se a API passar a rodar em mais de uma instância: aí o limite precisa ficar num lugar comum (uma tabela no Postgres ou Redis).
+
 ## 2. Backup do banco
 
 `scripts/backup.sh` gera um `pg_dump` (formato custom) e mantém os 14 mais recentes. O `deploy.sh` o executa antes de publicar cada versão. Se o backup falhar, o deploy para antes das migrations, que não são desfeitas no rollback.
