@@ -39,4 +39,28 @@ class CatalogDisplayNameTest {
         assertThat(CatalogBuilder.Group.accented("TOMATE", spellings)).isEqualTo("Tomate");
         assertThat(CatalogBuilder.Group.accented("Ovos Brancos Grandes", spellings)).isEqualTo("Ovos Brancos Grandes");
     }
+
+    @Test
+    void aNumberCutFromTheSizeAndErpAbbreviationsAreCleanedUp() {
+        CatalogKey learned = CatalogKey.learn(List.of("Queensberry", "Baby Soft", "Itambe", "Farao"), List.of());
+        assertThat(CatalogBuilder.Group.genericName("Geleia Queensberry Classic 320",
+                learned.identify("Geleia Queensberry Classica 320g Morango"))).isEqualTo("Geleia Queensberry Classic 320 g");
+        assertThat(CatalogBuilder.Group.genericName("Leite Cond Itambe 39",
+                learned.identify("Leite Condensado Itambe 395g"))).isEqualTo("Leite Cond Itambe 395 g");
+        assertThat(CatalogBuilder.Group.genericName("Amac. Roupa Conc. Baby Soft 500ml",
+                learned.identify("Amac. Roupa Conc. Baby Soft 500ml"))).isEqualTo("Amaciante Roupa Concentrado Baby Soft 500 ml");
+        assertThat(CatalogBuilder.Group.genericName("CAFE FARAO VACUO 500 Grama(s)",
+                learned.identify("CAFE FARAO VACUO 500 Grama(s)"))).isEqualTo("Cafe Farao Vacuo 500 g");
+        // A number that is not the start of the size stays: "Tipo 1", "Nº 8".
+        assertThat(generic("ARROZ TIO JOAO TP 1 5kg")).isEqualTo("Arroz Tio João Tipo 1 5 kg");
+    }
+
+    @Test
+    void accentsDroppedByTheStoresAreRestored() {
+        assertThat(CatalogSpelling.accented("Oleo Liza Soja")).isEqualTo("Óleo Liza Soja");
+        assertThat(CatalogSpelling.accented("Cafe 3 Coracoes Extra Forte")).isEqualTo("Café 3 Corações Extra Forte");
+        assertThat(CatalogSpelling.accented("PAO DE FORMA")).isEqualTo("PÃO DE FORMA");
+        // Words with two readings stay as written.
+        assertThat(CatalogSpelling.accented("Massa Para Lasanha Maca Verde")).isEqualTo("Massa Para Lasanha Maca Verde");
+    }
 }
