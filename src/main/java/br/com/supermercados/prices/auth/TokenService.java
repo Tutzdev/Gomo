@@ -63,6 +63,12 @@ public class TokenService {
         tokens.revokeAll(userId);
     }
 
+    /** Signs the user out of every other device and keeps the session making the request. */
+    @Transactional
+    public void revokeOthers(UUID userId, String keptRawToken) {
+        tokens.revokeAllExcept(userId, SecureTokenValues.hash(keptRawToken));
+    }
+
     public record IssuedToken(String value, Instant expiresAt) {
 
         @Override

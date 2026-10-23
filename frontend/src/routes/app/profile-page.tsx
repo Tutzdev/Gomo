@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, MailCheck, MapPin, Trash2, UserRound } from "lucide-react";
+import { BadgeCheck, KeyRound, LogOut, MailCheck, MapPin, Trash2, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -56,8 +56,62 @@ export function ProfilePage() {
           <InlineError>{profileMessage}</InlineError>
         </section>
       </div>
+      <SecuritySection />
       <DeleteAccountSection />
     </>
+  );
+}
+
+function SecuritySection() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  const mismatch = Boolean(confirmation) && confirmation !== newPassword;
+  const tooShort = Boolean(newPassword) && newPassword.length < 12;
+  const changePassword = useMutation({
+    mutationFn: () => authApi.changePassword(currentPassword, newPassword),
+    onSuccess: () => {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmation("");
+      setMessage("Senha alterada. Os outros aparelhos saíram da conta; este continua conectado.");
+    },
+    onError: (error) => setMessage(error instanceof ApiError ? error.message : "Não foi possível alterar a senha."),
+  });
+  const logoutEverywhere = useMutation({
+    mutationFn: authApi.logoutEverywhere,
+    onSuccess: async () => {
+      // A sessão deste aparelho também acabou no servidor; aqui só limpa o navegador.
+      await logout().catch(() => undefined);
+      navigate("/entrar", { replace: true });
+    },
+  });
+
+  return (
+    <section className="surface anim-trigger mt-6 p-5 sm:p-6">
+      <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary"><KeyRound className="size-5" aria-hidden /></span><div><h2 className="font-bold">Senha e acesso</h2><p className="text-sm text-muted">Troque a senha ou saia da conta em todos os aparelhos.</p></div></div>
+      <div className="mt-6 grid gap-8 lg:grid-cols-2">
+        <form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); setMessage(null); changePassword.mutate(); }}>
+          <TextField id="current-password" label="Senha atual" type="password" autoComplete="current-password" value={currentPassword} maxLength={72} onChange={(event) => setCurrentPassword(event.target.value)} required />
+          <TextField id="new-password" label="Nova senha" type="password" autoComplete="new-password" value={newPassword} maxLength={72} onChange={(event) => setNewPassword(event.target.value)} error={tooShort ? "Use pelo menos 12 caracteres." : undefined} required />
+          <TextField id="new-password-confirmation" label="Repita a nova senha" type="password" autoComplete="new-password" value={confirmation} maxLength={72} onChange={(event) => setConfirmation(event.target.value)} error={mismatch ? "As senhas não são iguais." : undefined} required />
+          <p className="text-xs leading-5 text-muted">Ao trocar a senha, os outros aparelhos saem da conta.</p>
+          <InlineError>{changePassword.isError ? message : null}</InlineError>
+          {changePassword.isSuccess && message ? <p className="rounded-lg bg-success-soft p-3 text-sm text-success" role="status">{message}</p> : null}
+          <NativeButton type="submit" loading={changePassword.isPending} disabled={!currentPassword || newPassword.length < 12 || confirmation !== newPassword}>Alterar senha</NativeButton>
+        </form>
+        <div>
+          <h3 className="font-bold">Sair de todos os aparelhos</h3>
+          <p className="mt-2 text-sm leading-6 text-muted">Encerra a conta em todos os celulares e computadores, inclusive neste. Use se perdeu um aparelho ou entrou num computador que não é seu.</p>
+          <NativeButton type="button" variant="secondary" className="mt-4" onClick={() => { logoutEverywhere.reset(); setConfirmingLogout(true); }}><LogOut className="size-4" aria-hidden />Sair de todos os aparelhos</NativeButton>
+        </div>
+      </div>
+      <ConfirmDialog open={confirmingLogout} onOpenChange={setConfirmingLogout} title="Sair de todos os aparelhos?" description="Você vai precisar entrar de novo em cada aparelho, inclusive neste." confirmLabel="Sair de todos" loading={logoutEverywhere.isPending} error={logoutEverywhere.error instanceof ApiError ? logoutEverywhere.error.message : logoutEverywhere.error ? "Não foi possível sair de todos os aparelhos." : undefined} onConfirm={() => logoutEverywhere.mutate()} />
+    </section>
   );
 }
 

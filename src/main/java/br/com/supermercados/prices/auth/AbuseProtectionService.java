@@ -47,6 +47,11 @@ public class AbuseProtectionService {
         limiter.check("account-confirmation-ip", safe(remoteAddress), loginLimit, Duration.ofMinutes(1));
     }
 
+    /** Guessing the current password from a stolen session is as limited as guessing it at login. */
+    public void checkPasswordChange(UUID userId) {
+        limiter.check("password-change-user", userId.toString(), loginLimit, Duration.ofMinutes(15));
+    }
+
     public void checkContribution(UUID userId) {
         limiter.check("contribution-user", userId.toString(), contributionLimit, Duration.ofHours(1));
     }

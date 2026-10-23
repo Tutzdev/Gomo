@@ -185,6 +185,55 @@ class SessionCookieIntegrationTests {
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
     }
 
+    @Test
+    void changingThePasswordKeepsThisSessionAndEndsEveryOtherOne() throws Exception {
+        String email = register();
+        Cookie site = sessionCookie(siteLogin(email).andReturn().getResponse());
+        String phone = bearerLogin(email, PASSWORD);
+        String newPassword = "another-synthetic-password";
+
+        changePassword(site, "wrong-current-password", newPassword).andExpect(status().isForbidden());
+        changePassword(site, PASSWORD, PASSWORD).andExpect(status().isBadRequest());
+        changePassword(site, PASSWORD, newPassword).andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/v1/users/me").cookie(site)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/users/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + phone))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(credentials(email)))
+                .andExpect(status().isUnauthorized());
+        bearerLogin(email, newPassword);
+    }
+
+    @Test
+    void signingOutEverywhereEndsEverySessionOfTheAccount() throws Exception {
+        String email = register();
+        Cookie site = sessionCookie(siteLogin(email).andReturn().getResponse());
+        String phone = bearerLogin(email, PASSWORD);
+        String otherAccount = bearerLogin(register(), PASSWORD);
+
+        MockHttpServletResponse response = mvc.perform(site(post("/api/v1/auth/logout-all")).cookie(site))
+                .andExpect(status().isNoContent()).andReturn().getResponse();
+
+        assertThat(response.getHeader(HttpHeaders.SET_COOKIE)).startsWith(COOKIE + "=;").contains("Max-Age=0");
+        mvc.perform(get("/api/v1/users/me").cookie(site)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/users/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + phone))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/users/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + otherAccount))
+                .andExpect(status().isOk());
+    }
+
+    private ResultActions changePassword(Cookie session, String current, String replacement) throws Exception {
+        return mvc.perform(site(post("/api/v1/auth/password")).cookie(session).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("currentPassword", current, "newPassword", replacement))));
+    }
+
+    private String bearerLogin(String email, String password) throws Exception {
+        byte[] body = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("email", email, "password", password))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        return json.readTree(body).path("accessToken").asString();
+    }
+
     private MockHttpServletRequestBuilder site(MockHttpServletRequestBuilder request) {
         return request.header(SessionCookies.MODE_HEADER, SessionCookies.MODE_COOKIE).header(HttpHeaders.ORIGIN, SITE);
     }

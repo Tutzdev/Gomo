@@ -3,6 +3,7 @@ package br.com.supermercados.prices.auth;
 import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.user.User;
 import br.com.supermercados.prices.user.UserRepository;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -116,6 +117,28 @@ public class AccountService {
         token.use(now);
         user.changePassword(passwordEncoder.encode(password), now);
         accessTokens.revokeAll(user.getId());
+    }
+
+    /**
+     * Changes the password of a signed-in user who proves the current one. Every other session ends (someone who
+     * knew the old password is signed out) and a pending reset link stops working; this session stays.
+     */
+    @Transactional
+    public void changePassword(UUID userId, String currentPassword, String newPassword, String currentSession) {
+        User user = users.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+        if (currentPassword.getBytes(StandardCharsets.UTF_8).length > PasswordPolicy.BCRYPT_MAX_BYTES
+                || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Senha atual incorreta.");
+        }
+        passwordPolicy.validate(newPassword);
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A nova senha precisa ser diferente da atual.");
+        }
+        Instant now = clock.instant();
+        resetTokens.invalidateUnused(userId, now);
+        user.changePassword(passwordEncoder.encode(newPassword), now);
+        accessTokens.revokeOthers(userId, currentSession);
     }
 
     private void issuePasswordReset(User user) {

@@ -61,6 +61,11 @@ export const authApi = {
       authenticated: false,
     }),
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }),
+  /** Encerra todas as sessões da conta, inclusive esta. */
+  logoutEverywhere: () => apiRequest<void>("/auth/logout-all", { method: "POST" }),
+  /** Esta sessão continua; as dos outros aparelhos terminam. */
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiRequest<void>("/auth/password", { method: "POST", body: { currentPassword, newPassword } }),
   /** Usuário da sessão atual, ou undefined (204) para quem não entrou. */
   session: () => apiRequest<User | undefined>("/auth/session", { authenticated: false }),
   /** Troca o token antigo do localStorage por um cookie de sessão. */

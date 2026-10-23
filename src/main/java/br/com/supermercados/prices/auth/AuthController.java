@@ -68,12 +68,36 @@ public class AuthController {
     public ResponseEntity<Void> logout(@AuthenticationPrincipal AuthenticatedUser principal,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-        String rawToken = authorization != null
-                ? authorization.substring("Bearer ".length())
-                : cookies.read(httpRequest).orElseThrow();
-        tokens.revoke(rawToken, principal.id());
+        tokens.revoke(currentToken(authorization, httpRequest), principal.id());
         cookies.clear(httpResponse);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Ends every session of the account, on every device, including this one. */
+    @PostMapping("/logout-all")
+    public ResponseEntity<Void> logoutEverywhere(@AuthenticationPrincipal AuthenticatedUser principal,
+            HttpServletResponse httpResponse) {
+        tokens.revokeAll(principal.id());
+        cookies.clear(httpResponse);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Needs the current password; this session stays and every other one ends. */
+    @PostMapping("/password")
+    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal AuthenticatedUser principal,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @Valid @RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) {
+        abuseProtection.checkPasswordChange(principal.id());
+        accounts.changePassword(principal.id(), request.currentPassword(), request.newPassword(),
+                currentToken(authorization, httpRequest));
+        return ResponseEntity.noContent().build();
+    }
+
+    /** The token that authenticated this request: the Bearer header, or else the site's session cookie. */
+    private String currentToken(String authorization, HttpServletRequest httpRequest) {
+        return authorization != null
+                ? authorization.substring("Bearer ".length())
+                : cookies.read(httpRequest).orElseThrow();
     }
 
     /** The signed-in user, or 204 when there is no session; lets the site check its cookie without a 401. */
