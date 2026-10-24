@@ -41,8 +41,10 @@ export interface HeroComparison {
 
 /*
  * O exemplo de quando a API não responde: preços reais da Coca-Cola 2 L coletados em 05/10/2026.
- * Ao atualizar, troque os números aqui.
+ * Ao atualizar, troque os números aqui e a data em FALLBACK_COLLECTED_ON.
  */
+export const FALLBACK_COLLECTED_ON = "5/10";
+
 const fallbackOffers: HeroOffer[] = [
   { store: "Hortifruti Aterrado", price: 10.49 },
   { store: "Pérola Água Limpa", price: 10.79 },

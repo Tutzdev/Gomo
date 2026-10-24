@@ -16,7 +16,7 @@ import {
 import gomoLogo from "../../../../gomo-logo.png";
 import { formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
-import type { HeroComparison } from "./use-hero-comparison";
+import { FALLBACK_COLLECTED_ON, type HeroComparison } from "./use-hero-comparison";
 
 /* O menu lateral do dashboard, com os mesmos nomes, ícones e ordem. */
 const sidebar: { label: string; icon: LucideIcon; active?: boolean }[] = [
@@ -87,7 +87,9 @@ export function HeroShowcase({ comparison }: { comparison: HeroComparison }) {
                 <div className="min-w-0">
                   <p className="hero-board__product-name">{product.name}</p>
                   <p className="hero-board__product-meta">
-                    Preço atual em {comparison.pricedStores} mercados de {cityName}
+                    {comparison.live
+                      ? `Preço atual em ${comparison.pricedStores} mercados de ${cityName}`
+                      : `Exemplo com preços de ${FALLBACK_COLLECTED_ON} em ${comparison.pricedStores} mercados de ${cityName}`}
                   </p>
                 </div>
                 <span className="hero-board__actions">
