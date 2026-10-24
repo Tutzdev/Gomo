@@ -13,7 +13,7 @@ O que ela faz:
 - **Cabeçalhos de segurança:** `Content-Security-Policy`, `Strict-Transport-Security` (1 ano, só o domínio), `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` e `Permissions-Policy` (só a localização, usada pela rota entre mercados, fica liberada).
 - Serve o frontend de `/var/www/gomo/frontend/dist`, com cache longo em `/assets/` e o `index.html` sempre novo; `www` e `http` redirecionam para `https://SEU_DOMINIO`.
 
-A CSP libera só o que o site usa: scripts próprios, Google Fonts (`fonts.googleapis.com` e `fonts.gstatic.com`), fotos de produto em qualquer endereço https (vêm dos sites dos mercados, em domínios que mudam) e os domínios de ingestão do Sentry. **Ligou o analytics** (item 8)? Acrescente o domínio do script (por exemplo `https://plausible.io`) em `script-src` e `connect-src`, senão o navegador o bloqueia. Se as fontes passarem a ser servidas pelo próprio site, os dois domínios do Google podem sair.
+A CSP libera só o que o site usa: scripts e fontes próprios (as fontes vêm dos pacotes `@fontsource`, servidas pelo próprio site), fotos de produto em qualquer endereço https (vêm dos sites dos mercados, em domínios que mudam) e os domínios de ingestão do Sentry. **Ligou o analytics** (item 8)? Acrescente o domínio do script (por exemplo `https://plausible.io`) em `script-src` e `connect-src`, senão o navegador o bloqueia.
 
 Instalar (como root, a partir do clone em `/var/www/gomo`), trocando `SEU_DOMINIO`:
 

@@ -6,7 +6,21 @@
  * Uma fonte arredondada para cada parte (tokens --font-landing-*); a Manrope fica no resto.
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@500..700&family=Nunito:wght@400..800&family=Quicksand:wght@500..700&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap");
+/* Servidas pelo próprio site, como as de index.css. */
+@import "@fontsource/fredoka/latin-500.css";
+@import "@fontsource/fredoka/latin-600.css";
+@import "@fontsource/fredoka/latin-700.css";
+@import "@fontsource/nunito/latin-400.css";
+@import "@fontsource/nunito/latin-500.css";
+@import "@fontsource/nunito/latin-600.css";
+@import "@fontsource/nunito/latin-700.css";
+@import "@fontsource/nunito/latin-800.css";
+@import "@fontsource/quicksand/latin-500.css";
+@import "@fontsource/quicksand/latin-600.css";
+@import "@fontsource/quicksand/latin-700.css";
+@import "@fontsource/m-plus-rounded-1c/latin-500.css";
+@import "@fontsource/m-plus-rounded-1c/latin-700.css";
+@import "@fontsource/m-plus-rounded-1c/latin-800.css";
 
 .landing {
   /* Largura das seções redesenhadas: mais aberta que a moldura, sem encostar nas bordas da tela. */

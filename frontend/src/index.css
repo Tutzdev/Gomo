@@ -1,4 +1,13 @@
-@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@500..800&family=Manrope:wght@400;500;600;700;800&display=swap");
+/* Fontes servidas pelo próprio site (pacotes @fontsource, só o alfabeto latino): o visitante não fala com o Google. */
+@import "@fontsource/manrope/latin-400.css";
+@import "@fontsource/manrope/latin-500.css";
+@import "@fontsource/manrope/latin-600.css";
+@import "@fontsource/manrope/latin-700.css";
+@import "@fontsource/manrope/latin-800.css";
+@import "@fontsource/rubik/latin-500.css";
+@import "@fontsource/rubik/latin-600.css";
+@import "@fontsource/rubik/latin-700.css";
+@import "@fontsource/rubik/latin-800.css";
 @import "tailwindcss";
 
 :root {
