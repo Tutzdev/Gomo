@@ -78,6 +78,8 @@ export const authApi = {
   deleteAccount: (password: string) =>
     apiRequest<void>("/users/me", { method: "DELETE", body: { password } }),
   currentUser: () => apiRequest<User>("/users/me"),
+  /** Tudo o que o Gomo guarda sobre a conta, para baixar (LGPD). */
+  exportData: () => apiRequest<Record<string, unknown>>("/users/me/export"),
   updateUser: (name: string) =>
     apiRequest<User>("/users/me", { method: "PATCH", body: { name } }),
   requestEmailVerification: () =>

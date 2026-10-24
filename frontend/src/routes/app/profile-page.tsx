@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, KeyRound, LogOut, MailCheck, MapPin, Trash2, UserRound } from "lucide-react";
+import { BadgeCheck, Download, KeyRound, LogOut, MailCheck, MapPin, Trash2, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -57,6 +57,7 @@ export function ProfilePage() {
         </section>
       </div>
       <SecuritySection />
+      <ExportDataSection />
       <DeleteAccountSection />
     </>
   );
@@ -111,6 +112,29 @@ function SecuritySection() {
         </div>
       </div>
       <ConfirmDialog open={confirmingLogout} onOpenChange={setConfirmingLogout} title="Sair de todos os aparelhos?" description="Você vai precisar entrar de novo em cada aparelho, inclusive neste." confirmLabel="Sair de todos" loading={logoutEverywhere.isPending} error={logoutEverywhere.error instanceof ApiError ? logoutEverywhere.error.message : logoutEverywhere.error ? "Não foi possível sair de todos os aparelhos." : undefined} onConfirm={() => logoutEverywhere.mutate()} />
+    </section>
+  );
+}
+
+function ExportDataSection() {
+  const download = useMutation({
+    mutationFn: authApi.exportData,
+    onSuccess: (data) => {
+      const file = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(file);
+      link.download = `gomo-meus-dados-${new Date().toLocaleDateString("sv-SE")}.json`;
+      link.click();
+      // Some browsers start the download only after click() returns.
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    },
+  });
+
+  return (
+    <section className="surface anim-trigger mt-6 p-5 sm:p-6">
+      <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary"><Download className="size-5" aria-hidden /></span><div><h2 className="font-bold">Baixar meus dados</h2><p className="text-sm text-muted">Um arquivo com tudo o que o Gomo guarda sobre você: conta, listas, alertas, preços enviados e sessões abertas.</p></div></div>
+      <NativeButton type="button" variant="secondary" className="mt-6" loading={download.isPending} onClick={() => download.mutate()}><Download className="size-4" aria-hidden />Baixar arquivo (JSON)</NativeButton>
+      <InlineError>{download.error instanceof ApiError ? download.error.message : download.error ? "Não foi possível gerar o arquivo." : null}</InlineError>
     </section>
   );
 }

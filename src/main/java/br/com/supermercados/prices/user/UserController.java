@@ -1,6 +1,14 @@
 package br.com.supermercados.prices.user;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Map;
+
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import jakarta.validation.constraints.NotBlank;
@@ -22,15 +30,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/users/me")
 public class UserController {
 
+    /** The day in the file name is the user's day, not the server's. */
+    private static final ZoneId BRAZIL = ZoneId.of("America/Sao_Paulo");
+
     private final UserService users;
     private final AccountDeletionService deletion;
+    private final AccountDataExportService dataExport;
     private final PaidSubscriptionService paidSubscriptions;
     private final SessionCookies cookies;
 
-    public UserController(UserService users, AccountDeletionService deletion,
+    public UserController(UserService users, AccountDeletionService deletion, AccountDataExportService dataExport,
             PaidSubscriptionService paidSubscriptions, SessionCookies cookies) {
         this.users = users;
         this.deletion = deletion;
+        this.dataExport = dataExport;
         this.paidSubscriptions = paidSubscriptions;
         this.cookies = cookies;
     }
@@ -44,6 +57,18 @@ public class UserController {
     public UserResponse updateCurrentUser(@AuthenticationPrincipal AuthenticatedUser principal,
             @Valid @RequestBody UpdateUserRequest request) {
         return users.updateCurrentUser(principal.id(), request);
+    }
+
+    /** Everything the Gomo keeps about the account, as a JSON file to download (LGPD art. 18). */
+    @GetMapping("/export")
+    public ResponseEntity<Map<String, Object>> exportData(@AuthenticationPrincipal AuthenticatedUser principal) {
+        Map<String, Object> data = dataExport.export(principal.id());
+        String day = ((Instant) data.get("geradoEm")).atZone(BRAZIL).toLocalDate().toString();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename("gomo-meus-dados-" + day + ".json").build().toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(data);
     }
 
     /**

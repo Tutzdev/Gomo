@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { BrandLogo } from "@/components/brand-logo";
 import { analyticsSettings } from "@/lib/observability";
 
-const UPDATED_AT = "20 de outubro de 2026";
+const UPDATED_AT = "24 de outubro de 2026";
 /** Quem responde pelo Gomo e o canal para pedidos sobre dados pessoais, definidos no build (frontend/.env). */
 const RESPONSIBLE = import.meta.env.VITE_LEGAL_RESPONSIBLE?.trim();
 const CONTACT_EMAIL = import.meta.env.VITE_LEGAL_CONTACT_EMAIL?.trim();
@@ -62,8 +62,9 @@ export function PrivacyPage() {
       <h2>Seus direitos</h2>
       <p>
         Você pode confirmar quais dados temos, corrigi-los, pedir uma cópia, revogar o consentimento e pedir a
-        exclusão (art. 18). O nome se corrige em <Link to="/app/perfil">Perfil</Link>, e lá também está o botão
-        <strong> Excluir conta</strong>, que faz a exclusão na hora.
+        exclusão (art. 18). O nome se corrige em <Link to="/app/perfil">Perfil</Link>. Lá também estão o botão
+        <strong> Baixar meus dados</strong>, que entrega na hora uma cópia de tudo o que guardamos sobre você, e o
+        botão <strong>Excluir conta</strong>, que faz a exclusão na hora.
         {CONTACT_EMAIL ? <> Para os outros pedidos, escreva para <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</> : null}
       </p>
 
