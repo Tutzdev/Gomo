@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import br.com.supermercados.prices.subscription.PremiumAccess;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,15 +16,17 @@ public class TokenService {
     private static final int TOKEN_LENGTH = 43;
 
     private final AuthTokenRepository tokens;
+    private final PremiumAccess premiumAccess;
     private final Clock clock;
     private final Duration tokenTtl;
 
-    public TokenService(AuthTokenRepository tokens, Clock clock,
+    public TokenService(AuthTokenRepository tokens, PremiumAccess premiumAccess, Clock clock,
             @Value("${app.auth.token-ttl:PT12H}") Duration tokenTtl) {
         if (tokenTtl.isZero() || tokenTtl.isNegative()) {
             throw new IllegalArgumentException("app.auth.token-ttl must be positive");
         }
         this.tokens = tokens;
+        this.premiumAccess = premiumAccess;
         this.clock = clock;
         this.tokenTtl = tokenTtl;
     }
@@ -50,7 +53,7 @@ public class TokenService {
                 .map(token -> token.getUser() == null
                         ? new AuthenticatedUser(token.getUserId())
                         : new AuthenticatedUser(token.getUserId(), token.getUser().getRole(),
-                                token.getUser().isEmailVerified(), token.getUser().hasPremiumAccess(now)));
+                                token.getUser().isEmailVerified(), premiumAccess.hasPremium(token.getUser(), now)));
     }
 
     @Transactional

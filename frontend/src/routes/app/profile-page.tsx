@@ -190,7 +190,7 @@ function PlanSection({ user, onChanged }: { user: User; onChanged: () => Promise
       <h3 className="font-bold">Plano</h3>
       <div className="mt-3">
         <StatusBadge tone={user.premium ? "success" : "neutral"}>
-          {user.premiumSource === "TRIAL" ? "Teste Premium" : user.premium ? "Premium" : "Plano grátis"}
+          {user.premiumSource === "TRIAL" ? "Teste Premium" : user.premiumSource === "BETA" ? "Beta" : user.premium ? "Premium" : "Plano grátis"}
         </StatusBadge>
       </div>
       <p className="mt-3 text-sm leading-6 text-muted">
@@ -200,6 +200,8 @@ function PlanSection({ user, onChanged }: { user: User; onChanged: () => Promise
             ? renews
               ? `Assinatura ativa, com renovação automática. Seu Premium está garantido até ${paidUntil}.`
               : `Assinatura cancelada, sem novas cobranças. Seu Premium continua até ${paidUntil}.`
+            : user.premiumSource === "BETA"
+            ? "Durante o beta, toda conta tem todos os recursos do Premium, sem custo e sem cadastrar cartão."
             : user.premium
             ? "Sua conta tem todos os recursos do Premium."
             : "Compare os 3 mercados mais baratos, com 1 lista de até 10 produtos e 2 alertas."}

@@ -1,6 +1,7 @@
 package br.com.supermercados.prices.auth;
 
 import br.com.supermercados.prices.common.ApiException;
+import br.com.supermercados.prices.subscription.PremiumAccess;
 import br.com.supermercados.prices.user.User;
 import br.com.supermercados.prices.user.UserRepository;
 import br.com.supermercados.prices.user.UserResponse;
@@ -21,16 +22,18 @@ public class AuthService {
     private final TokenService tokens;
     private final PasswordPolicy passwordPolicy;
     private final AccountService accounts;
+    private final PremiumAccess premiumAccess;
     private final Clock clock;
     private final String dummyPasswordHash;
 
     public AuthService(UserRepository users, PasswordEncoder passwordEncoder, TokenService tokens,
-            PasswordPolicy passwordPolicy, AccountService accounts, Clock clock) {
+            PasswordPolicy passwordPolicy, AccountService accounts, PremiumAccess premiumAccess, Clock clock) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.tokens = tokens;
         this.passwordPolicy = passwordPolicy;
         this.accounts = accounts;
+        this.premiumAccess = premiumAccess;
         this.clock = clock;
         this.dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
@@ -65,7 +68,7 @@ public class AuthService {
         }
         User authenticatedUser = user.orElseThrow();
         TokenService.IssuedToken token = tokens.issue(authenticatedUser.getId());
-        return new AuthResponse(token.value(), "Bearer", token.expiresAt(), UserResponse.from(authenticatedUser, clock.instant()));
+        return new AuthResponse(token.value(), "Bearer", token.expiresAt(), UserResponse.from(authenticatedUser, premiumAccess, clock.instant()));
     }
 
     private ApiException invalidCredentials() {

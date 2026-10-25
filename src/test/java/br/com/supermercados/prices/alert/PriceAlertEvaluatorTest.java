@@ -14,6 +14,7 @@ import br.com.supermercados.prices.price.PriceRecordRepository;
 import br.com.supermercados.prices.store.Store;
 import br.com.supermercados.prices.store.StoreService;
 import br.com.supermercados.prices.user.User;
+import br.com.supermercados.prices.subscription.PremiumAccess;
 import br.com.supermercados.prices.user.UserRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -46,7 +47,7 @@ class PriceAlertEvaluatorTest {
     @BeforeEach
     void setUp() {
         evaluator = new PriceAlertEvaluator(alerts, notifications, prices, stores,
-                new PricePolicy(Duration.ofDays(2)), users, Clock.fixed(NOW, ZoneOffset.UTC),
+                new PricePolicy(Duration.ofDays(2)), users, PremiumAccess.withoutBeta(), Clock.fixed(NOW, ZoneOffset.UTC),
                 Duration.ofDays(1), Duration.ofHours(1));
     }
 

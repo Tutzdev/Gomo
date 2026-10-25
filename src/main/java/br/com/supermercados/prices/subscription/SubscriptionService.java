@@ -30,17 +30,19 @@ public class SubscriptionService {
     private final ComparisonUsageService comparisonUsage;
     private final ShoppingComparisonService comparisons;
     private final PaidSubscriptionService paidSubscriptions;
+    private final PremiumAccess premiumAccess;
     private final Clock clock;
 
     public SubscriptionService(UserRepository users, ShoppingListService shoppingLists, PriceAlertService alerts,
             ComparisonUsageService comparisonUsage, ShoppingComparisonService comparisons,
-            PaidSubscriptionService paidSubscriptions, Clock clock) {
+            PaidSubscriptionService paidSubscriptions, PremiumAccess premiumAccess, Clock clock) {
         this.users = users;
         this.shoppingLists = shoppingLists;
         this.alerts = alerts;
         this.comparisonUsage = comparisonUsage;
         this.comparisons = comparisons;
         this.paidSubscriptions = paidSubscriptions;
+        this.premiumAccess = premiumAccess;
         this.clock = clock;
     }
 
@@ -54,7 +56,7 @@ public class SubscriptionService {
     public SubscriptionStatusResponse startTrial(UUID userId, StartTrialRequest request) {
         User user = requireUser(userId);
         Instant now = clock.instant();
-        if (user.hasPremiumAccess(now)) {
+        if (premiumAccess.hasPremium(user, now)) {
             throw new ApiException(HttpStatus.CONFLICT, "Sua conta já tem acesso Premium.");
         }
         if (!user.isTrialAvailable(now)) {
@@ -97,13 +99,13 @@ public class SubscriptionService {
     }
 
     private SubscriptionStatusResponse status(User user, Instant now) {
-        PremiumSource source = user.premiumSource(now);
+        PremiumSource source = premiumAccess.sourceOf(user, now);
         Instant trialEndsAt = source == PremiumSource.TRIAL ? user.getPremiumTrialEndsAt() : null;
         Instant paidUntil = source == PremiumSource.SUBSCRIPTION ? user.getPremiumPaidUntil() : null;
         var usage = new SubscriptionStatusResponse.Usage(shoppingLists.countOwnedLists(user.getId()),
                 alerts.countActive(user.getId()), comparisonUsage.countToday(user.getId()));
         return new SubscriptionStatusResponse(source != PremiumSource.NONE, source, trialEndsAt,
-                user.isTrialAvailable(now), user.getPreferredBillingCycle(), paidUntil,
+                premiumAccess.trialAvailable(user, now), user.getPreferredBillingCycle(), paidUntil,
                 paidSubscriptions.activeSubscriptionId(user.getId()).isPresent(), paidSubscriptions.checkoutAvailable(),
                 SubscriptionStatusResponse.FreeLimits.current(), usage);
     }

@@ -41,7 +41,7 @@ class PremiumTrialTest {
     void setUp() {
         user = new User("Conta grátis", "gratis@example.test", "not-used-by-test", NOW.minusSeconds(60));
         subscriptions = new SubscriptionService(users, shoppingLists, alerts, comparisonUsage, comparisons, paidSubscriptions,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                PremiumAccess.withoutBeta(), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -84,5 +84,32 @@ class PremiumTrialTest {
 
         assertThat(user.isTrialAvailable(NOW)).isFalse();
         assertThat(user.premiumSource(NOW)).isEqualTo(PremiumSource.SUBSCRIPTION);
+    }
+
+    @Test
+    void openBetaGivesPremiumToFreeAccountsWithoutOfferingTheTrial() {
+        PremiumAccess beta = new PremiumAccess(true);
+        subscriptions = new SubscriptionService(users, shoppingLists, alerts, comparisonUsage, comparisons, paidSubscriptions,
+                beta, Clock.fixed(NOW, ZoneOffset.UTC));
+        when(users.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var status = subscriptions.status(user.getId());
+
+        assertThat(status.premium()).isTrue();
+        assertThat(status.premiumSource()).isEqualTo(PremiumSource.BETA);
+        assertThat(status.trialAvailable()).isFalse();
+        assertThatThrownBy(() -> subscriptions.startTrial(user.getId(), new StartTrialRequest(BillingCycle.MONTHLY)))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void openBetaKeepsThePremiumThatAnAccountAlreadyHas() {
+        PremiumAccess beta = new PremiumAccess(true);
+        user.activateSubscription(NOW.minusSeconds(30));
+
+        assertThat(beta.sourceOf(user, NOW)).isEqualTo(PremiumSource.SUBSCRIPTION);
+        assertThat(PremiumAccess.withoutBeta().sourceOf(
+                new User("Outra", "outra@example.test", "not-used-by-test", NOW), NOW)).isEqualTo(PremiumSource.NONE);
     }
 }

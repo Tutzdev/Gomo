@@ -157,6 +157,7 @@ export function AppShell() {
 
 function planLabel(user: User) {
   if (user.role === "ADMIN") return "Administrador";
+  if (user.premiumSource === "BETA") return "Beta: tudo liberado";
   if (user.premiumSource === "TRIAL" && user.trialEndsAt) {
     const endsAt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(new Date(user.trialEndsAt));
     return `Teste Premium até ${endsAt}`;

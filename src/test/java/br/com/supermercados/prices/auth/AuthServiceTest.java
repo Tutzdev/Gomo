@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import br.com.supermercados.prices.common.ApiException;
+import br.com.supermercados.prices.subscription.PremiumAccess;
 import br.com.supermercados.prices.user.User;
 import br.com.supermercados.prices.user.UserRepository;
 import java.time.Clock;
@@ -46,7 +47,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         auth = new AuthService(users, passwordEncoder, tokens, new PasswordPolicy(), accounts,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                PremiumAccess.withoutBeta(), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test

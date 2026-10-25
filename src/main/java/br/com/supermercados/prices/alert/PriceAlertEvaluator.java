@@ -5,6 +5,7 @@ import br.com.supermercados.prices.price.PriceRecord;
 import br.com.supermercados.prices.price.PriceRecordRepository;
 import br.com.supermercados.prices.price.PriceStatus;
 import br.com.supermercados.prices.store.Store;
+import br.com.supermercados.prices.subscription.PremiumAccess;
 import br.com.supermercados.prices.store.StoreService;
 import br.com.supermercados.prices.user.User;
 import br.com.supermercados.prices.user.UserRepository;
@@ -28,6 +29,7 @@ public class PriceAlertEvaluator {
     private final StoreService stores;
     private final PricePolicy pricePolicy;
     private final UserRepository users;
+    private final PremiumAccess premiumAccess;
     private final Clock clock;
     private final Duration repeatInterval;
     private final Duration premiumRepeatInterval;
@@ -38,7 +40,7 @@ public class PriceAlertEvaluator {
      */
     public PriceAlertEvaluator(PriceAlertRepository alerts, AlertNotificationRepository notifications,
             PriceRecordRepository prices, StoreService stores, PricePolicy pricePolicy, UserRepository users,
-            Clock clock,
+            PremiumAccess premiumAccess, Clock clock,
             @Value("${app.alerts.repeat-interval:P1D}") Duration repeatInterval,
             @Value("${app.alerts.premium-repeat-interval:PT1H}") Duration premiumRepeatInterval) {
         requirePositive(repeatInterval, "app.alerts.repeat-interval");
@@ -49,6 +51,7 @@ public class PriceAlertEvaluator {
         this.stores = stores;
         this.pricePolicy = pricePolicy;
         this.users = users;
+        this.premiumAccess = premiumAccess;
         this.clock = clock;
         this.repeatInterval = repeatInterval;
         this.premiumRepeatInterval = premiumRepeatInterval;
@@ -87,7 +90,7 @@ public class PriceAlertEvaluator {
         }
         Set<UUID> userIds = candidates.stream().map(PriceAlert::getUserId).collect(Collectors.toSet());
         return users.findAllById(userIds).stream()
-                .filter(user -> user.hasPremiumAccess(now))
+                .filter(user -> premiumAccess.hasPremium(user, now))
                 .map(User::getId)
                 .collect(Collectors.toSet());
     }

@@ -3,7 +3,8 @@ export type ShoppingType = "DAILY" | "WEEKLY" | "MONTHLY" | "CUSTOM";
 export type StockAvailability = "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN";
 export type ContributionStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type RecommendationStatus = "COMPLETE_STORE_FOUND" | "NO_COMPLETE_STORE";
-export type PremiumSource = "SUBSCRIPTION" | "TRIAL" | "ADMIN" | "NONE";
+/** BETA: the open beta, while there is no charging, gives every account the whole Premium. */
+export type PremiumSource = "SUBSCRIPTION" | "TRIAL" | "ADMIN" | "BETA" | "NONE";
 export type BillingCycle = "MONTHLY" | "ANNUAL";
 /** Free-plan limits the API reports in a PLAN_LIMIT problem. */
 export type PlanLimit = "SHOPPING_LISTS" | "LIST_ITEMS" | "ACTIVE_ALERTS" | "PRICE_HISTORY";

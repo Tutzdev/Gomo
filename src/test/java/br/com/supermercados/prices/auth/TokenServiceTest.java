@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import br.com.supermercados.prices.subscription.PremiumAccess;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
@@ -38,7 +39,7 @@ class TokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TokenService(tokens, CLOCK, TTL);
+        service = new TokenService(tokens, PremiumAccess.withoutBeta(), CLOCK, TTL);
     }
 
     @Test
@@ -100,9 +101,9 @@ class TokenServiceTest {
 
     @Test
     void nonPositiveTokenTtlFailsAtStartup() {
-        assertThatThrownBy(() -> new TokenService(tokens, CLOCK, Duration.ZERO))
+        assertThatThrownBy(() -> new TokenService(tokens, PremiumAccess.withoutBeta(), CLOCK, Duration.ZERO))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new TokenService(tokens, CLOCK, Duration.ofSeconds(-1)))
+        assertThatThrownBy(() -> new TokenService(tokens, PremiumAccess.withoutBeta(), CLOCK, Duration.ofSeconds(-1)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }
