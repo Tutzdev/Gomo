@@ -3,24 +3,15 @@
  * Direção: branco, bastante respiro entre as seções e o vermelho da marca só onde há ação ou preço.
  * Hero, "Como funciona" e planos usam a largura mais aberta (.landing-wide); depoimentos, dúvidas,
  * chamada final e rodapé continuam na moldura de linhas-guia (.landing-frame).
- * Uma fonte arredondada para cada parte (tokens --font-landing-*); a Manrope fica no resto.
+ * Fredoka nos títulos e preços, Nunito no texto (tokens --font-landing-*); a Manrope fica no resto.
  */
 
-/* Servidas pelo próprio site, como as de index.css. */
-@import "@fontsource/fredoka/latin-500.css";
-@import "@fontsource/fredoka/latin-600.css";
-@import "@fontsource/fredoka/latin-700.css";
+/* Servida pelo próprio site, como as de index.css (onde está a Fredoka). */
 @import "@fontsource/nunito/latin-400.css";
 @import "@fontsource/nunito/latin-500.css";
 @import "@fontsource/nunito/latin-600.css";
 @import "@fontsource/nunito/latin-700.css";
 @import "@fontsource/nunito/latin-800.css";
-@import "@fontsource/quicksand/latin-500.css";
-@import "@fontsource/quicksand/latin-600.css";
-@import "@fontsource/quicksand/latin-700.css";
-@import "@fontsource/m-plus-rounded-1c/latin-500.css";
-@import "@fontsource/m-plus-rounded-1c/latin-700.css";
-@import "@fontsource/m-plus-rounded-1c/latin-800.css";
 
 .landing {
   /* Largura das seções redesenhadas: mais aberta que a moldura, sem encostar nas bordas da tela. */
@@ -30,8 +21,8 @@
 
   --font-landing-hero: "Fredoka", "Nunito", system-ui, sans-serif;
   --font-landing-body: "Nunito", "Manrope", system-ui, sans-serif;
-  --font-landing-steps: "Quicksand", "Nunito", system-ui, sans-serif;
-  --font-landing-price: "M PLUS Rounded 1c", "Nunito", system-ui, sans-serif;
+  --font-landing-steps: "Nunito", "Manrope", system-ui, sans-serif;
+  --font-landing-price: "Fredoka", "Nunito", system-ui, sans-serif;
 
   --landing-ink-soft: #4d4446;
   --landing-guide: #efe6e5;

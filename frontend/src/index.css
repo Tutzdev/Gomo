@@ -4,10 +4,10 @@
 @import "@fontsource/manrope/latin-600.css";
 @import "@fontsource/manrope/latin-700.css";
 @import "@fontsource/manrope/latin-800.css";
-@import "@fontsource/rubik/latin-500.css";
-@import "@fontsource/rubik/latin-600.css";
-@import "@fontsource/rubik/latin-700.css";
-@import "@fontsource/rubik/latin-800.css";
+/* Três famílias no site todo: Manrope no texto do app, Fredoka nos títulos e preços, Nunito no texto da landing. */
+@import "@fontsource/fredoka/latin-500.css";
+@import "@fontsource/fredoka/latin-600.css";
+@import "@fontsource/fredoka/latin-700.css";
 @import "tailwindcss";
 
 :root {
@@ -40,7 +40,7 @@
 
 @theme inline {
   --font-sans: "Manrope", system-ui, sans-serif;
-  --font-display: "Rubik", "Manrope", system-ui, sans-serif;
+  --font-display: "Fredoka", "Manrope", system-ui, sans-serif;
   --color-primary: var(--primary);
   --color-primary-strong: var(--primary-strong);
   --color-primary-dark: var(--primary-dark);
