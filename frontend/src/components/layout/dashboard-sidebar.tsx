@@ -4,6 +4,7 @@ import {
   CircleDollarSign,
   House,
   ListChecks,
+  LogIn,
   LogOut,
   Search,
   Settings,
@@ -23,6 +24,8 @@ type NavigationItem = {
   /** Other pages that belong to this item, so it stays highlighted on them. */
   alsoActiveOn?: string[];
   admin?: boolean;
+  /** Open to visitors without an account. */
+  open?: boolean;
 };
 
 /**
@@ -31,17 +34,20 @@ type NavigationItem = {
  */
 const navigation: NavigationItem[] = [
   { label: "Início", to: "/app", icon: House },
-  { label: "Buscar preços", to: "/app/produtos", icon: Search, alsoActiveOn: ["/app/comparar"] },
+  { label: "Buscar preços", to: "/app/produtos", icon: Search, alsoActiveOn: ["/app/comparar"], open: true },
   { label: "Minhas listas", to: "/app/listas", icon: ListChecks },
   { label: "Alertas de preço", to: "/app/alertas", icon: CircleDollarSign },
-  { label: "Supermercados", to: "/app/supermercados", icon: Store },
+  { label: "Supermercados", to: "/app/supermercados", icon: Store, open: true },
   { label: "Perfil", to: "/app/perfil", icon: Settings },
   { label: "Administração", to: "/app/admin", icon: ShieldCheck, admin: true },
 ];
 
 interface DashboardSidebarProps {
   collapsed: boolean;
-  role: UserRole;
+  /** `null` for a visitor, who sees only the open pages. */
+  role: UserRole | null;
+  /** Where a visitor returns after signing in. */
+  returnPath: string;
   onToggle?: () => void;
   onNavigate?: () => void;
   onLogout: () => void;
@@ -51,19 +57,25 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({
   collapsed,
   role,
+  returnPath,
   onToggle,
   onNavigate,
   onLogout,
   mobile = false,
 }: DashboardSidebarProps) {
   const { pathname } = useLocation();
-  const visibleNavigation = navigation.filter((item) => !item.admin || role === "ADMIN");
+  const visibleNavigation = navigation.filter((item) =>
+    role === null ? item.open : !item.admin || role === "ADMIN");
+  const actionClass = cn(
+    "dashboard-nav-action flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-semibold text-white/78 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+    collapsed && "justify-center px-0",
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className={cn("flex h-18 items-center border-b border-white/10 px-4", collapsed ? "justify-center" : "justify-between")}>
         <NavLink
-          to="/app"
+          to={role === null ? "/" : "/app"}
           aria-label="Gomo — início"
           onClick={onNavigate}
           className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
@@ -115,18 +127,17 @@ export function DashboardSidebar({
       </nav>
 
       <div className="border-t border-white/10 p-3">
-        <button
-          type="button"
-          onClick={onLogout}
-          title={collapsed ? "Sair" : undefined}
-          className={cn(
-            "dashboard-nav-action flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-semibold text-white/78 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-            collapsed && "justify-center px-0",
-          )}
-        >
-          <LogOut className="size-5 shrink-0" aria-hidden />
-          {!collapsed ? <span>Sair</span> : <span className="sr-only">Sair</span>}
-        </button>
+        {role === null ? (
+          <NavLink to={`/entrar?depois=${returnPath}`} onClick={onNavigate} title={collapsed ? "Entrar" : undefined} className={actionClass}>
+            <LogIn className="size-5 shrink-0" aria-hidden />
+            {!collapsed ? <span>Entrar ou criar conta</span> : <span className="sr-only">Entrar ou criar conta</span>}
+          </NavLink>
+        ) : (
+          <button type="button" onClick={onLogout} title={collapsed ? "Sair" : undefined} className={actionClass}>
+            <LogOut className="size-5 shrink-0" aria-hidden />
+            {!collapsed ? <span>Sair</span> : <span className="sr-only">Sair</span>}
+          </button>
+        )}
       </div>
     </div>
   );

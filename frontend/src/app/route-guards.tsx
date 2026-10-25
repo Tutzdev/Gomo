@@ -1,10 +1,14 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { AppShell } from "@/components/layout/app-shell";
 import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
 
-export function ProtectedLayout() {
-  const { user, loading, sessionError, refreshUser } = useAuth();
+/**
+ * The app area. Visitors share it with signed-in people: searching, comparing and the markets are open, so
+ * someone who arrives from a product page on Google can keep comparing without an account.
+ */
+export function AppLayout() {
+  const { loading, sessionError, refreshUser } = useAuth();
 
   if (loading) {
     return (
@@ -20,8 +24,15 @@ export function ProtectedLayout() {
       </main>
     );
   }
-  if (!user) return <Navigate to="/entrar" replace />;
   return <AppShell />;
+}
+
+/** Pages that belong to an account (lists, alerts, profile): visitors sign in first and come back here. */
+export function AccountGuard() {
+  const { user } = useAuth();
+  const { pathname, search } = useLocation();
+  if (!user) return <Navigate to={`/entrar?depois=${encodeURIComponent(pathname + search)}`} replace />;
+  return <Outlet />;
 }
 
 export function AdminGuard() {

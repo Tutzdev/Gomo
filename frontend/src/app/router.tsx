@@ -67,12 +67,9 @@ export const router = createBrowserRouter([
   {
     path: "/app",
     hydrateFallbackElement,
-    lazy: () => import("@/app/route-guards").then(({ ProtectedLayout }) => ({ Component: ProtectedLayout })),
+    lazy: () => import("@/app/route-guards").then(({ AppLayout }) => ({ Component: AppLayout })),
+    // Searching, comparing and the markets are open to visitors; everything else needs an account.
     children: [
-      {
-        index: true,
-        lazy: () => import("@/routes/app/overview-page").then(({ OverviewPage }) => ({ Component: OverviewPage })),
-      },
       {
         // Searching and comparing are one page now; old links without a product land on the search.
         path: "comparar",
@@ -103,43 +100,52 @@ export const router = createBrowserRouter([
         lazy: () => import("@/routes/app/store-catalog-page").then(({ StoreCatalogPage }) => ({ Component: StoreCatalogPage })),
       },
       {
-        path: "listas",
-        lazy: () => import("@/routes/app/shopping-lists-page").then(({ ShoppingListsPage }) => ({
-          Component: ShoppingListsPage,
-        })),
-      },
-      {
-        path: "listas/:id",
-        lazy: () => import("@/routes/app/shopping-list-detail-page").then(({ ShoppingListDetailPage }) => ({
-          Component: ShoppingListDetailPage,
-        })),
-      },
-      {
-        path: "alertas",
-        lazy: () => import("@/routes/app/alerts-page").then(({ AlertsPage }) => ({ Component: AlertsPage })),
-      },
-      {
-        path: "contribuir",
-        lazy: () => import("@/routes/app/contributions-page").then(({ ContributionsPage }) => ({
-          Component: ContributionsPage,
-        })),
-      },
-      {
-        path: "notificacoes",
-        lazy: () => import("@/routes/app/notifications-page").then(({ NotificationsPage }) => ({
-          Component: NotificationsPage,
-        })),
-      },
-      {
-        path: "perfil",
-        lazy: () => import("@/routes/app/profile-page").then(({ ProfilePage }) => ({ Component: ProfilePage })),
-      },
-      {
-        lazy: () => import("@/app/route-guards").then(({ AdminGuard }) => ({ Component: AdminGuard })),
+        lazy: () => import("@/app/route-guards").then(({ AccountGuard }) => ({ Component: AccountGuard })),
         children: [
           {
-            path: "admin",
-            lazy: () => import("@/routes/app/admin-page").then(({ AdminPage }) => ({ Component: AdminPage })),
+            index: true,
+            lazy: () => import("@/routes/app/overview-page").then(({ OverviewPage }) => ({ Component: OverviewPage })),
+          },
+          {
+            path: "listas",
+            lazy: () => import("@/routes/app/shopping-lists-page").then(({ ShoppingListsPage }) => ({
+              Component: ShoppingListsPage,
+            })),
+          },
+          {
+            path: "listas/:id",
+            lazy: () => import("@/routes/app/shopping-list-detail-page").then(({ ShoppingListDetailPage }) => ({
+              Component: ShoppingListDetailPage,
+            })),
+          },
+          {
+            path: "alertas",
+            lazy: () => import("@/routes/app/alerts-page").then(({ AlertsPage }) => ({ Component: AlertsPage })),
+          },
+          {
+            path: "contribuir",
+            lazy: () => import("@/routes/app/contributions-page").then(({ ContributionsPage }) => ({
+              Component: ContributionsPage,
+            })),
+          },
+          {
+            path: "notificacoes",
+            lazy: () => import("@/routes/app/notifications-page").then(({ NotificationsPage }) => ({
+              Component: NotificationsPage,
+            })),
+          },
+          {
+            path: "perfil",
+            lazy: () => import("@/routes/app/profile-page").then(({ ProfilePage }) => ({ Component: ProfilePage })),
+          },
+          {
+            lazy: () => import("@/app/route-guards").then(({ AdminGuard }) => ({ Component: AdminGuard })),
+            children: [
+              {
+                path: "admin",
+                lazy: () => import("@/routes/app/admin-page").then(({ AdminPage }) => ({ Component: AdminPage })),
+              },
+            ],
           },
         ],
       },

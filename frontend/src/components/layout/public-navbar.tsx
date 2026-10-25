@@ -6,7 +6,9 @@ import { NativeButton } from "@/components/ui/native-button";
 import { Sheet } from "@/components/ui/sheet";
 import { useAuth } from "@/features/auth/auth-context";
 
+// Searching is open without an account, so the search sits next to the landing sections.
 const navigation = [
+  { label: "Buscar preços", href: "/app/produtos" },
   { label: "Como funciona", href: "/#como-funciona" },
   { label: "Preço", href: "/#preco" },
   { label: "Dúvidas", href: "/#duvidas" },

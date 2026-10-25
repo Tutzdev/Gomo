@@ -11,20 +11,37 @@ import {
 import { SelectField, TextField } from "@/components/ui/form-field";
 import { NativeButton } from "@/components/ui/native-button";
 import { Sheet } from "@/components/ui/sheet";
+import { useAuth } from "@/features/auth/auth-context";
 import { shoppingListApi } from "@/services/gomo-api";
 import type { CatalogItem, Product } from "@/types/api";
 import { PlanLimitNotice } from "@/features/plan/plan-locks";
 import { useLimitUpsell } from "@/features/plan/use-limit-upsell";
 import { planLimitOf } from "@/features/plan/use-plan";
+import { useVisitorOffer } from "@/features/plan/use-visitor-offer";
 
-/** Adds a generic catalog item, or a specific product when the screen is about one store's listing. */
-export function AddToList({
-  product,
-  catalogItem,
-}: {
+interface AddToListProps {
   product?: Product;
   catalogItem?: CatalogItem;
-}) {
+}
+
+/**
+ * Adds a generic catalog item, or a specific product when the screen is about one store's listing. Lists belong
+ * to an account, so a visitor is taken to sign up and back.
+ */
+export function AddToList(props: AddToListProps) {
+  const { user } = useAuth();
+  const { signUpPath } = useVisitorOffer();
+  if (!user) {
+    return (
+      <NativeButton variant="secondary" size="sm" to={signUpPath}>
+        <Plus className="size-4" aria-hidden />À lista
+      </NativeButton>
+    );
+  }
+  return <AccountAddToList {...props} />;
+}
+
+function AccountAddToList({ product, catalogItem }: AddToListProps) {
   const target = catalogItem
     ? { id: catalogItem.id, name: catalogItem.name }
     : { id: product?.id ?? "", name: product?.name ?? "" };

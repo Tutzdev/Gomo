@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, ListPlus, Lock, Package, Store, Trophy } from "lucide-react";
+import { Clock3, ListPlus, Lock, Package, Search, Store, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { PublicNavbar } from "@/components/layout/public-navbar";
@@ -128,14 +128,19 @@ function ProductPrices({ detail, cityName }: { detail: CatalogItemDetail; cityNa
                 </span>
               ) : null}
             </p>
-            {item.lowestPrice !== null ? (
-              <div className="mt-4">
+            <div className="mt-4 flex flex-wrap gap-2">
+              {item.lowestPrice !== null ? (
                 <ShareButton
                   text={`${item.name} está ${formatCurrency(item.lowestPrice)}${item.lowestPriceStore ? ` no ${item.lowestPriceStore}` : ""}. Vi no Gomo:`}
                   url={siteUrl(productPagePath(item.id, item.name))}
                 />
-              </div>
-            ) : null}
+              ) : null}
+              {/* Searching is open without an account: the visitor can keep comparing other products. */}
+              <NativeButton to="/app/produtos" variant="secondary" size="sm">
+                <Search className="size-4" aria-hidden />
+                Comparar outros produtos
+              </NativeButton>
+            </div>
           </div>
         </header>
 

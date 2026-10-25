@@ -1,18 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { LineChart, Lock } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { SelectField } from "@/components/ui/form-field";
+import { useAuth } from "@/features/auth/auth-context";
 import { formatCurrency } from "@/lib/brand";
 import { catalogApi } from "@/services/gomo-api";
 import { PriceHistoryChart } from "./price-history-chart";
 import { buildHistoryDays, formatDay } from "./price-history-data";
 import { useUpsell } from "./upsell-context";
 import { usePlan } from "./use-plan";
+import { useVisitorOffer } from "./use-visitor-offer";
 
 /** How the price of a generic item moved in the city: the chart for Premium, a locked preview for free. */
 export function PriceHistoryPanel({ itemId, cityId, storeIds }: { itemId: string; cityId: string; storeIds?: string[] }) {
   const { premium } = usePlan();
+  const { user } = useAuth();
+  const { openBeta } = useVisitorOffer();
 
   return (
     <section className="surface mt-5 overflow-hidden" aria-labelledby={`history-${itemId}`}>
@@ -24,7 +29,11 @@ export function PriceHistoryPanel({ itemId, cityId, storeIds }: { itemId: string
           </h3>
           <p className="mt-0.5 text-sm text-muted">Menor preço da cidade em cada dia, nos últimos 90 dias.</p>
         </div>
-        {!premium ? <span className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-bold text-primary-dark">Premium</span> : null}
+        {!premium ? (
+          <span className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-bold text-primary-dark">
+            {!user && openBeta ? "Grátis com conta" : "Premium"}
+          </span>
+        ) : null}
       </header>
       {premium ? <PremiumHistory itemId={itemId} cityId={cityId} storeIds={storeIds} /> : <LockedPriceHistory />}
     </section>
@@ -107,6 +116,8 @@ function PremiumHistory({ itemId, cityId, storeIds }: { itemId: string; cityId: 
 /** A decorative, blurred chart: no real prices are loaded for free accounts. */
 export function LockedPriceHistory() {
   const { showUpsell } = useUpsell();
+  const { user } = useAuth();
+  const { signUpPath, openBeta } = useVisitorOffer();
   return (
     <div className="locked-history">
       <svg className="locked-history__chart" viewBox="0 0 600 180" preserveAspectRatio="none" aria-hidden>
@@ -118,9 +129,15 @@ export function LockedPriceHistory() {
         <span className="grid size-10 place-items-center rounded-full bg-white text-primary shadow-sm"><Lock className="size-5" aria-hidden /></span>
         <p className="mt-3 max-w-xs text-center font-display text-lg font-bold leading-snug">Veja como o preço variou nos últimos 90 dias</p>
         <p className="mt-1 max-w-xs text-center text-sm text-[#4d3f3e]">Saiba se o preço de hoje é promoção de verdade ou o mesmo de sempre.</p>
-        <button type="button" className="locked-history__button" onClick={() => showUpsell("PRICE_HISTORY")}>
-          Ver histórico no Premium
-        </button>
+        {user ? (
+          <button type="button" className="locked-history__button" onClick={() => showUpsell("PRICE_HISTORY")}>
+            Ver histórico no Premium
+          </button>
+        ) : (
+          <Link to={signUpPath} className="locked-history__button">
+            {openBeta ? "Ver com uma conta grátis" : "Criar conta para ver"}
+          </Link>
+        )}
       </div>
     </div>
   );

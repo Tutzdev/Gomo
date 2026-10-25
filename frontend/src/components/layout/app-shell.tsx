@@ -2,6 +2,7 @@ import { Bell, Menu, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { NativeButton } from "@/components/ui/native-button";
 import { Sheet } from "@/components/ui/sheet";
 import { useAuth } from "@/features/auth/auth-context";
 import { UpsellProvider } from "@/features/plan/upsell-provider";
@@ -44,8 +45,6 @@ export function AppShell() {
     return () => desktop.removeEventListener("change", closeMobileMenu);
   }, []);
 
-  if (!user) return null;
-
   const toggleCollapsed = () => {
     setCollapsed((current) => {
       const next = !current;
@@ -53,6 +52,9 @@ export function AppShell() {
       return next;
     });
   };
+
+  // Visitors come back to the page they were on after signing in.
+  const returnPath = encodeURIComponent(location.pathname + location.search);
 
   const handleLogout = async () => {
     await logout();
@@ -82,7 +84,8 @@ export function AppShell() {
         >
           <DashboardSidebar
             collapsed={collapsed}
-            role={user.role}
+            role={user?.role ?? null}
+            returnPath={returnPath}
             onToggle={toggleCollapsed}
             onLogout={() => void handleLogout()}
           />
@@ -103,29 +106,36 @@ export function AppShell() {
               </div>
               <p className="truncate font-semibold text-foreground">{currentPage}</p>
             </div>
-            <div className="flex min-w-0 items-center gap-3">
-              {!user.premium ? (
+            {user ? (
+              <div className="flex min-w-0 items-center gap-3">
+                {!user.premium ? (
+                  <Link
+                    to="/assinar?origem=topo"
+                    className="hidden min-h-9 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:inline-flex"
+                  >
+                    <Sparkles className="size-3.5" aria-hidden />
+                    Conhecer o Premium
+                  </Link>
+                ) : null}
                 <Link
-                  to="/assinar?origem=topo"
-                  className="hidden min-h-9 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:inline-flex"
+                  to="/app/notificacoes"
+                  className="icon-button"
+                  aria-label="Notificações"
+                  title="Notificações"
                 >
-                  <Sparkles className="size-3.5" aria-hidden />
-                  Conhecer o Premium
+                  <Bell className="size-5" aria-hidden />
                 </Link>
-              ) : null}
-              <Link
-                to="/app/notificacoes"
-                className="icon-button"
-                aria-label="Notificações"
-                title="Notificações"
-              >
-                <Bell className="size-5" aria-hidden />
-              </Link>
-              <div className="min-w-0 text-right">
-                <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
-                <p className="text-xs text-muted">{planLabel(user)}</p>
+                <div className="min-w-0 text-right">
+                  <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
+                  <p className="text-xs text-muted">{planLabel(user)}</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <NativeButton to={`/entrar?depois=${returnPath}`} variant="ghost" size="sm" className="hidden sm:inline-flex">Entrar</NativeButton>
+                <NativeButton to={`/entrar?modo=cadastro&depois=${returnPath}`} size="sm">Criar conta grátis</NativeButton>
+              </div>
+            )}
           </header>
 
           <main id="conteudo-principal" className="mx-auto w-full max-w-[96rem] p-4 sm:p-6 lg:p-8" tabIndex={-1}>
@@ -144,7 +154,8 @@ export function AppShell() {
         >
             <DashboardSidebar
               collapsed={false}
-              role={user.role}
+              role={user?.role ?? null}
+              returnPath={returnPath}
               mobile
               onNavigate={() => setMobileOpen(false)}
               onLogout={() => void handleLogout()}

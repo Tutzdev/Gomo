@@ -1,9 +1,11 @@
 import { CalendarRange, Lock, Sparkles } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/features/auth/auth-context";
 import { cn } from "@/lib/cn";
 import type { ComparisonAccess } from "@/types/api";
 import { useUpsell } from "./upsell-context";
+import { useVisitorOffer } from "./use-visitor-offer";
 
 /**
  * Stand-in rows for the stores the free plan hides. The rows are decorative placeholders, never real names or
@@ -11,7 +13,10 @@ import { useUpsell } from "./upsell-context";
  */
 export function LockedStores({ count, className }: { count: number; className?: string }) {
   const { showUpsell } = useUpsell();
+  const { user } = useAuth();
+  const { signUpPath, openBeta } = useVisitorOffer();
   if (count <= 0) return null;
+  const more = count === 1 ? "+1 mercado" : `+${count} mercados`;
   const placeholderRows = Math.min(count, 3);
 
   return (
@@ -25,16 +30,22 @@ export function LockedStores({ count, className }: { count: number; className?: 
           </div>
         ))}
       </div>
-      <button
-        type="button"
-        className="locked-stores__cta"
-        onClick={() => showUpsell("LOCKED_STORES", { lockedStores: count })}
-      >
-        <Lock className="size-4" aria-hidden />
-        <span>
-          {count === 1 ? "+1 mercado disponível no Premium" : `+${count} mercados disponíveis no Premium`}
-        </span>
-      </button>
+      {user ? (
+        <button
+          type="button"
+          className="locked-stores__cta"
+          onClick={() => showUpsell("LOCKED_STORES", { lockedStores: count })}
+        >
+          <Lock className="size-4" aria-hidden />
+          <span>{more} {count === 1 ? "disponível" : "disponíveis"} no Premium</span>
+        </button>
+      ) : (
+        // A visitor has no plan to upgrade yet: the first step is the account.
+        <Link to={signUpPath} className="locked-stores__cta">
+          <Lock className="size-4" aria-hidden />
+          <span>{openBeta ? `Crie sua conta grátis e veja ${more}` : `Crie sua conta para ver ${more}`}</span>
+        </Link>
+      )}
     </div>
   );
 }

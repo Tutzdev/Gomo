@@ -398,6 +398,11 @@ export const adminApi = {
     apiRequest<unknown>(`/admin/collections?${queryString({ collectorCode, existingOnly: String(existingOnly) })}`, { method: "POST" }),
 };
 
+export const planApi = {
+  /** Public: what a new free account gets (during the open beta, everything). */
+  offer: () => apiRequest<{ openBeta: boolean }>("/plans/offer", { anonymous: true }),
+};
+
 export const subscriptionApi = {
   status: () => apiRequest<SubscriptionStatus>("/subscription"),
   startTrial: (billingCycle: BillingCycle) =>

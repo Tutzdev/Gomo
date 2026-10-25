@@ -23,6 +23,10 @@ public class PremiumAccess {
         return new PremiumAccess(false);
     }
 
+    public boolean openBeta() {
+        return openBeta;
+    }
+
     public PremiumSource sourceOf(User user, Instant now) {
         PremiumSource source = user.premiumSource(now);
         return source == PremiumSource.NONE && openBeta ? PremiumSource.BETA : source;

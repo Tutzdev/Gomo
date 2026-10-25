@@ -5,11 +5,13 @@ import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/feedback";
 import { SelectField, TextField } from "@/components/ui/form-field";
 import { NativeButton } from "@/components/ui/native-button";
 import { PageHeading, StatusBadge } from "@/components/page/page-elements";
+import { useAuth } from "@/features/auth/auth-context";
 import { catalogApi, preferenceApi } from "@/services/gomo-api";
 import { storeStatus } from "@/features/catalog/store-status";
 
 export function StoresPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [cityId, setCityId] = useState("");
   const [search, setSearch] = useState("");
   const cities = useQuery({
@@ -23,6 +25,8 @@ export function StoresPage() {
   const preferences = useQuery({
     queryKey: ["preferences"],
     queryFn: preferenceApi.get,
+    // Favorites belong to an account; visitors see the markets without the heart.
+    enabled: Boolean(user),
   });
   const favoriteMutation = useMutation({
     mutationFn: ({
@@ -112,27 +116,29 @@ export function StoresPage() {
                   <span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary">
                     <StoreIcon className="size-5" aria-hidden />
                   </span>
-                  <NativeButton
-                    size="icon"
-                    variant="ghost"
-                    aria-label={
-                      favorite
-                        ? `Remover ${store.name} dos favoritos`
-                        : `Adicionar ${store.name} aos favoritos`
-                    }
-                    loading={
-                      favoriteMutation.isPending &&
-                      favoriteMutation.variables?.storeId === store.id
-                    }
-                    onClick={() =>
-                      favoriteMutation.mutate({ storeId: store.id, favorite })
-                    }
-                  >
-                    <Heart
-                      className={`size-5 ${favorite ? "fill-primary text-primary" : ""}`}
-                      aria-hidden
-                    />
-                  </NativeButton>
+                  {user ? (
+                    <NativeButton
+                      size="icon"
+                      variant="ghost"
+                      aria-label={
+                        favorite
+                          ? `Remover ${store.name} dos favoritos`
+                          : `Adicionar ${store.name} aos favoritos`
+                      }
+                      loading={
+                        favoriteMutation.isPending &&
+                        favoriteMutation.variables?.storeId === store.id
+                      }
+                      onClick={() =>
+                        favoriteMutation.mutate({ storeId: store.id, favorite })
+                      }
+                    >
+                      <Heart
+                        className={`size-5 ${favorite ? "fill-primary text-primary" : ""}`}
+                        aria-hidden
+                      />
+                    </NativeButton>
+                  ) : null}
                 </div>
                 <h2 className="mt-4 font-bold">{store.name}</h2>
                 <p className="mt-2 flex items-start gap-2 text-sm leading-6 text-muted">

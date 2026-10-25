@@ -63,6 +63,7 @@ Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/produc
 - **Listas de compras**, cidade preferida, lojas favoritas e **alertas de preço** com notificações internas.
 - **Contribuições da comunidade** com moderação, e área administrativa com auditoria.
 - **Freemium** aplicado no backend: plano gratuito com limites (3 mercados mais baratos, 5 comparações completas por dia, 1 lista) que respondem `403 PLAN_LIMIT`, e trial de 7 dias sem cartão. Enquanto não há cobrança, o beta aberto (`OPEN_BETA=true`, padrão) dá o Premium a toda conta; os limites voltam com `OPEN_BETA=false`.
+- **Busca aberta:** buscar, comparar e a lista de mercados funcionam sem conta (o visitante vê os 3 mercados mais baratos); listas, alertas e perfil pedem login.
 - **Premium pago** pela AbacatePay: checkout hospedado de assinatura mensal ou anual, sem dados de cartão no Gomo. Só o webhook confirmado libera o acesso, cada pagamento estende um ciclo e cancelar mantém o período já pago.
 
 ## Arquitetura
