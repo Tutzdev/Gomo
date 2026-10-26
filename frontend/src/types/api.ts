@@ -597,3 +597,30 @@ export interface SavingsReport {
   locked: boolean;
   details: Purchase[];
 }
+
+/** The items of a list that are a good buy today ("Hora de estocar" and "abaixo do preço de sempre"). */
+export interface ListGoodPrices {
+  listId: string;
+  cityId: string;
+  /** Free plan: only the counts. */
+  locked: boolean;
+  stockUpItems: number;
+  belowAverageItems: number;
+  items: Array<{
+    itemId: string;
+    productId: string;
+    productName: string;
+    catalogItemId: string | null;
+    quantity: number;
+    kind: "LOWEST_IN_PERIOD" | "BELOW_AVERAGE";
+    currentPrice: number;
+    storeId: string;
+    storeName: string;
+    usualPrice: number;
+    differencePercent: number;
+    lowestPrice: number;
+    periodDays: number;
+    /** Pantry item at the lowest price of the period: worth buying for the next weeks too. */
+    stockUp: boolean;
+  }>;
+}

@@ -1,4 +1,4 @@
-import { BellRing, CalendarRange, LineChart, ListPlus, Lock, PiggyBank, Route, Store, Tag, TrendingDown, type LucideIcon } from "lucide-react";
+import { BellRing, CalendarRange, LineChart, ListPlus, Lock, PackagePlus, PiggyBank, Route, Store, Tag, TrendingDown, type LucideIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/brand";
 
 /** The moment that led to the upgrade message. Each one gets copy about what the person just tried to do. */
@@ -9,6 +9,7 @@ export type UpsellTrigger =
   | "BELOW_AVERAGE_ALERTS"
   | "DEALS_FOR_MY_LISTS"
   | "SAVINGS_REPORT"
+  | "STOCK_UP"
   | "PRICE_HISTORY"
   | "LOCKED_STORES"
   | "SPLIT_PURCHASE"
@@ -79,6 +80,14 @@ export function upsellCopy(trigger: UpsellTrigger, context: UpsellContext = {}):
         description:
           "O total do mês fica aberto para todos. No Premium aparece cada compra, item por item, com o preço que você pagou e a média dos mercados da cidade.",
         unlocks: ["Cada compra com a economia item por item", "Ofertas só dos produtos das suas listas", "Compra dividida em até 2 mercados"],
+      };
+    case "STOCK_UP":
+      return {
+        icon: PackagePlus,
+        title: "Saiba o que da sua lista vale comprar a mais hoje",
+        description:
+          "O Premium lê o histórico de cada item da sua lista: avisa o que está abaixo do preço de sempre e quais itens de despensa estão no menor preço dos últimos 90 dias.",
+        unlocks: ["Hora de estocar nos itens de despensa", "Itens da lista abaixo do preço de sempre", "Histórico de 90 dias de cada produto"],
       };
     case "PRICE_HISTORY":
       return {

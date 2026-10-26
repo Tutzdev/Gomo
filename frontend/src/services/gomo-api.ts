@@ -8,6 +8,7 @@ import type {
   CatalogItemDetail,
   CatalogItemHistory,
   DealsPage,
+  ListGoodPrices,
   Purchase,
   SavingsReport,
   Trip,
@@ -314,6 +315,9 @@ export const shoppingListApi = {
     apiRequest<ShoppingListComparison>(
       `/comparisons/shopping-lists/${id}?${queryString({ cityId, page, size, storeIds: storeIds.join(",") })}`,
     ),
+  /** Premium: the items that are a good buy today; the free plan gets only the counts. */
+  goodPrices: (id: string, cityId: string) =>
+    apiRequest<ListGoodPrices>(`/comparisons/shopping-lists/${id}/good-prices?${queryString({ cityId })}`),
   recommendation: (id: string, cityId: string, storeIds: string[] = []) =>
     apiRequest<ShoppingRecommendation>(
       `/comparisons/shopping-lists/${id}/recommendation?${queryString({ cityId, storeIds: storeIds.join(",") })}`,
