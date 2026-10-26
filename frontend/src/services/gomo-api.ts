@@ -8,6 +8,9 @@ import type {
   CatalogItemDetail,
   CatalogItemHistory,
   DealsPage,
+  Purchase,
+  SavingsReport,
+  Trip,
   City,
   CollectionHealth,
   PageResponse,
@@ -434,4 +437,32 @@ export const dealApi = {
       `/deals?${queryString({ ...filters, onlyMyLists: onlyMyLists ? "true" : undefined })}`,
       { anonymous: !onlyMyLists },
     ),
+};
+
+export interface RecordPurchaseInput {
+  /** Chosen here, so sending the same purchase again records it once. */
+  id: string;
+  storeId: string;
+  items: Array<{ itemId: string; shelfPrice?: number }>;
+}
+
+export const tripApi = {
+  trip: (listId: string, storeId: string) =>
+    apiRequest<Trip>(`/shopping-lists/${listId}/trip?${queryString({ storeId })}`),
+  check: (listId: string, itemId: string) =>
+    apiRequest<ShoppingListItem>(`/shopping-lists/${listId}/items/${itemId}/check`, { method: "PUT" }),
+  uncheck: (listId: string, itemId: string) =>
+    apiRequest<ShoppingListItem>(`/shopping-lists/${listId}/items/${itemId}/check`, { method: "DELETE" }),
+  clearChecks: (listId: string) => apiRequest<void>(`/shopping-lists/${listId}/checks`, { method: "DELETE" }),
+  recordPurchase: (listId: string, input: RecordPurchaseInput) =>
+    apiRequest<{ purchase: Purchase; listRestarted: boolean }>(`/shopping-lists/${listId}/purchases`, {
+      method: "POST",
+      body: input,
+    }),
+};
+
+export const savingsApi = {
+  /** No month: this month. */
+  month: (month?: string) => apiRequest<SavingsReport>(`/savings?${queryString({ month })}`),
+  deletePurchase: (id: string) => apiRequest<void>(`/purchases/${id}`, { method: "DELETE" }),
 };

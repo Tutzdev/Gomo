@@ -128,6 +128,10 @@ export const router = createBrowserRouter([
             })),
           },
           {
+            path: "listas/:id/mercado/:storeId",
+            lazy: () => import("@/routes/app/trip-page").then(({ TripPage }) => ({ Component: TripPage })),
+          },
+          {
             path: "alertas",
             lazy: () => import("@/routes/app/alerts-page").then(({ AlertsPage }) => ({ Component: AlertsPage })),
           },

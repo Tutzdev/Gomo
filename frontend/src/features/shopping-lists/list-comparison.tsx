@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Lock } from "lucide-react";
+import { Lock, ShoppingCart } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Pagination, StatusBadge } from "@/components/page/page-elements";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
+import { NativeButton } from "@/components/ui/native-button";
 import { formatCurrency, formatDate } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { shoppingListApi } from "@/services/gomo-api";
@@ -139,7 +140,11 @@ export function ListComparison({
                 </p>
               ) : null}
               {winner.total !== null ? (
-                <div className="mt-4">
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <NativeButton to={`/app/listas/${id}/mercado/${winner.storeId}`} size="sm">
+                    <ShoppingCart className="size-4" aria-hidden />
+                    Ir às compras aqui
+                  </NativeButton>
                   <ShareButton
                     label="Compartilhar economia"
                     text={listShareText(winner.storeName, winner.total, winner.requestedItems, priciestCompleteTotal)}
@@ -190,7 +195,7 @@ export function ListComparison({
             </>
           )}
         </section>
-        <TwoStorePlan pair={twoStoreCombination} everyStore={combination} savings={recommendation.data.twoStoreSavings} />
+        <TwoStorePlan listId={id} pair={twoStoreCombination} everyStore={combination} savings={recommendation.data.twoStoreSavings} />
         {/* With three cards, the third one fills the whole second row between md and xl instead of half of it. */}
         <section className={cn("surface p-5", pairShown && "md:col-span-2 xl:col-span-1")}>
           <h3 className="font-bold">Menor preço por item entre mercados</h3>
@@ -337,6 +342,10 @@ export function ListComparison({
                     ? "Sem preços atuais"
                     : formatCurrency(store.subtotalKnown)}
                 </p>
+                <NativeButton to={`/app/listas/${id}/mercado/${store.storeId}`} size="sm" variant="secondary" className="mt-2">
+                  <ShoppingCart className="size-4" aria-hidden />
+                  Comprar aqui
+                </NativeButton>
               </div>
             </div>
             <ComparisonItems items={store.items} bestTotals={bestTotals} />

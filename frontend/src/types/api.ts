@@ -262,6 +262,9 @@ export interface ShoppingListItem {
   quantity: number;
   catalogItemId: string | null;
   imageUrl: string | null;
+  /** In the cart, in the "No mercado" mode. */
+  checkedAt: string | null;
+  checkedBy: string | null;
 }
 
 /** A real-world product ("Coca-Cola 2 L") grouped across every store that sells it. */
@@ -523,4 +526,74 @@ export interface DealsPage {
   stores: Array<{ storeId: string; storeName: string; deals: number }>;
   categories: Array<{ category: string; deals: number }>;
   onlyMyLists: boolean;
+}
+
+/** A list at the market the person chose, for the "No mercado" mode. */
+export interface Trip {
+  listId: string;
+  listName: string;
+  storeId: string;
+  storeName: string;
+  cityId: string;
+  items: TripItem[];
+  pricedItems: number;
+  expectedTotal: number;
+}
+
+export interface TripItem {
+  itemId: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  catalogItemId: string | null;
+  imageUrl: string | null;
+  /** The SKU this market sells for the item: what a shelf-price contribution is about. */
+  storeProductId: string;
+  /** null when Gomo has no current price for it at this market. */
+  unitPrice: number | null;
+  lineTotal: number | null;
+  promotion: boolean;
+  checkedAt: string | null;
+  checkedBy: string | null;
+}
+
+/** A purchase marked as done, against the average of the city's markets at that moment. */
+export interface Purchase {
+  id: string;
+  listId: string | null;
+  listName: string;
+  storeId: string;
+  storeName: string;
+  purchasedAt: string;
+  totalPaid: number;
+  /** Items with a price in at least two markets of the city: the ones the savings count. */
+  comparedItems: number;
+  comparedPaid: number;
+  comparedCityAverage: number;
+  /** Negative when the person paid more than the average. */
+  savings: number;
+  itemsWithoutPrice: number;
+  items: Array<{
+    productId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    priceSource: "COLLECTED" | "SHELF";
+    cityAveragePrice: number | null;
+    cityStores: number;
+    linePaid: number;
+    savings: number | null;
+  }>;
+}
+
+export interface SavingsReport {
+  /** yyyy-MM */
+  month: string;
+  purchases: number;
+  totalPaid: number;
+  savings: number;
+  comparedItems: number;
+  /** Free plan: the total shows, each purchase is Premium. */
+  locked: boolean;
+  details: Purchase[];
 }

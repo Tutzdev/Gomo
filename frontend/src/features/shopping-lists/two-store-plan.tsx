@@ -1,4 +1,5 @@
-import { Lock, Store } from "lucide-react";
+import { Lock, ShoppingCart, Store } from "lucide-react";
+import { Link } from "react-router-dom";
 import { StatusBadge } from "@/components/page/page-elements";
 import { useUpsell } from "@/features/plan/upsell-context";
 import { formatCurrency } from "@/lib/brand";
@@ -9,10 +10,12 @@ import type { ShoppingCombination, ShoppingRecommendation } from "@/types/api";
  * so the person sees what the second stop is worth and how little the other stops add.
  */
 export function TwoStorePlan({
+  listId,
   pair,
   everyStore,
   savings,
 }: {
+  listId: string;
   pair: ShoppingCombination;
   everyStore: ShoppingCombination;
   /** Against the best single store; exists also when no store has the whole list. */
@@ -97,6 +100,14 @@ export function TwoStorePlan({
                 </p>
               </div>
               <span className="shrink-0 text-sm font-bold tabular-nums">{formatCurrency(store.subtotal)}</span>
+              <Link
+                to={`/app/listas/${listId}/mercado/${store.storeId}`}
+                className="grid size-9 shrink-0 place-items-center rounded-full text-primary-dark hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                aria-label={`Comprar no ${store.storeName}`}
+                title="Comprar aqui"
+              >
+                <ShoppingCart className="size-4" aria-hidden />
+              </Link>
             </li>
           ))}
         </ul>
