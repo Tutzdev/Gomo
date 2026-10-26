@@ -85,6 +85,21 @@ class AlertIntegrationTests {
     }
 
     @Test
+    void accountExportSaysWhichKindOfAlertEachOneIs() throws Exception {
+        String token = registerAndLogin(true);
+        perform(post("/api/v1/alerts").content(json.writeValueAsString(Map.of("productId", PRODUCT_A,
+                "cityId", rioCityId(), "kind", "BELOW_AVERAGE", "discountPercent", 15))), token)
+                .andExpect(status().isCreated());
+        entityManager.flush(); // the export reads with plain SQL, as a separate request would see it
+
+        perform(get("/api/v1/users/me/export"), token)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alertasDePreco[0].tipo").value("abaixo da média"))
+                .andExpect(jsonPath("$.alertasDePreco[0].percentualAbaixoDaMedia").value(15))
+                .andExpect(jsonPath("$.alertasDePreco[0].precoAlvo").isEmpty());
+    }
+
+    @Test
     void unreadCountNeedsASignedInAccount() throws Exception {
         mvc.perform(get("/api/v1/notifications/unread-count")).andExpect(status().isUnauthorized());
     }

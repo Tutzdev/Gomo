@@ -55,8 +55,11 @@ public class AccountDataExportService {
                 """, userId));
         export.put("listasDeCompras", shoppingLists(userId));
         export.put("alertasDePreco", rows("""
-                SELECT p.name AS "produto", c.name AS "cidade", a.target_price AS "precoAlvo", a.active AS "ativo",
-                    a.created_at AS "criadoEm", a.last_notified_at AS "ultimoAvisoEm"
+                SELECT p.name AS "produto", c.name AS "cidade",
+                    CASE a.kind WHEN 'BELOW_AVERAGE' THEN 'abaixo da média' ELSE 'preço escolhido' END AS "tipo",
+                    a.target_price AS "precoAlvo", a.discount_percent AS "percentualAbaixoDaMedia",
+                    a.active AS "ativo", a.created_at AS "criadoEm", a.last_notified_at AS "ultimoAvisoEm",
+                    a.last_notified_price AS "precoDoUltimoAviso"
                 FROM price_alerts a JOIN products p ON p.id = a.product_id JOIN cities c ON c.id = a.city_id
                 WHERE a.user_id = ? ORDER BY a.created_at
                 """, userId));

@@ -61,6 +61,7 @@ class AccountDataExportIntegrationTests {
         assertThat(export.path("listasDeCompras").get(0).path("nome").asString()).isEqualTo("Lista sintética");
         assertThat(export.path("listasDeCompras").get(0).path("itens").isArray()).isTrue();
         assertThat(export.path("sessoesAbertas").size()).isPositive();
+        assertThat(export.path("alertasDePreco").isArray()).isTrue();
         assertThat(body).doesNotContain("password", "hash", "$2a$", token);
     }
 
