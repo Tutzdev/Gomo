@@ -186,6 +186,9 @@ class ShoppingComparisonServiceTest {
         assertThat(response.combination().stores()).isEmpty();
         assertThat(response.combination().storeCount()).isEqualTo(2);
         assertThat(response.splitSavings().savings()).isEqualByComparingTo("8.00");
+        assertThat(response.twoStoreCombination().locked()).isTrue();
+        assertThat(response.twoStoreCombination().stores()).isEmpty();
+        assertThat(response.twoStoreCombination().savingsAgainstCompleteStore()).isEqualByComparingTo("8.00");
     }
 
     @Test

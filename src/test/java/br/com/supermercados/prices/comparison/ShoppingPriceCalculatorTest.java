@@ -150,4 +150,74 @@ class ShoppingPriceCalculatorTest {
         assertThat(noPrices.missingProductIds()).containsExactly(first, missing);
         assertThat(calculator.combine(List.of(), List.of(), null).completeShoppingList()).isFalse();
     }
+
+    @Test
+    void twoStoreCombinationPicksThePairWithTheLowestTotalInsteadOfVisitingEveryStore() {
+        UUID rice = UUID.randomUUID();
+        UUID beans = UUID.randomUUID();
+        UUID oil = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        UUID third = UUID.randomUUID();
+        var items = List.of(item(rice, "1.000"), item(beans, "1.000"), item(oil, "1.000"));
+        var complete = calculator.calculate(storeId, "Complete", items, Map.of(
+                rice, PriceFixtures.regular(rice, storeId, "20.00", now),
+                beans, PriceFixtures.regular(beans, storeId, "8.00", now),
+                oil, PriceFixtures.regular(oil, storeId, "7.00", now)), now);
+        var cheapRice = calculator.calculate(second, "Cheap rice", items, Map.of(
+                rice, PriceFixtures.regular(rice, second, "15.00", now)), now);
+        var cheapOil = calculator.calculate(third, "Cheap oil", items, Map.of(
+                oil, PriceFixtures.regular(oil, third, "6.50", now)), now);
+        var winner = new StoreRecommendationCandidate(storeId, "Complete", new BigDecimal("35.00"),
+                3, 3, 0, List.of(), true, false);
+
+        var everyStore = calculator.combine(items, List.of(complete, cheapRice, cheapOil), winner);
+        var pair = calculator.combineInTwoStores(items, List.of(complete, cheapRice, cheapOil), winner);
+
+        assertThat(everyStore.stores()).hasSize(3);
+        assertThat(everyStore.subtotalKnown()).isEqualByComparingTo("29.50");
+        assertThat(pair.stores()).extracting(ShoppingCombinationResponse.StorePurchase::storeName)
+                .containsExactly("Cheap rice", "Complete");
+        assertThat(pair.completeShoppingList()).isTrue();
+        assertThat(pair.subtotalKnown()).isEqualByComparingTo("30.00");
+        assertThat(pair.savingsAgainstCompleteStore()).isEqualByComparingTo("5.00");
+    }
+
+    @Test
+    void twoStoreCombinationPrefersCoveringMoreItemsOverAPartialCheaperPair() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        UUID cheapStore = UUID.randomUUID();
+        UUID otherStore = UUID.randomUUID();
+        var items = List.of(item(first, "1.000"), item(second, "1.000"));
+        var cheap = calculator.calculate(cheapStore, "Cheap", items, Map.of(
+                first, PriceFixtures.regular(first, cheapStore, "1.00", now)), now);
+        var other = calculator.calculate(otherStore, "Other", items, Map.of(
+                first, PriceFixtures.regular(first, otherStore, "1.50", now)), now);
+        var covering = calculator.calculate(storeId, "Covering", items, Map.of(
+                second, PriceFixtures.regular(second, storeId, "9.00", now)), now);
+
+        var pair = calculator.combineInTwoStores(items, List.of(cheap, other, covering), null);
+
+        assertThat(pair.pricedItems()).isEqualTo(2);
+        assertThat(pair.stores()).extracting(ShoppingCombinationResponse.StorePurchase::storeName)
+                .containsExactly("Cheap", "Covering");
+        assertThat(pair.savingsAgainstCompleteStore()).isNull();
+    }
+
+    @Test
+    void twoStoreCombinationKeepsOneStoreWhenSplittingSavesNothing() {
+        UUID first = UUID.randomUUID();
+        UUID otherStore = UUID.randomUUID();
+        var items = List.of(item(first, "1.000"));
+        var best = calculator.calculate(storeId, "Best", items, Map.of(
+                first, PriceFixtures.regular(first, storeId, "3.00", now)), now);
+        var pricier = calculator.calculate(otherStore, "Pricier", items, Map.of(
+                first, PriceFixtures.regular(first, otherStore, "4.00", now)), now);
+
+        var pair = calculator.combineInTwoStores(items, List.of(pricier, best), null);
+
+        assertThat(pair.stores()).extracting(ShoppingCombinationResponse.StorePurchase::storeName)
+                .containsExactly("Best");
+        assertThat(calculator.combineInTwoStores(items, List.of(), null).stores()).isEmpty();
+    }
 }

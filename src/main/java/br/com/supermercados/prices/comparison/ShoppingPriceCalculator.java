@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,9 @@ import br.com.supermercados.prices.shoppinglist.ShoppingListItemResponse;
 
 @Component
 public class ShoppingPriceCalculator {
+
+    /** Bounds the pairs tried (n² / 2) when a city has many stores; the best pairs come from the best stores. */
+    private static final int MAXIMUM_PAIR_CANDIDATES = 40;
 
     private final PricePolicy pricePolicy;
 
@@ -93,6 +97,45 @@ public class ShoppingPriceCalculator {
                 ? completeStore.total().subtract(total) : null;
         return new ShoppingCombinationResponse(requestedItems.size(), cheapestItems.size(), missing,
                 total, complete, savings, purchases);
+    }
+
+    /**
+     * The best purchase split across at most two stores: the one that prices the most items, then the lowest
+     * total, then the fewest stores. Buying each item where it is cheapest can mean a trip to every market; two
+     * stops is what people actually do, so this is the split the screen recommends first.
+     */
+    public ShoppingCombinationResponse combineInTwoStores(List<ShoppingListItemResponse> requestedItems,
+            List<ShoppingStoreComparison> comparisons, StoreRecommendationCandidate completeStore) {
+        List<ShoppingStoreComparison> candidates = comparisons.stream()
+                .filter(store -> store.pricedItems() > 0)
+                .sorted(Comparator.comparing(ShoppingStoreComparison::pricedItems, Comparator.reverseOrder())
+                        .thenComparing(ShoppingStoreComparison::subtotalKnown,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(ShoppingStoreComparison::storeName, String.CASE_INSENSITIVE_ORDER))
+                .limit(MAXIMUM_PAIR_CANDIDATES)
+                .toList();
+        ShoppingCombinationResponse best = null;
+        for (int first = 0; first < candidates.size(); first++) {
+            best = better(best, combine(requestedItems, List.of(candidates.get(first)), completeStore));
+            for (int second = first + 1; second < candidates.size(); second++) {
+                best = better(best, combine(requestedItems,
+                        List.of(candidates.get(first), candidates.get(second)), completeStore));
+            }
+        }
+        return best != null ? best : combine(requestedItems, List.of(), completeStore);
+    }
+
+    private static ShoppingCombinationResponse better(ShoppingCombinationResponse current,
+            ShoppingCombinationResponse candidate) {
+        if (current == null) {
+            return candidate;
+        }
+        Comparator<ShoppingCombinationResponse> order = Comparator
+                .comparing(ShoppingCombinationResponse::pricedItems, Comparator.reverseOrder())
+                .thenComparing(ShoppingCombinationResponse::subtotalKnown,
+                        Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(combination -> combination.stores().size());
+        return order.compare(candidate, current) < 0 ? candidate : current;
     }
 
     private record StoreItem(UUID storeId, String storeName, ComparisonItemResponse item) {

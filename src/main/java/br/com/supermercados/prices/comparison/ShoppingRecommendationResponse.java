@@ -4,6 +4,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * {@code combination} buys each item where it is cheapest, in as many stores as that takes;
+ * {@code twoStoreCombination} is the best split that needs at most two stops.
+ */
 public record ShoppingRecommendationResponse(
         UUID shoppingListId,
         UUID cityId,
@@ -14,7 +18,8 @@ public record ShoppingRecommendationResponse(
         StoreRecommendationCandidate recommendation,
         List<StoreRecommendationCandidate> closestMatches,
         ShoppingCombinationResponse combination,
-        SplitSavings splitSavings) {
+        SplitSavings splitSavings,
+        ShoppingCombinationResponse twoStoreCombination) {
 
     public ShoppingRecommendationResponse {
         closestMatches = List.copyOf(closestMatches);

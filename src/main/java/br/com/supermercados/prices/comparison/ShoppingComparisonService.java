@@ -168,7 +168,10 @@ public class ShoppingComparisonService {
         return recommendShoppingList(userId, listId, cityId, null, true);
     }
 
-    /** On the free plan the split between stores is a Premium feature: only its total and savings are shown. */
+    /**
+     * On the free plan the split between stores is a Premium feature: only its total and savings are shown, for
+     * the split in every store and for the one in two stores.
+     */
     public ShoppingRecommendationResponse recommendShoppingList(
             UUID userId, UUID listId, UUID cityId, List<UUID> storeIds, boolean premium) {
         var shoppingList = shoppingLists.getOwnedList(userId, listId);
@@ -186,17 +189,20 @@ public class ShoppingComparisonService {
         ShoppingCombinationResponse fullCombination = calculator.combine(
                 shoppingList.items(), comparisons, recommendation);
         ShoppingCombinationResponse combination = premium ? fullCombination : fullCombination.lockedPreview();
+        ShoppingCombinationResponse fullPair = calculator.combineInTwoStores(
+                shoppingList.items(), comparisons, recommendation);
+        ShoppingCombinationResponse twoStores = premium ? fullPair : fullPair.lockedPreview();
         if (recommendation != null) {
             return new ShoppingRecommendationResponse(listId, cityId, CURRENCY, comparedAt, candidates.size(),
                     RecommendationStatus.COMPLETE_STORE_FOUND, recommendation, List.of(), combination,
-                    splitSavings(recommendation, comparisons, fullCombination));
+                    splitSavings(recommendation, comparisons, fullCombination), twoStores);
         }
 
         List<StoreRecommendationCandidate> closestMatches = findClosestMatches(candidates);
         StoreRecommendationCandidate bestCoverage = closestMatches.isEmpty() ? null : closestMatches.getFirst();
         return new ShoppingRecommendationResponse(listId, cityId, CURRENCY, comparedAt, candidates.size(),
                 RecommendationStatus.NO_COMPLETE_STORE, null, closestMatches, combination,
-                splitSavings(bestCoverage, comparisons, fullCombination));
+                splitSavings(bestCoverage, comparisons, fullCombination), twoStores);
     }
 
     /** Compares the items the reference store prices with the cheapest price of each one among all stores. */
