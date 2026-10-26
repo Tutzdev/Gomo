@@ -54,7 +54,7 @@ public record PriceVerdict(
      * @param stores the history of each store; points of {@code today} itself are not part of the reference
      * @param currentPrice the cheapest current offer, or {@code null} when no store has one
      */
-    static PriceVerdict of(List<CatalogItemHistoryResponse.StoreSeries> stores, BigDecimal currentPrice,
+    public static PriceVerdict of(List<CatalogItemHistoryResponse.StoreSeries> stores, BigDecimal currentPrice,
             LocalDate today) {
         NavigableMap<LocalDate, BigDecimal> previous = new TreeMap<>();
         for (var store : stores) {

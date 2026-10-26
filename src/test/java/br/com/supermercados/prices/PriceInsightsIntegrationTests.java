@@ -46,6 +46,7 @@ class PriceInsightsIntegrationTests {
     private static final UUID STORE_A = UUID.fromString("00000000-0000-0000-0000-000000000201");
     private static final UUID STORE_B = UUID.fromString("00000000-0000-0000-0000-000000000202");
     private static final UUID PRODUCT_A = UUID.fromString("00000000-0000-0000-0000-000000000301");
+    private static final UUID PRODUCT_B = UUID.fromString("00000000-0000-0000-0000-000000000302");
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper json;
@@ -134,6 +135,56 @@ class PriceInsightsIntegrationTests {
                 .andExpect(jsonPath("$.deals.content[0].discountPercent").value(30));
     }
 
+    @Test
+    void stockUpIsThePantryItemsAtTheLowestPriceOfTheHistoryAndTheRestIsBelowAverage() throws Exception {
+        UUID rice = catalogItem(PRODUCT_A, "Arroz Fictício 5 kg", "Mercearia");
+        UUID tomato = catalogItem(PRODUCT_B, "Tomate Fictício kg", "Hortifrúti");
+        LocalDate today = LocalDate.now(UsualPrice.ZONE);
+        for (int day = 1; day <= 8; day++) {
+            price(PRODUCT_A, STORE_A, "stock-a-" + day, "10.00", noonOf(today.minusDays(day)));
+            price(PRODUCT_B, STORE_A, "stock-b-" + day, "10.00", noonOf(today.minusDays(day)));
+        }
+        price(PRODUCT_A, STORE_B, "stock-a-today", "8.00", Instant.now().minusSeconds(60));
+        price(PRODUCT_B, STORE_B, "stock-b-today", "8.00", Instant.now().minusSeconds(60));
+        var accounts = new SignedInAccounts(mvc, json, jdbc, entityManager);
+        var premium = accounts.premium();
+        String list = listWith(accounts, premium, rice, tomato);
+
+        accounts.perform(get("/api/v1/comparisons/shopping-lists/" + list + "/good-prices").param("cityId", rioCityId()),
+                        premium)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.locked").value(false))
+                .andExpect(jsonPath("$.stockUpItems").value(1))
+                .andExpect(jsonPath("$.belowAverageItems").value(1))
+                .andExpect(jsonPath("$.items[0].catalogItemId").value(rice.toString()))
+                .andExpect(jsonPath("$.items[0].stockUp").value(true))
+                .andExpect(jsonPath("$.items[0].kind").value("LOWEST_IN_PERIOD"))
+                .andExpect(jsonPath("$.items[0].storeName").value("Loja fictícia B"))
+                .andExpect(jsonPath("$.items[0].differencePercent").value(-20))
+                // A tomato at its lowest is a good buy today, not one to keep for weeks.
+                .andExpect(jsonPath("$.items[1].catalogItemId").value(tomato.toString()))
+                .andExpect(jsonPath("$.items[1].stockUp").value(false));
+
+        var free = accounts.free();
+        String freeList = listWith(accounts, free, rice);
+        accounts.perform(get("/api/v1/comparisons/shopping-lists/" + freeList + "/good-prices")
+                        .param("cityId", rioCityId()), free)
+                .andExpect(jsonPath("$.locked").value(true))
+                .andExpect(jsonPath("$.stockUpItems").value(1))
+                .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    private String listWith(SignedInAccounts accounts, SignedInAccounts.Account account, UUID... catalogItems)
+            throws Exception {
+        String list = accounts.read(accounts.perform(post("/api/v1/shopping-lists")
+                .content("{\"name\":\"Despensa\",\"shoppingType\":\"MONTHLY\"}"), account)).path("id").asString();
+        for (UUID item : catalogItems) {
+            accounts.perform(post("/api/v1/shopping-lists/" + list + "/items").content(
+                    "{\"catalogItemId\":\"" + item + "\",\"quantity\":1}"), account).andExpect(status().isCreated());
+        }
+        return list;
+    }
+
     UUID catalogItem(UUID productId, String name, String category) {
         UUID id = UUID.randomUUID();
         jdbc.update("""
@@ -147,7 +198,11 @@ class PriceInsightsIntegrationTests {
     }
 
     void price(UUID store, String reference, String amount, Instant collectedAt) {
-        prices.appendObservation(new PriceObservation(PRODUCT_A, store, SOURCE, reference, new BigDecimal(amount),
+        price(PRODUCT_A, store, reference, amount, collectedAt);
+    }
+
+    void price(UUID product, UUID store, String reference, String amount, Instant collectedAt) {
+        prices.appendObservation(new PriceObservation(product, store, SOURCE, reference, new BigDecimal(amount),
                 null, "BRL", collectedAt, null, null, StockAvailability.AVAILABLE));
     }
 
