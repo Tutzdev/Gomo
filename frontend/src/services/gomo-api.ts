@@ -9,6 +9,7 @@ import type {
   CatalogItemHistory,
   DealsPage,
   ListGoodPrices,
+  ListSubstitutes,
   Purchase,
   SavingsReport,
   Trip,
@@ -315,6 +316,11 @@ export const shoppingListApi = {
     apiRequest<ShoppingListComparison>(
       `/comparisons/shopping-lists/${id}?${queryString({ cityId, page, size, storeIds: storeIds.join(",") })}`,
     ),
+  /** Premium: cheaper equivalents per kg, litre or unit; the free plan gets only the count. */
+  substitutes: (id: string, cityId: string) =>
+    apiRequest<ListSubstitutes>(`/comparisons/shopping-lists/${id}/substitutes?${queryString({ cityId })}`),
+  replaceItem: (id: string, itemId: string, input: { catalogItemId: string; quantity: number }) =>
+    apiRequest<ShoppingListItem>(`/shopping-lists/${id}/items/${itemId}/replacement`, { method: "POST", body: input }),
   /** Premium: the items that are a good buy today; the free plan gets only the counts. */
   goodPrices: (id: string, cityId: string) =>
     apiRequest<ListGoodPrices>(`/comparisons/shopping-lists/${id}/good-prices?${queryString({ cityId })}`),

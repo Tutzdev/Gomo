@@ -1,4 +1,4 @@
-import { BellRing, CalendarRange, LineChart, ListPlus, Lock, PackagePlus, PiggyBank, Route, Store, Tag, TrendingDown, type LucideIcon } from "lucide-react";
+import { BellRing, CalendarRange, LineChart, ListPlus, Lock, PackagePlus, PiggyBank, Replace, Route, Store, Tag, TrendingDown, type LucideIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/brand";
 
 /** The moment that led to the upgrade message. Each one gets copy about what the person just tried to do. */
@@ -10,6 +10,7 @@ export type UpsellTrigger =
   | "DEALS_FOR_MY_LISTS"
   | "SAVINGS_REPORT"
   | "STOCK_UP"
+  | "SUBSTITUTES"
   | "PRICE_HISTORY"
   | "LOCKED_STORES"
   | "SPLIT_PURCHASE"
@@ -88,6 +89,14 @@ export function upsellCopy(trigger: UpsellTrigger, context: UpsellContext = {}):
         description:
           "O Premium lê o histórico de cada item da sua lista: avisa o que está abaixo do preço de sempre e quais itens de despensa estão no menor preço dos últimos 90 dias.",
         unlocks: ["Hora de estocar nos itens de despensa", "Itens da lista abaixo do preço de sempre", "Histórico de 90 dias de cada produto"],
+      };
+    case "SUBSTITUTES":
+      return {
+        icon: Replace,
+        title: "O mesmo produto, de outra marca, mais barato",
+        description:
+          "O Premium compara cada item da lista com os equivalentes do mesmo tipo pelo preço por kg, litro ou unidade, e troca na lista com um toque.",
+        unlocks: ["Equivalentes mais baratos por kg ou litro", "Hora de estocar nos itens de despensa", "Compra dividida em até 2 mercados"],
       };
     case "PRICE_HISTORY":
       return {

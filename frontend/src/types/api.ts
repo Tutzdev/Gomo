@@ -624,3 +624,32 @@ export interface ListGoodPrices {
     stockUp: boolean;
   }>;
 }
+
+/** Cheaper equivalents of the items of a list, per kilogram, litre or unit. */
+export interface ListSubstitutes {
+  listId: string;
+  cityId: string;
+  /** Free plan: only the count. */
+  locked: boolean;
+  substitutes: number;
+  items: Array<{
+    itemId: string;
+    productName: string;
+    quantity: number;
+    price: number;
+    pricePerMeasure: number;
+    measureUnit: "KG" | "L" | "UN";
+    substituteCatalogItemId: string;
+    substituteName: string;
+    substituteBrand: string | null;
+    substituteSize: string;
+    substituteImageUrl: string | null;
+    substitutePrice: number;
+    substitutePricePerMeasure: number;
+    substituteStoreId: string;
+    substituteStoreName: string;
+    /** How many packages of the substitute buy about as much as the list asks for. */
+    suggestedQuantity: number;
+    savingsPercent: number;
+  }>;
+}

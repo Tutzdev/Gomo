@@ -18,6 +18,7 @@ import {
 } from "@/features/catalog/catalog-item-picker";
 import { GoodPricesCard } from "@/features/shopping-lists/good-prices-card";
 import { ListComparison } from "@/features/shopping-lists/list-comparison";
+import { SubstitutesCard } from "@/features/shopping-lists/substitutes-card";
 import { formatDate } from "@/lib/brand";
 import { catalogApi, shoppingListApi } from "@/services/gomo-api";
 import type {
@@ -66,6 +67,9 @@ export function ShoppingListDetailPage() {
       }),
       queryClient.invalidateQueries({
         queryKey: ["shopping-list-good-prices", id],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["shopping-list-substitutes", id],
       }),
     ]);
   };
@@ -123,7 +127,10 @@ export function ShoppingListDetailPage() {
         />
       ) : null}
       {selectedCity && list.data.items.length ? (
-        <GoodPricesCard listId={id} cityId={selectedCity} onChanged={invalidate} />
+        <>
+          <GoodPricesCard listId={id} cityId={selectedCity} onChanged={invalidate} />
+          <SubstitutesCard listId={id} cityId={selectedCity} onChanged={invalidate} />
+        </>
       ) : null}
       <div className="grid items-start gap-6 xl:grid-cols-[1fr_0.65fr]">
         <section className="surface min-w-0">
