@@ -80,6 +80,61 @@ class PriceInsightsIntegrationTests {
                 .andExpect(jsonPath("$.verdict.periodDays").value(8));
     }
 
+    @Test
+    void publicDealsListWhatIsAtLeastTenPercentUnderTheUsualPriceAtEachStore() throws Exception {
+        UUID item = catalogItem(PRODUCT_A, "Café Fictício 500 g", "Café da Manhã");
+        LocalDate today = LocalDate.now(UsualPrice.ZONE);
+        for (int day = 1; day <= 8; day++) {
+            price(STORE_A, "deal-history-" + day, "10.00", noonOf(today.minusDays(day)));
+        }
+        price(STORE_A, "deal-a", "8.50", Instant.now().minusSeconds(60));
+        price(STORE_B, "deal-b", "9.50", Instant.now().minusSeconds(60));
+
+        mvc.perform(get("/api/v1/deals").param("cityId", rioCityId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.minimumDiscountPercent").value(10))
+                .andExpect(jsonPath("$.deals.content.length()").value(1))
+                .andExpect(jsonPath("$.deals.content[0].itemId").value(item.toString()))
+                .andExpect(jsonPath("$.deals.content[0].storeName").value("Loja fictícia A"))
+                .andExpect(jsonPath("$.deals.content[0].price").value(8.50))
+                .andExpect(jsonPath("$.deals.content[0].usualPrice").value(10.00))
+                .andExpect(jsonPath("$.deals.content[0].discountPercent").value(15))
+                .andExpect(jsonPath("$.deals.content[0].lowestIn90Days").value(true))
+                .andExpect(jsonPath("$.stores[0].deals").value(1))
+                .andExpect(jsonPath("$.categories[0].category").value("Café da Manhã"));
+        // 5% under the usual price is the usual price with some noise, not a deal.
+        mvc.perform(get("/api/v1/deals").param("cityId", rioCityId()).param("storeId", STORE_B.toString()))
+                .andExpect(jsonPath("$.deals.content.length()").value(0));
+    }
+
+    @Test
+    void onlyMyListsIsPremiumAndKeepsTheProductsOfThePersonsLists() throws Exception {
+        UUID item = catalogItem(PRODUCT_A, "Óleo Fictício 900 ml", "Mercearia");
+        LocalDate today = LocalDate.now(UsualPrice.ZONE);
+        for (int day = 1; day <= 8; day++) {
+            price(STORE_A, "mine-history-" + day, "10.00", noonOf(today.minusDays(day)));
+        }
+        price(STORE_A, "mine-today", "7.00", Instant.now().minusSeconds(60));
+
+        mvc.perform(get("/api/v1/deals").param("cityId", rioCityId()).param("onlyMyLists", "true"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.limit").value("DEALS_FOR_MY_LISTS"));
+
+        String token = premiumAccount();
+        perform(get("/api/v1/deals").param("cityId", rioCityId()).param("onlyMyLists", "true"), token)
+                .andExpect(jsonPath("$.deals.content.length()").value(0));
+        String list = json.readTree(perform(post("/api/v1/shopping-lists").content(
+                "{\"name\":\"Mês\",\"shoppingType\":\"MONTHLY\"}"), token).andReturn().getResponse()
+                .getContentAsByteArray()).path("id").asString();
+        perform(post("/api/v1/shopping-lists/" + list + "/items").content(
+                "{\"catalogItemId\":\"" + item + "\",\"quantity\":1}"), token).andExpect(status().isCreated());
+
+        perform(get("/api/v1/deals").param("cityId", rioCityId()).param("onlyMyLists", "true"), token)
+                .andExpect(jsonPath("$.onlyMyLists").value(true))
+                .andExpect(jsonPath("$.deals.content.length()").value(1))
+                .andExpect(jsonPath("$.deals.content[0].discountPercent").value(30));
+    }
+
     UUID catalogItem(UUID productId, String name, String category) {
         UUID id = UUID.randomUUID();
         jdbc.update("""

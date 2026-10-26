@@ -9,12 +9,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The sitemap search engines read: the home page and the public price page of every active catalog item. */
+/**
+ * The sitemap search engines read: the home page, the deals page and the public price page of every active
+ * catalog item.
+ */
 @Service
 public class SitemapService {
 
-    /** A sitemap file holds at most 50,000 addresses; the home page takes one of them. */
-    static final int MAXIMUM_PRODUCT_PAGES = 49_999;
+    /** A sitemap file holds at most 50,000 addresses; the home and the deals page take two of them. */
+    static final int MAXIMUM_PRODUCT_PAGES = 49_998;
 
     private final JdbcTemplate jdbc;
 
@@ -39,6 +42,8 @@ public class SitemapService {
                 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
                 """);
         xml.append("  <url><loc>").append(escape(siteUrl + "/")).append("</loc></url>\n");
+        xml.append("  <url><loc>").append(escape(siteUrl + "/ofertas"))
+                .append("</loc><changefreq>daily</changefreq></url>\n");
         for (Page page : pages) {
             xml.append("  <url><loc>").append(escape(siteUrl + ProductPagePath.of(page.id(), page.name())))
                     .append("</loc><lastmod>").append(page.updatedAt().atOffset(ZoneOffset.UTC).toLocalDate())

@@ -32,6 +32,7 @@ class SitemapTest {
                 List.of(new SitemapService.Page(ID, "M&M's", Instant.parse("2026-10-20T02:00:00Z"))));
 
         assertThat(xml).startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+                .contains("<loc>https://gomo.example.test/ofertas</loc><changefreq>daily</changefreq>")
                 .contains("<loc>https://gomo.example.test/precos/m-m-s-" + ID + "</loc><lastmod>2026-10-20</lastmod>")
                 .endsWith("</urlset>\n");
     }

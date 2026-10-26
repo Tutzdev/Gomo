@@ -7,6 +7,7 @@ import br.com.supermercados.prices.subscription.FreePlan;
 import br.com.supermercados.prices.subscription.PlanLimit;
 import br.com.supermercados.prices.subscription.PlanLimitException;
 import java.time.Clock;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +41,11 @@ public class ShoppingListService {
 
     public long countOwnedLists(UUID userId) {
         return lists.countByUserId(userId);
+    }
+
+    /** The generic products the person keeps in any of their lists. */
+    public Set<UUID> catalogItemIdsInLists(UUID userId) {
+        return items.findCatalogItemIdsOfUser(userId);
     }
 
     public ShoppingListResponse getOwnedList(UUID userId, UUID listId) {

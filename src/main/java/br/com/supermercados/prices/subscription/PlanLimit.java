@@ -7,5 +7,7 @@ public enum PlanLimit {
     ACTIVE_ALERTS,
     PRICE_HISTORY,
     /** "Warn me when it is X% below the usual price" reads the price history, which is Premium. */
-    BELOW_AVERAGE_ALERTS
+    BELOW_AVERAGE_ALERTS,
+    /** The deals page is open to everyone; narrowing it to the person's own lists is Premium. */
+    DEALS_FOR_MY_LISTS
 }

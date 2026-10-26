@@ -72,7 +72,7 @@ public class SecurityConfiguration {
                                 "/api/v1/catalog/items", "/api/v1/catalog/items/**",
                                 "/api/v1/prices", "/api/v1/prices/**",
                                 "/api/v1/comparisons/products", "/api/v1/status/collections", "/api/v1/sitemap.xml",
-                                "/api/v1/plans/offer",
+                                "/api/v1/plans/offer", "/api/v1/deals",
                                 "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterAt(corsFilter, CorsFilter.class)

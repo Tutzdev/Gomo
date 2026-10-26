@@ -2,6 +2,7 @@ package br.com.supermercados.prices.shoppinglist;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -26,4 +27,10 @@ public interface ShoppingListItemRepository extends JpaRepository<ShoppingListIt
     boolean existsByShoppingListIdAndCatalogItemId(UUID shoppingListId, UUID catalogItemId);
 
     long countByShoppingListId(UUID shoppingListId);
+
+    @Query("""
+            select distinct item.catalogItemId from ShoppingListItem item, ShoppingList list
+            where list.id = item.shoppingListId and list.userId = :userId and item.catalogItemId is not null
+            """)
+    Set<UUID> findCatalogItemIdsOfUser(UUID userId);
 }
