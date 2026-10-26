@@ -8,25 +8,27 @@ import { alertApi, catalogApi, preferenceApi, shoppingListApi } from "@/services
 import { formatDate } from "@/lib/brand";
 
 export function OverviewPage() {
-  const lists = useQuery({ queryKey: ["shopping-lists", 0], queryFn: () => shoppingListApi.list(0, 4) });
-  const alerts = useQuery({ queryKey: ["alerts", 0], queryFn: () => alertApi.list(0, 4) });
-  const notifications = useQuery({ queryKey: ["notifications", 0], queryFn: () => alertApi.notifications(0, 4) });
+  // Each key holds exactly what its query fetched: the recent lists are a short page of their own, while the
+  // alerts are the same page the alerts screen loads, so the count of active alerts is the real one.
+  const lists = useQuery({ queryKey: ["shopping-lists", "recent"], queryFn: () => shoppingListApi.list(0, 4) });
+  const alerts = useQuery({ queryKey: ["alerts", 0], queryFn: () => alertApi.list(0, 100) });
+  const unread = useQuery({ queryKey: ["notifications", "unread"], queryFn: alertApi.unreadNotifications });
   const preferences = useQuery({ queryKey: ["preferences"], queryFn: preferenceApi.get });
   const cities = useQuery({ queryKey: ["cities", "all"], queryFn: () => catalogApi.cities(undefined, 0, 100) });
 
   const preferredCity = cities.data?.content.find((city) => city.id === preferences.data?.preferredCityId);
-  const hasError = lists.isError || alerts.isError || notifications.isError || preferences.isError;
+  const hasError = lists.isError || alerts.isError || unread.isError || preferences.isError;
 
   return (
     <>
       <PageHeading title="Início" description="Suas listas, alertas e preferências em um só lugar." action={<NativeButton to="/app/produtos"><Search className="size-4" aria-hidden />Buscar preços</NativeButton>} />
 
-      {hasError ? <ErrorState message="Parte das informações não pôde ser carregada." retry={() => void Promise.all([lists.refetch(), alerts.refetch(), notifications.refetch(), preferences.refetch()])} /> : null}
+      {hasError ? <ErrorState message="Parte das informações não pôde ser carregada." retry={() => void Promise.all([lists.refetch(), alerts.refetch(), unread.refetch(), preferences.refetch()])} /> : null}
 
       <section aria-label="Resumo da conta" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryItem icon={ListChecks} label="Listas salvas" value={lists.data ? String(lists.data.totalElements) : "—"} loading={lists.isLoading} to="/app/listas" />
         <SummaryItem icon={Bell} label="Alertas ativos" value={alerts.data ? String(alerts.data.content.filter((item) => item.active).length) : "—"} loading={alerts.isLoading} to="/app/alertas" />
-        <SummaryItem icon={CircleDollarSign} label="Notificações não lidas" value={notifications.data ? String(notifications.data.content.filter((item) => !item.readAt).length) : "—"} loading={notifications.isLoading} to="/app/notificacoes" />
+        <SummaryItem icon={CircleDollarSign} label="Notificações não lidas" value={unread.data ? String(unread.data.unread) : "—"} loading={unread.isLoading} to="/app/notificacoes" />
         <SummaryItem icon={MapPin} label="Cidade preferida" value={preferredCity?.name ?? (preferences.isLoading ? "—" : "Não definida")} loading={preferences.isLoading || cities.isLoading} to="/app/perfil" />
       </section>
 
