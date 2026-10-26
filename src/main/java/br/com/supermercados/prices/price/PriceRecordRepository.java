@@ -1,5 +1,6 @@
 package br.com.supermercados.prices.price;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -41,6 +42,36 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
     List<PriceRecord> findLatestForStoresAndProducts(
             @Param("storeIds") Collection<UUID> storeIds,
             @Param("productIds") Collection<UUID> productIds);
+
+    /**
+     * Average of the city's lowest price of each day in {@code [since, until)}, with an unconditional promotion
+     * counting as the price, like {@link PricePolicy}. Empty when fewer than {@code minimumDays} days had a price:
+     * an "average" of two days says nothing about the usual price.
+     */
+    @Query(value = """
+            SELECT AVG(day_lowest)
+            FROM (
+                SELECT CAST(p.collected_at AT TIME ZONE 'America/Sao_Paulo' AS DATE) AS price_day,
+                       MIN(CASE
+                               WHEN p.promotional_price IS NOT NULL AND p.promotion_condition IS NULL
+                                    AND p.promotion_valid_until > p.collected_at THEN p.promotional_price
+                               ELSE p.regular_price
+                           END) AS day_lowest
+                FROM price_records p
+                JOIN stores s ON s.id = p.store_id
+                WHERE p.product_id = :productId AND s.city_id = :cityId
+                  AND p.collected_at >= :since AND p.collected_at < :until
+                  AND p.availability <> 'UNAVAILABLE'
+                GROUP BY price_day
+            ) daily
+            HAVING COUNT(*) >= :minimumDays
+            """, nativeQuery = true)
+    Optional<BigDecimal> findDailyLowestAverage(
+            @Param("productId") UUID productId,
+            @Param("cityId") UUID cityId,
+            @Param("since") Instant since,
+            @Param("until") Instant until,
+            @Param("minimumDays") int minimumDays);
 
     @Query(value = """
             SELECT DISTINCT ON (product_id) *

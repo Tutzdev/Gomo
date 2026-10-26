@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.comparison.ShoppingComparisonService;
 import br.com.supermercados.prices.price.PriceObservation;
+import br.com.supermercados.prices.price.PriceRecordRepository;
 import br.com.supermercados.prices.price.PriceService;
 import br.com.supermercados.prices.price.PriceStatus;
 import br.com.supermercados.prices.price.StockAvailability;
@@ -16,6 +17,7 @@ import br.com.supermercados.prices.shoppinglist.ShoppingListService;
 import br.com.supermercados.prices.shoppinglist.ShoppingType;
 import br.com.supermercados.prices.support.PostgresTestDatabase;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -44,6 +46,7 @@ class PricePersistenceTests {
     private static final UUID PRODUCT_B = UUID.fromString("00000000-0000-0000-0000-000000000302");
 
     @Autowired PriceService prices;
+    @Autowired PriceRecordRepository priceRecords;
     @Autowired ShoppingComparisonService comparisons;
     @Autowired ShoppingListService lists;
     @Autowired ProductService products;
@@ -204,6 +207,30 @@ class PricePersistenceTests {
         var result = comparisons.compareProduct(PRODUCT_A, cityId(), storePage());
         assertThat(result.stores().content()).hasSize(1);
         assertThat(result.stores().totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void usualPriceAveragesTheCityDailyLowestAndLeavesOutUnavailableAndRecentPrices() {
+        Instant now = Instant.now().minusSeconds(5);
+        for (int day = 2; day <= 9; day++) {
+            Instant collected = now.minus(Duration.ofDays(day));
+            prices.appendObservation(observation(STORE_A, PRODUCT_A, "usual-a-" + day, "10.00", collected));
+            if (day <= 5) {
+                prices.appendObservation(observation(STORE_B, PRODUCT_A, "usual-b-" + day, "8.00", collected));
+            }
+        }
+        prices.appendObservation(new PriceObservation(PRODUCT_A, STORE_B, SOURCE, "usual-unavailable",
+                new BigDecimal("1.00"), null, "BRL", now.minus(Duration.ofDays(3)), null, null,
+                StockAvailability.UNAVAILABLE));
+        prices.appendObservation(observation(STORE_A, PRODUCT_A, "usual-today", "2.00", now.minusSeconds(3600)));
+
+        var average = priceRecords.findDailyLowestAverage(PRODUCT_A, cityId(), now.minus(Duration.ofDays(30)),
+                now.minus(Duration.ofDays(1)), 7);
+        var notEnoughDays = priceRecords.findDailyLowestAverage(PRODUCT_A, cityId(), now.minus(Duration.ofDays(30)),
+                now.minus(Duration.ofDays(1)), 9);
+
+        assertThat(average).hasValueSatisfying(value -> assertThat(value).isEqualByComparingTo("9.00"));
+        assertThat(notEnoughDays).isEmpty();
     }
 
     private PriceObservation observation(UUID store, UUID product, String reference, String amount, Instant collected) {

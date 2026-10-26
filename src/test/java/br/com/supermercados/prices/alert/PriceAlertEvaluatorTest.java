@@ -96,6 +96,68 @@ class PriceAlertEvaluatorTest {
                 any(), eq(new BigDecimal("8.00")), eq(NOW));
     }
 
+    @Test
+    void belowAverageAlertFiresWhenThePriceIsTheChosenPercentageUnderTheUsualPrice() {
+        UUID productId = UUID.randomUUID();
+        UUID cityId = UUID.randomUUID();
+        UUID storeId = UUID.randomUUID();
+        PriceRecord record = belowAverageScenario(productId, cityId, storeId, "8.50");
+        PriceAlert twentyPercent = belowAverageAlert(productId, cityId, 20);
+        PriceAlert tenPercent = belowAverageAlert(productId, cityId, 10);
+        when(alerts.findActiveForEvaluation(productId, cityId)).thenReturn(List.of(twentyPercent, tenPercent));
+        when(prices.findDailyLowestAverage(productId, cityId, NOW.minus(Duration.ofDays(30)),
+                NOW.minus(Duration.ofDays(1)), 7)).thenReturn(Optional.of(new BigDecimal("10.0000")));
+        when(notifications.insertIfAbsent(any(), any(), eq(tenPercent.getId()), eq(record.getId()), eq(storeId),
+                eq(new BigDecimal("8.50")), eq(NOW))).thenReturn(1);
+
+        evaluator.evaluate(record.getId());
+
+        verify(notifications, never()).insertIfAbsent(any(), any(), eq(twentyPercent.getId()), any(), any(), any(),
+                any());
+        verify(notifications, times(1)).insertIfAbsent(any(), any(), eq(tenPercent.getId()), eq(record.getId()),
+                eq(storeId), eq(new BigDecimal("8.50")), eq(NOW));
+        verify(prices, times(1)).findDailyLowestAverage(any(), any(), any(), any(), eq(7));
+    }
+
+    @Test
+    void belowAverageAlertStaysQuietWhileThereIsNotEnoughHistory() {
+        UUID productId = UUID.randomUUID();
+        UUID cityId = UUID.randomUUID();
+        UUID storeId = UUID.randomUUID();
+        PriceRecord record = belowAverageScenario(productId, cityId, storeId, "1.00");
+        when(alerts.findActiveForEvaluation(productId, cityId))
+                .thenReturn(List.of(belowAverageAlert(productId, cityId, 5)));
+        when(prices.findDailyLowestAverage(any(), any(), any(), any(), eq(7))).thenReturn(Optional.empty());
+
+        evaluator.evaluate(record.getId());
+
+        verify(notifications, never()).insertIfAbsent(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void targetPriceAlertsNeverLoadTheUsualPrice() {
+        User premiumUser = new User("Conta Premium", "premium@example.test", "not-used-by-test", NOW.minusSeconds(3600));
+        premiumUser.activateSubscription(NOW.minusSeconds(3600));
+        PriceRecord record = alertScenario(premiumUser);
+
+        evaluator.evaluate(record.getId());
+
+        verify(prices, never()).findDailyLowestAverage(any(), any(), any(), any(), eq(7));
+    }
+
+    private PriceRecord belowAverageScenario(UUID productId, UUID cityId, UUID storeId, String price) {
+        PriceRecord record = PriceFixtures.regular(productId, storeId, price, NOW.minusSeconds(30));
+        when(prices.findById(record.getId())).thenReturn(Optional.of(record));
+        when(stores.requireStore(storeId)).thenReturn(store);
+        when(store.getCityId()).thenReturn(cityId);
+        return record;
+    }
+
+    private PriceAlert belowAverageAlert(UUID productId, UUID cityId, int discountPercent) {
+        return new PriceAlert(UUID.randomUUID(), CreatePriceAlertRequest.belowAverage(productId, cityId,
+                discountPercent), NOW.minus(Duration.ofDays(2)));
+    }
+
     /** An alert already notified five hours ago, before a new qualifying price arrives. */
     private PriceRecord alertScenario(User owner) {
         UUID productId = UUID.randomUUID();
