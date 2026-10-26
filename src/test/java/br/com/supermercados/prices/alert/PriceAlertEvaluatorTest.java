@@ -97,6 +97,30 @@ class PriceAlertEvaluatorTest {
     }
 
     @Test
+    void promotionCollectedAgainAtTheSamePriceDoesNotNotifyAgain() {
+        User premiumUser = new User("Conta Premium", "premium@example.test", "not-used-by-test", NOW.minusSeconds(3600));
+        premiumUser.activateSubscription(NOW.minusSeconds(3600));
+        PriceRecord record = alertScenario(premiumUser, "9.00", Duration.ofHours(5));
+
+        evaluator.evaluate(record.getId());
+
+        verify(notifications, never()).insertIfAbsent(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void priceStillThereAWeekLaterGetsOneReminder() {
+        User freeUser = new User("Conta grátis", "gratis@example.test", "not-used-by-test", NOW.minusSeconds(3600));
+        PriceRecord sixDaysLater = alertScenario(freeUser, "9.00", Duration.ofDays(6));
+        evaluator.evaluate(sixDaysLater.getId());
+        verify(notifications, never()).insertIfAbsent(any(), any(), any(), any(), any(), any(), any());
+
+        PriceRecord aWeekLater = alertScenario(freeUser, "9.00", Duration.ofDays(7));
+        evaluator.evaluate(aWeekLater.getId());
+        verify(notifications, times(1)).insertIfAbsent(any(), any(), any(), eq(aWeekLater.getId()), any(),
+                eq(new BigDecimal("9.00")), eq(NOW));
+    }
+
+    @Test
     void belowAverageAlertFiresWhenThePriceIsTheChosenPercentageUnderTheUsualPrice() {
         UUID productId = UUID.randomUUID();
         UUID cityId = UUID.randomUUID();
@@ -158,15 +182,19 @@ class PriceAlertEvaluatorTest {
                 discountPercent), NOW.minus(Duration.ofDays(2)));
     }
 
-    /** An alert already notified five hours ago, before a new qualifying price arrives. */
+    /** An alert notified at R$ 9,00 five hours ago, before a lower qualifying price of R$ 8,00 arrives. */
     private PriceRecord alertScenario(User owner) {
+        return alertScenario(owner, "8.00", Duration.ofHours(5));
+    }
+
+    private PriceRecord alertScenario(User owner, String newPrice, Duration notifiedAgo) {
         UUID productId = UUID.randomUUID();
         UUID cityId = UUID.randomUUID();
         UUID storeId = UUID.randomUUID();
-        PriceRecord record = PriceFixtures.regular(productId, storeId, "8.00", NOW.minusSeconds(30));
+        PriceRecord record = PriceFixtures.regular(productId, storeId, newPrice, NOW.minusSeconds(30));
         PriceAlert alert = new PriceAlert(owner.getId(),
-                new CreatePriceAlertRequest(productId, cityId, new BigDecimal("10.00")), NOW.minus(Duration.ofDays(2)));
-        alert.markNotified(NOW.minus(Duration.ofHours(5)));
+                new CreatePriceAlertRequest(productId, cityId, new BigDecimal("10.00")), NOW.minus(Duration.ofDays(10)));
+        alert.markNotified(NOW.minus(notifiedAgo), new BigDecimal("9.00"));
         when(prices.findById(record.getId())).thenReturn(Optional.of(record));
         when(stores.requireStore(storeId)).thenReturn(store);
         when(store.getCityId()).thenReturn(cityId);

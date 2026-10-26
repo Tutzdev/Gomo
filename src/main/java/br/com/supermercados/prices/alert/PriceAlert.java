@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -48,6 +49,9 @@ class PriceAlert {
 
     private Instant lastNotifiedAt;
 
+    @Column(precision = 12, scale = 2)
+    private BigDecimal lastNotifiedPrice;
+
     @Version
     private long version;
 
@@ -72,9 +76,27 @@ class PriceAlert {
         updatedAt = now;
     }
 
-    void markNotified(Instant now) {
+    void markNotified(Instant now, BigDecimal price) {
         lastNotifiedAt = now;
+        lastNotifiedPrice = price;
         updatedAt = now;
+    }
+
+    /**
+     * A promotion is collected four times a day for as long as it lasts; one notice is enough. After the first,
+     * the alert speaks again only when the price drops below the one it announced, or when it is still there
+     * {@code reminder} later. {@code minimumInterval} keeps the spacing of the plan either way.
+     */
+    boolean shouldNotify(BigDecimal price, Instant now, Duration minimumInterval, Duration reminder) {
+        if (lastNotifiedAt == null) {
+            return true;
+        }
+        if (lastNotifiedAt.isAfter(now.minus(minimumInterval))) {
+            return false;
+        }
+        // Notified before the price was kept: the old rule, once, until this notice records it.
+        return lastNotifiedPrice == null || price.compareTo(lastNotifiedPrice) < 0
+                || !lastNotifiedAt.isAfter(now.minus(reminder));
     }
 
     UUID getId() {

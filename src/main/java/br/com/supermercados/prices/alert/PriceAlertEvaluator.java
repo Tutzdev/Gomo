@@ -28,6 +28,8 @@ public class PriceAlertEvaluator {
 
     static final Duration AVERAGE_WINDOW = Duration.ofDays(30);
     static final int MINIMUM_AVERAGE_DAYS = 7;
+    /** A price still at or below the last notice gets one reminder a week, not one per collection. */
+    static final Duration REMINDER = Duration.ofDays(7);
 
     private final PriceAlertRepository alerts;
     private final AlertNotificationRepository notifications;
@@ -79,7 +81,7 @@ public class PriceAlertEvaluator {
         UsualPrice usualPrice = new UsualPrice(record.getProductId(), store.getCityId(), now);
         for (PriceAlert alert : candidates) {
             Duration interval = premiumUsers.contains(alert.getUserId()) ? premiumRepeatInterval : repeatInterval;
-            if (alert.getLastNotifiedAt() != null && alert.getLastNotifiedAt().isAfter(now.minus(interval))) {
+            if (!alert.shouldNotify(quote.unitPrice(), now, interval, REMINDER)) {
                 continue;
             }
             BigDecimal threshold = threshold(alert, usualPrice);
@@ -89,7 +91,7 @@ public class PriceAlertEvaluator {
             int inserted = notifications.insertIfAbsent(UUID.randomUUID(), alert.getUserId(), alert.getId(),
                     record.getId(), record.getStoreId(), quote.unitPrice(), now);
             if (inserted == 1) {
-                alert.markNotified(now);
+                alert.markNotified(now, quote.unitPrice());
             }
         }
     }
