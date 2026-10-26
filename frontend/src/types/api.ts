@@ -334,6 +334,8 @@ export interface ShoppingRecommendation {
     comparedItems: number;
     savings: number;
   } | null;
+  /** The best split with at most two stops; a single store when splitting saves nothing. */
+  twoStoreCombination: ShoppingCombination;
 }
 
 export interface ProductSearchFacets {

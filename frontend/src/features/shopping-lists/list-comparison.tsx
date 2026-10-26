@@ -12,6 +12,7 @@ import { useUpsell } from "@/features/plan/upsell-context";
 import { ShareButton } from "@/components/ui/share-button";
 import { siteUrl } from "@/lib/site-url";
 import { ComparisonItems } from "./comparison-items";
+import { TwoStorePlan } from "./two-store-plan";
 import type { ShoppingListItem } from "@/types/api";
 
 function listShareText(storeName: string, total: number, items: number, priciestTotal: number | null) {
@@ -74,6 +75,7 @@ export function ListComparison({
     recommendation: winner,
     closestMatches,
     combination,
+    twoStoreCombination,
   } = recommendation.data;
   // Stores with no current price for any item add nothing to a real comparison.
   const comparedStores = comparison.data.stores.content
@@ -113,7 +115,7 @@ export function ListComparison({
         {formatDate(recommendation.data.comparedAt)}
       </p>
       <SplitSavingsBanner recommendation={recommendation.data} />
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         <section className="surface p-5">
           <h3 className="font-bold">Comprar em um mercado</h3>
           {winner ? (
@@ -186,6 +188,7 @@ export function ListComparison({
             </>
           )}
         </section>
+        <TwoStorePlan pair={twoStoreCombination} everyStore={combination} />
         <section className="surface p-5">
           <h3 className="font-bold">Menor preço por item entre mercados</h3>
           <div className="mt-2">
@@ -265,7 +268,24 @@ export function ListComparison({
         </section>
       ) : null}
       {!combination.locked ? (
-        <ShoppingRoute cityId={cityId} combination={combination} splitSavings={recommendation.data.splitSavings} />
+        <ShoppingRoute
+          cityId={cityId}
+          plans={[
+            {
+              id: "pair",
+              label: "Em 2 mercados",
+              combination: twoStoreCombination,
+              savings: twoStoreCombination.savingsAgainstCompleteStore,
+            },
+            {
+              id: "every",
+              label: `Em todos (${combination.storeCount})`,
+              combination,
+              savings: recommendation.data.splitSavings?.savings ?? null,
+            },
+          ]}
+          reference={recommendation.data.splitSavings}
+        />
       ) : null}
       <h3 className="text-lg font-bold">Sua lista em cada mercado</h3>
       <p className="text-sm text-muted">
