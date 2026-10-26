@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1">
   <img src="https://img.shields.io/badge/PostgreSQL-38_migrações_Flyway-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + Flyway">
   <img src="https://img.shields.io/badge/Spring_Security-tokens_opacos-6DB33F?logo=springsecurity&logoColor=white" alt="Spring Security">
-  <img src="https://img.shields.io/badge/testes-426-success" alt="426 testes">
+  <img src="https://img.shields.io/badge/testes-443-success" alt="443 testes">
   <img src="https://img.shields.io/badge/deploy-GitHub_Actions_→_VPS-2088FF?logo=githubactions&logoColor=white" alt="Deploy contínuo">
 </p>
 
@@ -59,8 +59,9 @@ Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/produc
 
 - **Contas:** cadastro com verificação de e-mail, recuperação de senha com token de uso único, troca de senha, "sair de todos os aparelhos" e, pela LGPD, cópia dos dados para baixar e exclusão da conta na hora.
 - **Busca** que entende tamanho ("coca 1 litro") e só devolve itens com preço atual na cidade.
-- **Comparação** por produto e por lista, do mais barato ao mais caro, com histórico de preços.
-- **Listas de compras**, cidade preferida, lojas favoritas e **alertas de preço** com notificações internas.
+- **Comparação** por produto e por lista, do mais barato ao mais caro, com histórico de preços e um veredito em uma linha: menor preço do período, abaixo da média, preço de sempre ou "vale esperar".
+- **Compra dividida:** num mercado só, em **no máximo 2 mercados** (a dupla mais barata) ou em todos, com a rota a partir da localização e a **economia real** depois da gasolina ou do ônibus, calculada no navegador.
+- **Listas de compras**, cidade preferida, lojas favoritas e **alertas de preço** com notificações internas: por preço escolhido ou por **% abaixo da média de 30 dias** da cidade.
 - **Contribuições da comunidade** com moderação, e área administrativa com auditoria.
 - **Freemium** aplicado no backend: plano gratuito com limites (3 mercados mais baratos, 5 comparações completas por dia, 1 lista) que respondem `403 PLAN_LIMIT`, e trial de 7 dias sem cartão. Enquanto não há cobrança, o beta aberto (`OPEN_BETA=true`, padrão) dá o Premium a toda conta; os limites voltam com `OPEN_BETA=false`.
 - **Busca aberta:** buscar, comparar e a lista de mercados funcionam sem conta (o visitante vê os 3 mercados mais baratos); listas, alertas e perfil pedem login.
@@ -100,8 +101,8 @@ A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publica
 
 ## Qualidade e entrega
 
-- **426 testes** (JUnit 5, Spring Boot Test e MockMvc): parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência.
-- **38 migrações Flyway** versionadas, com o Hibernate só validando o schema.
+- **443 testes** (JUnit 5, Spring Boot Test e MockMvc): parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência.
+- **39 migrações Flyway** versionadas, com o Hibernate só validando o schema.
 - **Deploy contínuo:** push na `main` → GitHub Actions (testes com PostgreSQL descartável e build do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`, que faz backup do banco antes das migrations. A chave do deploy só aceita esse comando.
 - **Docker Compose** com API, PostgreSQL e Mailpit para rodar o ambiente completo.
 
