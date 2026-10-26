@@ -80,7 +80,12 @@ public class PriceAlertEvaluator {
         Set<UUID> premiumUsers = findPremiumUsers(candidates, now);
         UsualPrice usualPrice = new UsualPrice(record.getProductId(), store.getCityId(), now);
         for (PriceAlert alert : candidates) {
-            Duration interval = premiumUsers.contains(alert.getUserId()) ? premiumRepeatInterval : repeatInterval;
+            boolean premium = premiumUsers.contains(alert.getUserId());
+            // Kept, not deleted, when Premium ends: the alert speaks again if the person comes back.
+            if (alert.getKind() == PriceAlertKind.BELOW_AVERAGE && !premium) {
+                continue;
+            }
+            Duration interval = premium ? premiumRepeatInterval : repeatInterval;
             if (!alert.shouldNotify(quote.unitPrice(), now, interval, REMINDER)) {
                 continue;
             }

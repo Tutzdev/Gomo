@@ -1,4 +1,4 @@
-import { BellRing, CalendarRange, LineChart, ListPlus, Lock, Route, Store, type LucideIcon } from "lucide-react";
+import { BellRing, CalendarRange, LineChart, ListPlus, Lock, Route, Store, TrendingDown, type LucideIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/brand";
 
 /** The moment that led to the upgrade message. Each one gets copy about what the person just tried to do. */
@@ -6,6 +6,7 @@ export type UpsellTrigger =
   | "LIST_ITEMS"
   | "SHOPPING_LISTS"
   | "ACTIVE_ALERTS"
+  | "BELOW_AVERAGE_ALERTS"
   | "PRICE_HISTORY"
   | "LOCKED_STORES"
   | "SPLIT_PURCHASE"
@@ -49,6 +50,14 @@ export function upsellCopy(trigger: UpsellTrigger, context: UpsellContext = {}):
         description:
           "No Premium os alertas não têm limite e podem avisar a cada coleta de preços, até 4 vezes ao dia. No grátis, o aviso chega no máximo 1 vez ao dia.",
         unlocks: ["Alertas ilimitados", "Aviso a cada coleta, até 4 vezes ao dia", "Histórico de 90 dias pra definir o preço certo"],
+      };
+    case "BELOW_AVERAGE_ALERTS":
+      return {
+        icon: TrendingDown,
+        title: "Seja avisado quando ficar abaixo do normal",
+        description:
+          "Sem precisar adivinhar um preço: o Premium compara cada coleta com a média dos últimos 30 dias da cidade e avisa quando cair o quanto você escolher.",
+        unlocks: ["Alerta de 5% a 50% abaixo da média", "Aviso a cada coleta, até 4 vezes ao dia", "Histórico de 90 dias com o veredito do preço"],
       };
     case "PRICE_HISTORY":
       return {

@@ -43,7 +43,7 @@ export function CatalogItemComparison({
   return (
     <>
       <ComparisonResult detail={detail.data} />
-      {detail.data.offers.length ? <PriceHistoryPanel itemId={itemId} cityId={cityId} storeIds={storeIds} /> : null}
+      {detail.data.offers.length ? <PriceHistoryPanel itemId={itemId} productId={detail.data.item.productId} cityId={cityId} storeIds={storeIds} /> : null}
     </>
   );
 }

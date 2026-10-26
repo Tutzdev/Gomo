@@ -11,6 +11,8 @@ import br.com.supermercados.prices.auth.AuthenticatedUser;
 import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.location.LocationService;
 import br.com.supermercados.prices.product.ProductService;
+import br.com.supermercados.prices.subscription.PlanLimit;
+import br.com.supermercados.prices.subscription.PlanLimitException;
 import br.com.supermercados.prices.user.UserRole;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -77,6 +79,17 @@ class PriceAlertServiceTest {
         assertThatThrownBy(() -> service.create(user, missingPrice))
                 .hasMessage("Informe o preço desejado.");
         verify(products, never()).requireProduct(any());
+        verify(alerts, never()).save(any());
+    }
+
+    @Test
+    void freeAccountGetsThePlanLimitForABelowAverageAlert() {
+        var free = new AuthenticatedUser(UUID.randomUUID(), UserRole.USER, true, false);
+
+        assertThatThrownBy(() -> service.create(free,
+                CreatePriceAlertRequest.belowAverage(UUID.randomUUID(), UUID.randomUUID(), 15)))
+                .isInstanceOfSatisfying(PlanLimitException.class,
+                        error -> assertThat(error.getLimit()).isEqualTo(PlanLimit.BELOW_AVERAGE_ALERTS));
         verify(alerts, never()).save(any());
     }
 }

@@ -43,12 +43,15 @@ class PriceAlertEvaluatorTest {
     @Mock private UserRepository users;
 
     private PriceAlertEvaluator evaluator;
+    private User premiumOwner;
 
     @BeforeEach
     void setUp() {
         evaluator = new PriceAlertEvaluator(alerts, notifications, prices, stores,
                 new PricePolicy(Duration.ofDays(2)), users, PremiumAccess.withoutBeta(), Clock.fixed(NOW, ZoneOffset.UTC),
                 Duration.ofDays(1), Duration.ofHours(1));
+        premiumOwner = new User("Conta Premium", "premium@example.test", "not-used-by-test", NOW.minusSeconds(3600));
+        premiumOwner.activateSubscription(NOW.minusSeconds(3600));
     }
 
     @Test
@@ -159,6 +162,26 @@ class PriceAlertEvaluatorTest {
     }
 
     @Test
+    void belowAverageAlertStaysQuietOnceThePremiumEnds() {
+        UUID productId = UUID.randomUUID();
+        UUID cityId = UUID.randomUUID();
+        UUID storeId = UUID.randomUUID();
+        PriceRecord record = PriceFixtures.regular(productId, storeId, "1.00", NOW.minusSeconds(30));
+        when(prices.findById(record.getId())).thenReturn(Optional.of(record));
+        when(stores.requireStore(storeId)).thenReturn(store);
+        when(store.getCityId()).thenReturn(cityId);
+        User freeOwner = new User("Conta grátis", "gratis@example.test", "not-used-by-test", NOW.minusSeconds(3600));
+        when(alerts.findActiveForEvaluation(productId, cityId)).thenReturn(List.of(new PriceAlert(freeOwner.getId(),
+                CreatePriceAlertRequest.belowAverage(productId, cityId, 10), NOW.minus(Duration.ofDays(2)))));
+        when(users.findAllById(any())).thenReturn(List.of(freeOwner));
+
+        evaluator.evaluate(record.getId());
+
+        verify(prices, never()).findDailyLowestAverage(any(), any(), any(), any(), eq(7));
+        verify(notifications, never()).insertIfAbsent(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
     void targetPriceAlertsNeverLoadTheUsualPrice() {
         User premiumUser = new User("Conta Premium", "premium@example.test", "not-used-by-test", NOW.minusSeconds(3600));
         premiumUser.activateSubscription(NOW.minusSeconds(3600));
@@ -174,11 +197,12 @@ class PriceAlertEvaluatorTest {
         when(prices.findById(record.getId())).thenReturn(Optional.of(record));
         when(stores.requireStore(storeId)).thenReturn(store);
         when(store.getCityId()).thenReturn(cityId);
+        when(users.findAllById(any())).thenReturn(List.of(premiumOwner));
         return record;
     }
 
     private PriceAlert belowAverageAlert(UUID productId, UUID cityId, int discountPercent) {
-        return new PriceAlert(UUID.randomUUID(), CreatePriceAlertRequest.belowAverage(productId, cityId,
+        return new PriceAlert(premiumOwner.getId(), CreatePriceAlertRequest.belowAverage(productId, cityId,
                 discountPercent), NOW.minus(Duration.ofDays(2)));
     }
 

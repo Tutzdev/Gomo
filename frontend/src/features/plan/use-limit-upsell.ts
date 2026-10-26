@@ -7,6 +7,7 @@ const LIMIT_MESSAGES: Record<Exclude<PlanLimit, "PRICE_HISTORY">, string> = {
   SHOPPING_LISTS: "No plano grátis você mantém 1 lista por vez.",
   LIST_ITEMS: "No plano grátis cada lista tem até 10 produtos.",
   ACTIVE_ALERTS: "No plano grátis você mantém até 2 alertas ativos.",
+  BELOW_AVERAGE_ALERTS: "O alerta abaixo da média faz parte do Premium. No plano grátis, escolha o preço que você quer.",
 };
 
 /**

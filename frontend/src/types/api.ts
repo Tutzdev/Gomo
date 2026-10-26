@@ -7,7 +7,7 @@ export type RecommendationStatus = "COMPLETE_STORE_FOUND" | "NO_COMPLETE_STORE";
 export type PremiumSource = "SUBSCRIPTION" | "TRIAL" | "ADMIN" | "BETA" | "NONE";
 export type BillingCycle = "MONTHLY" | "ANNUAL";
 /** Free-plan limits the API reports in a PLAN_LIMIT problem. */
-export type PlanLimit = "SHOPPING_LISTS" | "LIST_ITEMS" | "ACTIVE_ALERTS" | "PRICE_HISTORY";
+export type PlanLimit = "SHOPPING_LISTS" | "LIST_ITEMS" | "ACTIVE_ALERTS" | "PRICE_HISTORY" | "BELOW_AVERAGE_ALERTS";
 
 export interface PageResponse<T> {
   content: T[];

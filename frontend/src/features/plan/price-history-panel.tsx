@@ -14,8 +14,11 @@ import { useUpsell } from "./upsell-context";
 import { usePlan } from "./use-plan";
 import { useVisitorOffer } from "./use-visitor-offer";
 
-/** How the price of a generic item moved in the city: the chart for Premium, a locked preview for free. */
-export function PriceHistoryPanel({ itemId, cityId, storeIds }: { itemId: string; cityId: string; storeIds?: string[] }) {
+/**
+ * How the price of a generic item moved in the city: the chart for Premium, a locked preview for free.
+ * `productId` (the item's representative SKU) is what an alert created from here watches.
+ */
+export function PriceHistoryPanel({ itemId, productId, cityId, storeIds }: { itemId: string; productId: string; cityId: string; storeIds?: string[] }) {
   const { premium } = usePlan();
   const { user } = useAuth();
   const { openBeta } = useVisitorOffer();
@@ -36,12 +39,12 @@ export function PriceHistoryPanel({ itemId, cityId, storeIds }: { itemId: string
           </span>
         ) : null}
       </header>
-      {premium ? <PremiumHistory itemId={itemId} cityId={cityId} storeIds={storeIds} /> : <LockedPriceHistory />}
+      {premium ? <PremiumHistory itemId={itemId} productId={productId} cityId={cityId} storeIds={storeIds} /> : <LockedPriceHistory />}
     </section>
   );
 }
 
-function PremiumHistory({ itemId, cityId, storeIds }: { itemId: string; cityId: string; storeIds?: string[] }) {
+function PremiumHistory({ itemId, productId, cityId, storeIds }: { itemId: string; productId: string; cityId: string; storeIds?: string[] }) {
   const [selectedStoreId, setSelectedStoreId] = useState("");
   const history = useQuery({
     queryKey: ["catalog-item-history", itemId, cityId, storeIds],
@@ -63,7 +66,7 @@ function PremiumHistory({ itemId, cityId, storeIds }: { itemId: string; cityId: 
 
   return (
     <div className="p-4 sm:p-5">
-      <PriceVerdictBanner verdict={history.data.verdict} />
+      <PriceVerdictBanner verdict={history.data.verdict} productId={productId} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted" aria-label="Legenda">
           <li className="flex items-center gap-2"><span className="h-0.5 w-5 rounded-full bg-[#d62a23]" aria-hidden />Menor preço da cidade</li>

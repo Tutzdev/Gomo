@@ -8,7 +8,7 @@ import { formatDay } from "./price-history-data";
 type Tone = "success" | "neutral" | "warning";
 
 /** The history in one sentence: buy now, the usual price, or wait. */
-export function PriceVerdictBanner({ verdict }: { verdict: PriceVerdict }) {
+export function PriceVerdictBanner({ verdict, productId }: { verdict: PriceVerdict; productId: string }) {
   const copy = verdictCopy(verdict);
   if (!copy) return null;
   const Icon = copy.icon;
@@ -35,7 +35,7 @@ export function PriceVerdictBanner({ verdict }: { verdict: PriceVerdict }) {
         <p className="mt-0.5 text-sm text-muted">{copy.detail}</p>
         {verdict.kind === "ABOVE_AVERAGE" ? (
           <Link
-            to="/app/alertas"
+            to={`/app/alertas?produto=${productId}&tipo=abaixo-da-media`}
             className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-dark hover:underline focus-visible:outline-2 focus-visible:outline-focus"
           >
             <BellRing className="size-4" aria-hidden />
