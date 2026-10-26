@@ -1,4 +1,4 @@
-import { Bell, BellRing, History, ListChecks, type LucideIcon, Route, Search, ShoppingBasket, Store } from "lucide-react";
+import { Bell, BellRing, History, ListChecks, type LucideIcon, PackagePlus, PiggyBank, Route, Search, ShoppingCart, Store, Tag, Users } from "lucide-react";
 import { NativeButton } from "@/components/ui/native-button";
 import { BRAND, formatCurrency } from "@/lib/brand";
 import "./pricing.css";
@@ -10,14 +10,18 @@ const freeItems: PlanItem[] = [
   { icon: Search, text: "5 comparações completas por dia" },
   { icon: ListChecks, text: "1 lista com até 10 produtos" },
   { icon: Bell, text: "2 alertas de preço" },
+  { icon: Tag, text: "Ofertas da semana em cada mercado" },
+  { icon: ShoppingCart, text: "Modo “No mercado” e a economia do mês" },
 ];
 
 const premiumItems: PlanItem[] = [
   { icon: Store, text: "Todos os mercados da cidade, sem limite diário" },
-  { icon: ShoppingBasket, text: "Listas ilimitadas, com o que comprar em cada mercado" },
-  { icon: Route, text: "Rota até os mercados da sua compra" },
-  { icon: History, text: "Histórico de preços de 90 dias" },
-  { icon: BellRing, text: "Alertas ilimitados" },
+  { icon: Users, text: "Listas ilimitadas, compartilhadas com a casa" },
+  { icon: Route, text: "Compra em até 2 mercados, com rota e quanto sobra depois da gasolina" },
+  { icon: History, text: "Histórico de 90 dias com o veredito do preço" },
+  { icon: BellRing, text: "Alertas ilimitados, também abaixo do preço de sempre" },
+  { icon: PackagePlus, text: "Hora de estocar e equivalente mais barato por kg" },
+  { icon: PiggyBank, text: "Economia do mês compra por compra" },
 ];
 
 /** "R$ 14,90" vira "14,90": o símbolo da moeda é desenhado à parte, menor. */

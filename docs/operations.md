@@ -94,10 +94,13 @@ O mesmo relatório, com o último erro de cada coletor e quantos produtos cada m
 | 06h, 11h, 16h e 21h | Atualiza os preços dos produtos já conhecidos | `PRICE_COLLECTION_CRON` |
 | Domingo, 03h | Importa tudo, inclusive os produtos novos que os mercados lançaram | `PRICE_COLLECTION_FULL_CRON` (`-` desliga) |
 | Ao iniciar | Importa tudo nos mercados sem importação completa nos últimos 7 dias; atualiza quem está sem coleta há mais de 8 h | `PRICE_REFRESH_WHEN_OLDER_THAN` |
+| Todo dia, 10h | Recalcula as listas semanais e mensais de quem tem cidade preferida, para o Início comparar com a semana passada; apaga os dias com mais de 60 dias | `RECURRING_LISTS_CRON` (`-` desliga) |
 
 A importação ao iniciar existe porque um deploy pode ensinar um coletor a ler ofertas que ele descartava (o hortifrúti pesado dos mercados VIP, os ~4.500 produtos do Atacadão). As coletas do dia só atualizam produtos conhecidos, então sem ela esses produtos esperariam até domingo. Cada execução grava em `collection_runs.full_import` se foi completa.
 
 Fora as coletas, uma limpeza diária às 04h30 (`ACCOUNT_CLEANUP_CRON`, `-` desliga) apaga sessões e links de confirmação/redefinição vencidos, o contador do plano grátis com mais de 7 dias (`COMPARISON_USAGE_RETENTION`, padrão `P7D`) e as contas que nunca confirmaram o e-mail e não entram há 30 dias (`UNVERIFIED_ACCOUNT_RETENTION`, padrão `P30D`). Conta com contribuição, registro de auditoria ou pagamento nunca é apagada por essa rotina. O resultado vai para o log (`Account cleanup: ...`).
+
+O menor preço de cada produto em cada mercado por dia fica em `daily_lowest_prices`, mantida por um trigger em `price_records` (nenhum caminho que grava preço esquece de atualizar). É dela que saem o histórico, o "preço de sempre" (média dos 30 dias antes de hoje, com pelo menos 7 dias de preço) usado pelo veredito, pelo alerta "abaixo da média", pela página de ofertas e pela "Hora de estocar". A migração V48 preenche a tabela com todo o histórico existente: o primeiro deploy com ela demora um pouco mais na etapa das migrations (o `deploy.sh` faz o backup antes). A página pública `/ofertas` é calculada uma vez por cidade e fica em memória por 30 minutos (`DEALS_CACHE_TTL`).
 
 Uma coleta manual de um mercado, pela API de admin: `POST /api/v1/admin/collections?collectorCode=royal_retiro` (com `existingOnly=true` para só atualizar preços).
 
