@@ -22,12 +22,14 @@ public class ComparisonController {
     private final ShoppingComparisonService comparisons;
     private final ComparisonUsageService usage;
     private final ListGoodPricesService goodPrices;
+    private final ListSubstitutesService substitutes;
 
     public ComparisonController(ShoppingComparisonService comparisons, ComparisonUsageService usage,
-            ListGoodPricesService goodPrices) {
+            ListGoodPricesService goodPrices, ListSubstitutesService substitutes) {
         this.comparisons = comparisons;
         this.usage = usage;
         this.goodPrices = goodPrices;
+        this.substitutes = substitutes;
     }
 
     @GetMapping("/products")
@@ -60,6 +62,14 @@ public class ComparisonController {
             @PathVariable UUID id,
             @RequestParam UUID cityId) {
         return goodPrices.find(user.id(), id, cityId, user.premium());
+    }
+
+    @GetMapping("/shopping-lists/{id}/substitutes")
+    public ListSubstitutesResponse substitutes(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID id,
+            @RequestParam UUID cityId) {
+        return substitutes.find(user.id(), id, cityId, user.premium());
     }
 
     @GetMapping("/shopping-lists/{id}/recommendation")

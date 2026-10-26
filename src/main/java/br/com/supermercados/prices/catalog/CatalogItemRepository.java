@@ -17,6 +17,8 @@ public interface CatalogItemRepository extends JpaRepository<CatalogItem, UUID> 
             """, nativeQuery = true)
     java.util.Optional<CatalogItem> findActiveByProductId(@Param("productId") UUID productId);
 
+    List<CatalogItem> findByActiveTrueAndCategoryIn(Collection<String> categories);
+
     @Query(value = "SELECT product_id FROM catalog_item_products WHERE catalog_item_id = :itemId", nativeQuery = true)
     List<UUID> findProductIds(@Param("itemId") UUID itemId);
 

@@ -130,6 +130,25 @@ public class ShoppingListService {
         list.touch(clock.instant());
     }
 
+    /** One item out, the other in, in one step: the list never ends up with both or neither. */
+    @Transactional
+    public ShoppingListItemResponse replaceItem(UUID userId, UUID listId, UUID itemId, ReplaceItemRequest request) {
+        var list = lockOwnedList(userId, listId);
+        var previous = requireItem(listId, itemId);
+        var catalogItem = catalog.findById(request.catalogItemId()).filter(found -> found.isActive())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Produto não encontrado."));
+        var product = products.requireProduct(catalogItem.getRepresentativeProductId());
+        if (items.existsByShoppingListIdAndCatalogItemId(listId, catalogItem.getId())
+                || items.existsByShoppingListIdAndProductId(listId, product.getId())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Esse produto já está na lista; altere sua quantidade.");
+        }
+        items.delete(previous);
+        items.flush();
+        var item = items.save(new ShoppingListItem(listId, product.getId(), catalogItem.getId(), request.quantity()));
+        list.touch(clock.instant());
+        return itemResponse(item);
+    }
+
     /** Into the cart, or back out of it. Idempotent, so the "No mercado" mode can resend after losing signal. */
     @Transactional
     public ShoppingListItemResponse checkItem(UUID userId, UUID listId, UUID itemId, boolean checked) {

@@ -80,6 +80,12 @@ public class ShoppingListController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/items/{itemId}/replacement")
+    public ShoppingListItemResponse replace(@AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID id, @PathVariable UUID itemId, @Valid @RequestBody ReplaceItemRequest request) {
+        return service.replaceItem(user.id(), id, itemId, request);
+    }
+
     @PutMapping("/{id}/items/{itemId}/check")
     public ShoppingListItemResponse check(@AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID id, @PathVariable UUID itemId) {

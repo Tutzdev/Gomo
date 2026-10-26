@@ -174,6 +174,71 @@ class PriceInsightsIntegrationTests {
                 .andExpect(jsonPath("$.items.length()").value(0));
     }
 
+    @Test
+    void cheaperEquivalentIsTheSameKindFromAnotherBrandAndCanReplaceTheItem() throws Exception {
+        UUID tioJoao = brandedItem(PRODUCT_A, "1 ARROZ BRANCO JOAO TIO TIPO|1x5000G", "Arroz Branco Tio João Tipo 1 5 kg",
+                "Tio João");
+        UUID camil = brandedItem(PRODUCT_B, "1 ARROZ BRANCO CAMIL TIPO|1x5000G", "Arroz Branco Camil Tipo 1 5 kg", "Camil");
+        UUID parboiledProduct = product("Arroz Parboilizado Fictício 5 kg");
+        brandedItem(parboiledProduct, "1 ARROZ PARBOILIZADO PRATO TIPO|1x5000G", "Arroz Parboilizado Prato Fino 5 kg",
+                "Prato Fino");
+        price(PRODUCT_A, STORE_A, "rice-tio-joao", "30.00", Instant.now().minusSeconds(60));
+        price(PRODUCT_B, STORE_B, "rice-camil", "24.00", Instant.now().minusSeconds(60));
+        price(parboiledProduct, STORE_B, "rice-parboiled", "15.00", Instant.now().minusSeconds(60));
+        var accounts = new SignedInAccounts(mvc, json, jdbc, entityManager);
+        var premium = accounts.premium();
+        String list = listWith(accounts, premium, tioJoao);
+
+        String itemId = accounts.read(accounts.perform(get("/api/v1/comparisons/shopping-lists/" + list + "/substitutes")
+                        .param("cityId", rioCityId()), premium)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.substitutes").value(1))
+                .andExpect(jsonPath("$.items[0].substituteCatalogItemId").value(camil.toString()))
+                .andExpect(jsonPath("$.items[0].pricePerMeasure").value(6.00))
+                .andExpect(jsonPath("$.items[0].substitutePricePerMeasure").value(4.80))
+                .andExpect(jsonPath("$.items[0].measureUnit").value("KG"))
+                .andExpect(jsonPath("$.items[0].savingsPercent").value(20))
+                .andExpect(jsonPath("$.items[0].substituteStoreName").value("Loja fictícia B"))
+                .andExpect(jsonPath("$.items[0].suggestedQuantity").value(1)))
+                .path("items").get(0).path("itemId").asString();
+
+        accounts.perform(post("/api/v1/shopping-lists/" + list + "/items/" + itemId + "/replacement").content(
+                "{\"catalogItemId\":\"" + camil + "\",\"quantity\":1}"), premium)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.catalogItemId").value(camil.toString()));
+        accounts.perform(get("/api/v1/shopping-lists/" + list), premium)
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].catalogItemId").value(camil.toString()));
+
+        var free = accounts.free();
+        String freeList = listWith(accounts, free, tioJoao);
+        accounts.perform(get("/api/v1/comparisons/shopping-lists/" + freeList + "/substitutes")
+                        .param("cityId", rioCityId()), free)
+                .andExpect(jsonPath("$.locked").value(true))
+                .andExpect(jsonPath("$.substitutes").value(1))
+                .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    private UUID brandedItem(UUID productId, String key, String name, String brand) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO catalog_items (id, catalog_key, display_name, brand, size_label, category,
+                    representative_product_id, search_text, store_count, active, updated_at)
+                VALUES (?, ?, ?, ?, '5 kg', 'Mercearia', ?, ?, 2, TRUE, ?)
+                """, id, key, name, brand, productId, name.toUpperCase(), Timestamp.from(Instant.now()));
+        jdbc.update("INSERT INTO catalog_item_products (product_id, catalog_item_id) VALUES (?, ?)", productId, id);
+        return id;
+    }
+
+    private UUID product(String name) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO products (id, name, source_id, source_reference, collected_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, id, name, SOURCE, "synthetic-" + id, Timestamp.from(Instant.now()), Timestamp.from(Instant.now()));
+        return id;
+    }
+
     private String listWith(SignedInAccounts accounts, SignedInAccounts.Account account, UUID... catalogItems)
             throws Exception {
         String list = accounts.read(accounts.perform(post("/api/v1/shopping-lists")
