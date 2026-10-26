@@ -87,7 +87,7 @@ class ShoppingComparisonServiceTest {
         UUID firstStore = UUID.randomUUID();
         UUID secondStore = UUID.randomUUID();
         List<ShoppingListItemResponse> items = List.of(item(firstProduct), item(secondProduct));
-        when(shoppingLists.getOwnedList(userId, listId)).thenReturn(shoppingList(items));
+        when(shoppingLists.getList(userId, listId)).thenReturn(shoppingList(items));
         when(stores.findActiveStores(cityId, pageable)).thenReturn(new PageImpl<>(
                 List.of(store(firstStore, "Synthetic A"), store(secondStore, "Synthetic B")), pageable, 25));
         when(prices.findLatestForStoresAndProducts(List.of(firstStore, secondStore),
@@ -112,7 +112,7 @@ class ShoppingComparisonServiceTest {
 
     @Test
     void anotherUsersShoppingListIsRejectedBeforeLoadingStoresOrPrices() {
-        when(shoppingLists.getOwnedList(userId, listId))
+        when(shoppingLists.getList(userId, listId))
                 .thenThrow(new ApiException(HttpStatus.NOT_FOUND, "Lista não encontrada."));
 
         assertThatThrownBy(() -> comparisons.compareShoppingList(userId, listId, cityId, pageable))
@@ -124,7 +124,7 @@ class ShoppingComparisonServiceTest {
     @Test
     void emptyListDoesNotIssueAnUnboundedOrEmptyInClauseQuery() {
         UUID storeId = UUID.randomUUID();
-        when(shoppingLists.getOwnedList(userId, listId)).thenReturn(shoppingList(List.of()));
+        when(shoppingLists.getList(userId, listId)).thenReturn(shoppingList(List.of()));
         when(stores.findActiveStores(cityId, pageable)).thenReturn(new PageImpl<>(
                 List.of(store(storeId, "Synthetic A")), pageable, 1));
 
@@ -142,7 +142,7 @@ class ShoppingComparisonServiceTest {
         UUID incompleteStore = UUID.randomUUID();
         UUID completeStore = UUID.randomUUID();
         List<ShoppingListItemResponse> items = List.of(item(firstProduct), item(secondProduct));
-        when(shoppingLists.getOwnedList(userId, listId)).thenReturn(shoppingList(items));
+        when(shoppingLists.getList(userId, listId)).thenReturn(shoppingList(items));
         when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(List.of(
                 store(incompleteStore, "Incomplete"), store(completeStore, "Complete")));
         when(prices.findLatestForStoresAndProducts(
@@ -168,7 +168,7 @@ class ShoppingComparisonServiceTest {
         UUID secondProduct = UUID.randomUUID();
         UUID cheapStore = UUID.randomUUID();
         UUID completeStore = UUID.randomUUID();
-        when(shoppingLists.getOwnedList(userId, listId))
+        when(shoppingLists.getList(userId, listId))
                 .thenReturn(shoppingList(List.of(item(firstProduct), item(secondProduct))));
         when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(List.of(
                 store(cheapStore, "Cheap"), store(completeStore, "Complete")));
@@ -203,7 +203,7 @@ class ShoppingComparisonServiceTest {
                     index == 20 ? "1.00" : "10.00", now));
         }
         UUID lastStoreId = availableStores.getLast().id();
-        when(shoppingLists.getOwnedList(userId, listId))
+        when(shoppingLists.getList(userId, listId))
                 .thenReturn(shoppingList(List.of(item(productId))));
         when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(availableStores);
         when(prices.findLatestForStoresAndProducts(
@@ -220,7 +220,7 @@ class ShoppingComparisonServiceTest {
     void noCompleteStoreIsReportedWithoutDeclaringAnIncompleteWinner() {
         UUID productId = UUID.randomUUID();
         UUID storeId = UUID.randomUUID();
-        when(shoppingLists.getOwnedList(userId, listId))
+        when(shoppingLists.getList(userId, listId))
                 .thenReturn(shoppingList(List.of(item(productId), item(UUID.randomUUID()))));
         when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(List.of(store(storeId, "Incomplete")));
         when(prices.findLatestForStoresAndProducts(
@@ -242,7 +242,7 @@ class ShoppingComparisonServiceTest {
         UUID oil = UUID.randomUUID();
         UUID wide = UUID.randomUUID();
         UUID cheap = UUID.randomUUID();
-        when(shoppingLists.getOwnedList(userId, listId))
+        when(shoppingLists.getList(userId, listId))
                 .thenReturn(shoppingList(List.of(item(rice), item(beans), item(oil))));
         when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(List.of(
                 store(wide, "Wide"), store(cheap, "Cheap")));

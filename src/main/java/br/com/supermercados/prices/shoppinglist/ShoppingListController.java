@@ -33,12 +33,12 @@ public class ShoppingListController {
     public PageResponse<ShoppingListSummary> findLists(@AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         var pageable = PageRequests.create(page, size, Sort.by(Sort.Order.desc("updatedAt"), Sort.Order.asc("id")));
-        return PageResponse.from(service.findOwnedLists(user.id(), pageable));
+        return PageResponse.from(service.findLists(user.id(), pageable));
     }
 
     @GetMapping("/{id}")
     public ShoppingListResponse getList(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
-        return service.getOwnedList(user.id(), id);
+        return service.getList(user.id(), id);
     }
 
     @PostMapping

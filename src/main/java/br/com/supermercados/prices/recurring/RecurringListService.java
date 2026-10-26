@@ -61,7 +61,7 @@ public class RecurringListService {
         locations.requireCity(cityId);
         LocalDate today = UsualPrice.today(clock);
         return shoppingLists.findRecurringLists(userId).stream()
-                .map(summary -> shoppingLists.getOwnedList(userId, summary.id()))
+                .map(summary -> shoppingLists.getList(userId, summary.id()))
                 .filter(list -> !list.items().isEmpty())
                 .map(list -> {
                     Snapshot now = snapshot(userId, list, cityId, today);
@@ -94,7 +94,7 @@ public class RecurringListService {
         int written = 0;
         for (Object[] list : lists) {
             try {
-                var response = shoppingLists.getOwnedList((UUID) list[1], (UUID) list[0]);
+                var response = shoppingLists.getList((UUID) list[1], (UUID) list[0]);
                 if (!response.items().isEmpty()) {
                     snapshot((UUID) list[1], response, (UUID) list[2], today);
                     written++;

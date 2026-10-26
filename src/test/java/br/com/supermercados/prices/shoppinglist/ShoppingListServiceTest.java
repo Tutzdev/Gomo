@@ -30,6 +30,7 @@ class ShoppingListServiceTest {
 
     @Mock ShoppingListRepository lists;
     @Mock ShoppingListItemRepository items;
+    @Mock ShoppingListMemberRepository members;
     @Mock ProductService products;
     @Mock Product product;
 
@@ -41,14 +42,14 @@ class ShoppingListServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ShoppingListService(lists, items, products,
+        service = new ShoppingListService(lists, items, members, products,
                 org.mockito.Mockito.mock(br.com.supermercados.prices.catalog.CatalogItemRepository.class),
                 Clock.fixed(now, ZoneOffset.UTC));
     }
 
     @Test
     void fullListRejectsAdditionalProductsBeforeWriting() {
-        when(lists.lockOwnedList(listId, userId)).thenReturn(Optional.of(
+        when(lists.lockAccessibleList(listId, userId)).thenReturn(Optional.of(
                 new ShoppingList(userId, "Lista fictícia", ShoppingType.CUSTOM, now)));
         when(products.requireProduct(productId)).thenReturn(product);
         when(product.getId()).thenReturn(productId);
@@ -63,7 +64,7 @@ class ShoppingListServiceTest {
 
     @Test
     void unauthorizedMutationDoesNotLookUpProductsOrItems() {
-        when(lists.lockOwnedList(listId, userId)).thenReturn(Optional.empty());
+        when(lists.lockAccessibleList(listId, userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.addItem(userId, true, listId, new AddItemRequest(productId, BigDecimal.ONE)))
                 .isInstanceOfSatisfying(ApiException.class, exception ->
@@ -73,7 +74,7 @@ class ShoppingListServiceTest {
 
     @Test
     void freeListStopsAtTenProducts() {
-        when(lists.lockOwnedList(listId, userId)).thenReturn(Optional.of(
+        when(lists.lockAccessibleList(listId, userId)).thenReturn(Optional.of(
                 new ShoppingList(userId, "Lista fictícia", ShoppingType.CUSTOM, now)));
         when(products.requireProduct(productId)).thenReturn(product);
         when(product.getId()).thenReturn(productId);

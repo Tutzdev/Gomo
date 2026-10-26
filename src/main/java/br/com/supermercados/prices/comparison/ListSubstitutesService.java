@@ -64,7 +64,7 @@ public class ListSubstitutesService {
     }
 
     public ListSubstitutesResponse find(UUID userId, UUID listId, UUID cityId, boolean premium) {
-        var list = shoppingLists.getOwnedList(userId, listId);
+        var list = shoppingLists.getList(userId, listId);
         locations.requireCity(cityId);
         Map<UUID, CatalogItem> listed = catalog.findAllById(list.items().stream()
                         .map(ShoppingListItemResponse::catalogItemId).filter(Objects::nonNull).distinct().toList())

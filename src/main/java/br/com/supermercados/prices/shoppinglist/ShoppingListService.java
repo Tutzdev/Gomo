@@ -8,14 +8,21 @@ import br.com.supermercados.prices.subscription.PlanLimit;
 import br.com.supermercados.prices.subscription.PlanLimitException;
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Lists and their items. A list belongs to its owner; the people it is shared with (members) see it, add and
+ * change items and check them off at the market like the owner. Renaming, deleting and sharing stay with the
+ * owner, and a list nobody can see answers 404 as if it did not exist.
+ */
 @Service
 @Transactional(readOnly = true)
 public class ShoppingListService {
@@ -23,40 +30,58 @@ public class ShoppingListService {
     private static final int MAX_ITEMS = 200;
     private final ShoppingListRepository lists;
     private final ShoppingListItemRepository items;
+    private final ShoppingListMemberRepository members;
     private final ProductService products;
     private final CatalogItemRepository catalog;
     private final Clock clock;
 
     public ShoppingListService(ShoppingListRepository lists, ShoppingListItemRepository items,
-            ProductService products, CatalogItemRepository catalog, Clock clock) {
+            ShoppingListMemberRepository members, ProductService products, CatalogItemRepository catalog,
+            Clock clock) {
         this.lists = lists;
         this.items = items;
+        this.members = members;
         this.products = products;
         this.catalog = catalog;
         this.clock = clock;
     }
 
+    /** Only the lists the person owns: what the free plan counts. */
     public Page<ShoppingListSummary> findOwnedLists(UUID userId, Pageable pageable) {
         return lists.findByUserId(userId, pageable).map(ShoppingListSummary::from);
+    }
+
+    /** The person's own lists and the ones shared with them. */
+    public Page<ShoppingListSummary> findLists(UUID userId, Pageable pageable) {
+        Page<ShoppingList> page = lists.findAccessible(userId, pageable);
+        Map<UUID, Integer> memberCounts = page.isEmpty() ? Map.of()
+                : members.countByList(page.map(ShoppingList::getId).getContent()).stream()
+                        .collect(Collectors.toMap(row -> (UUID) row[0], row -> ((Long) row[1]).intValue()));
+        return page.map(list -> {
+            boolean owned = list.getUserId().equals(userId);
+            return ShoppingListSummary.from(list, owned, owned ? null : members.findUserName(list.getUserId()),
+                    memberCounts.getOrDefault(list.getId(), 0));
+        });
     }
 
     public long countOwnedLists(UUID userId) {
         return lists.countByUserId(userId);
     }
 
-    /** The lists bought again and again: weekly and monthly ones. */
+    /** The lists bought again and again: weekly and monthly ones, own or shared. */
     public List<ShoppingListSummary> findRecurringLists(UUID userId) {
-        return lists.findByUserIdAndShoppingTypeInOrderByName(userId,
-                List.of(ShoppingType.WEEKLY, ShoppingType.MONTHLY)).stream().map(ShoppingListSummary::from).toList();
+        return lists.findAccessibleOfTypes(userId, List.of(ShoppingType.WEEKLY, ShoppingType.MONTHLY)).stream()
+                .map(list -> ShoppingListSummary.from(list, list.getUserId().equals(userId), null, 0)).toList();
     }
 
-    /** The generic products the person keeps in any of their lists. */
+    /** The generic products the person keeps in any of their lists, own or shared. */
     public Set<UUID> catalogItemIdsInLists(UUID userId) {
         return items.findCatalogItemIdsOfUser(userId);
     }
 
-    public ShoppingListResponse getOwnedList(UUID userId, UUID listId) {
-        return response(lists.findByIdAndUserId(listId, userId).orElseThrow(this::notFound));
+    /** A list the person owns or was invited to. */
+    public ShoppingListResponse getList(UUID userId, UUID listId) {
+        return response(lists.findAccessible(listId, userId).orElseThrow(this::notFound), userId);
     }
 
     @Transactional
@@ -67,7 +92,7 @@ public class ShoppingListService {
         }
         var list = new ShoppingList(userId, request.name(), request.shoppingType(), clock.instant());
 
-        return response(lists.saveAndFlush(list));
+        return response(lists.saveAndFlush(list), userId);
     }
 
     @Transactional
@@ -76,7 +101,7 @@ public class ShoppingListService {
         list.rename(request.name(), request.shoppingType(), clock.instant());
         lists.flush();
 
-        return response(list);
+        return response(list, userId);
     }
 
     @Transactional
@@ -84,9 +109,13 @@ public class ShoppingListService {
         lists.delete(lockOwnedList(userId, listId));
     }
 
+    /**
+     * A shared list was shared by a Premium owner, so it is not held to the free plan's 10 items, whoever adds
+     * the next one.
+     */
     @Transactional
     public ShoppingListItemResponse addItem(UUID userId, boolean premium, UUID listId, AddItemRequest request) {
-        var list = lockOwnedList(userId, listId);
+        var list = lockAccessibleList(userId, listId);
         // A specific SKU that belongs to a generic item is stored as that item, so the list reads "Coca-Cola 2 L".
         var catalogItem = request.catalogItemId() == null
                 ? catalog.findActiveByProductId(request.productId()).orElse(null)
@@ -101,7 +130,7 @@ public class ShoppingListService {
             throw new ApiException(HttpStatus.CONFLICT, "Produto já está na lista; altere sua quantidade.");
         }
         long itemCount = items.countByShoppingListId(listId);
-        if (!premium && itemCount >= FreePlan.MAX_LIST_ITEMS) {
+        if (!premium && itemCount >= FreePlan.MAX_LIST_ITEMS && !members.existsByShoppingListId(listId)) {
             throw new PlanLimitException(PlanLimit.LIST_ITEMS,
                     "No plano grátis cada lista tem até 10 produtos.");
         }
@@ -121,7 +150,7 @@ public class ShoppingListService {
 
     @Transactional
     public ShoppingListItemResponse updateItem(UUID userId, UUID listId, UUID itemId, UpdateItemRequest request) {
-        var list = lockOwnedList(userId, listId);
+        var list = lockAccessibleList(userId, listId);
         var item = requireItem(listId, itemId);
 
         item.changeQuantity(request.quantity());
@@ -132,7 +161,7 @@ public class ShoppingListService {
 
     @Transactional
     public void removeItem(UUID userId, UUID listId, UUID itemId) {
-        var list = lockOwnedList(userId, listId);
+        var list = lockAccessibleList(userId, listId);
         items.delete(requireItem(listId, itemId));
         list.touch(clock.instant());
     }
@@ -140,7 +169,7 @@ public class ShoppingListService {
     /** One item out, the other in, in one step: the list never ends up with both or neither. */
     @Transactional
     public ShoppingListItemResponse replaceItem(UUID userId, UUID listId, UUID itemId, ReplaceItemRequest request) {
-        var list = lockOwnedList(userId, listId);
+        var list = lockAccessibleList(userId, listId);
         var previous = requireItem(listId, itemId);
         var catalogItem = catalog.findById(request.catalogItemId()).filter(found -> found.isActive())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Produto não encontrado."));
@@ -159,7 +188,7 @@ public class ShoppingListService {
     /** Into the cart, or back out of it. Idempotent, so the "No mercado" mode can resend after losing signal. */
     @Transactional
     public ShoppingListItemResponse checkItem(UUID userId, UUID listId, UUID itemId, boolean checked) {
-        lockOwnedList(userId, listId);
+        lockAccessibleList(userId, listId);
         var item = requireItem(listId, itemId);
         if (checked) {
             item.check(userId, clock.instant());
@@ -172,7 +201,7 @@ public class ShoppingListService {
     /** Starts the next shopping trip with nothing in the cart. */
     @Transactional
     public void clearChecks(UUID userId, UUID listId) {
-        lockOwnedList(userId, listId);
+        lockAccessibleList(userId, listId);
         items.clearChecks(listId);
     }
 
@@ -182,7 +211,7 @@ public class ShoppingListService {
      */
     @Transactional
     public boolean clearChecksIfEverythingWasBought(UUID userId, UUID listId) {
-        lockOwnedList(userId, listId);
+        lockAccessibleList(userId, listId);
         if (items.countByShoppingListIdAndCheckedAtIsNull(listId) > 0) {
             return false;
         }
@@ -196,11 +225,18 @@ public class ShoppingListService {
         return new ShoppingListItemResponse(item.getId(), product.getId(),
                 catalogItem == null ? product.getName() : catalogItem.getDisplayName(), item.getQuantity(),
                 item.getCatalogItemId(), catalogItem == null ? product.getImageUrl() : catalogItem.getImageUrl(),
-                item.getCheckedAt(), item.getCheckedBy());
+                item.getCheckedAt(), item.getCheckedBy(),
+                item.getCheckedBy() == null ? null : members.findUserName(item.getCheckedBy()));
     }
 
     private ShoppingList lockOwnedList(UUID userId, UUID listId) {
-        return lists.lockOwnedList(listId, userId).orElseThrow(this::notFound);
+        return lists.lockOwnedList(listId, userId).orElseThrow(() -> lists.findAccessible(listId, userId).isPresent()
+                ? new ApiException(HttpStatus.FORBIDDEN, "Só quem criou a lista pode renomear, excluir ou compartilhar.")
+                : notFound());
+    }
+
+    private ShoppingList lockAccessibleList(UUID userId, UUID listId) {
+        return lists.lockAccessibleList(listId, userId).orElseThrow(this::notFound);
     }
 
     private ShoppingListItem requireItem(UUID listId, UUID itemId) {
@@ -208,9 +244,11 @@ public class ShoppingListService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item não encontrado."));
     }
 
-    private ShoppingListResponse response(ShoppingList list) {
+    private ShoppingListResponse response(ShoppingList list, UUID userId) {
+        boolean owned = list.getUserId().equals(userId);
         return new ShoppingListResponse(list.getId(), list.getName(), list.getShoppingType(),
-                items.findItems(list.getId()), list.getCreatedAt(), list.getUpdatedAt(), list.getVersion());
+                items.findItems(list.getId()), list.getCreatedAt(), list.getUpdatedAt(), list.getVersion(), owned,
+                members.findUserName(list.getUserId()), members.findMembers(list.getId()));
     }
 
     private ApiException notFound() {

@@ -13,9 +13,11 @@ public interface ShoppingListItemRepository extends JpaRepository<ShoppingListIt
     @Query("""
             select new br.com.supermercados.prices.shoppinglist.ShoppingListItemResponse(
                 item.id, item.productId, coalesce(catalog.displayName, product.name), item.quantity,
-                item.catalogItemId, coalesce(catalog.imageUrl, product.imageUrl), item.checkedAt, item.checkedBy)
+                item.catalogItemId, coalesce(catalog.imageUrl, product.imageUrl), item.checkedAt, item.checkedBy,
+                checker.name)
             from ShoppingListItem item join Product product on product.id = item.productId
             left join CatalogItem catalog on catalog.id = item.catalogItemId
+            left join User checker on checker.id = item.checkedBy
             where item.shoppingListId = :listId
             order by coalesce(catalog.displayName, product.name), item.id
             """)
@@ -35,9 +37,10 @@ public interface ShoppingListItemRepository extends JpaRepository<ShoppingListIt
     @Query("update ShoppingListItem item set item.checkedAt = null, item.checkedBy = null where item.shoppingListId = :listId")
     int clearChecks(UUID listId);
 
+    /** In the person's own lists and in the ones shared with them. */
     @Query("""
             select distinct item.catalogItemId from ShoppingListItem item, ShoppingList list
-            where list.id = item.shoppingListId and list.userId = :userId and item.catalogItemId is not null
-            """)
+            where list.id = item.shoppingListId and item.catalogItemId is not null and
+            """ + ShoppingListRepository.ACCESSIBLE)
     Set<UUID> findCatalogItemIdsOfUser(UUID userId);
 }

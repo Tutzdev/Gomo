@@ -29,6 +29,10 @@ public class AccountDeletionService {
     private static final List<String> PERSONAL_DATA = List.of(
             // Purchase items go with their purchases.
             "DELETE FROM purchases WHERE user_id = ?",
+            // Leaves the lists other people shared; the person's own lists take their members and invites along.
+            "DELETE FROM shopping_list_members WHERE user_id = ?",
+            "DELETE FROM shopping_list_invites WHERE created_by = ?",
+            "UPDATE shopping_list_items SET checked_by = NULL WHERE checked_by = ?",
             "DELETE FROM shopping_lists WHERE user_id = ?",
             "DELETE FROM alert_notifications WHERE user_id = ?",
             "DELETE FROM price_alerts WHERE user_id = ?",

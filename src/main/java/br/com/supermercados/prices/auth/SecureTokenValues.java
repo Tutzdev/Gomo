@@ -7,7 +7,8 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
 
-final class SecureTokenValues {
+/** Opaque tokens: random values handed out once, stored only as their SHA-256 hash. */
+public final class SecureTokenValues {
 
     private static final int TOKEN_BYTES = 32;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -15,13 +16,13 @@ final class SecureTokenValues {
     private SecureTokenValues() {
     }
 
-    static String random() {
+    public static String random() {
         byte[] randomBytes = new byte[TOKEN_BYTES];
         RANDOM.nextBytes(randomBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
     }
 
-    static String hash(String rawValue) {
+    public static String hash(String rawValue) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
                     .digest(rawValue.getBytes(StandardCharsets.UTF_8));

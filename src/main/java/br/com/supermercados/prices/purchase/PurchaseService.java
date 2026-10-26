@@ -70,7 +70,7 @@ public class PurchaseService {
         if (previous.isPresent()) {
             return new RecordedPurchase(responseOf(userId, previous.get()), false);
         }
-        var list = shoppingLists.getOwnedList(userId, listId);
+        var list = shoppingLists.getList(userId, listId);
         Map<UUID, ShoppingListItemResponse> listItems = list.items().stream()
                 .collect(Collectors.toMap(ShoppingListItemResponse::id, Function.identity()));
         Set<UUID> seen = new HashSet<>();

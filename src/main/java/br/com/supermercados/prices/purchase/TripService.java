@@ -41,7 +41,7 @@ public class TripService {
 
     @Transactional(readOnly = true)
     public TripResponse trip(UUID userId, UUID listId, UUID storeId) {
-        var list = shoppingLists.getOwnedList(userId, listId);
+        var list = shoppingLists.getList(userId, listId);
         Store store = stores.requireActiveStore(storeId);
         Instant now = clock.instant();
         var offers = prices.find(list.items().stream().map(ShoppingListItemResponse::productId).toList(),

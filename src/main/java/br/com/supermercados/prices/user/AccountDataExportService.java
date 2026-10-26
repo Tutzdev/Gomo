@@ -77,6 +77,12 @@ public class AccountDataExportService {
                 FROM price_contributions c JOIN products p ON p.id = c.product_id JOIN stores s ON s.id = c.store_id
                 WHERE c.contributor_id = ? ORDER BY c.submitted_at
                 """, userId));
+        export.put("listasCompartilhadasComigo", rows("""
+                SELECT l.name AS "lista", u.name AS "dona", m.joined_at AS "entreiEm"
+                FROM shopping_list_members m JOIN shopping_lists l ON l.id = m.shopping_list_id
+                    JOIN app_users u ON u.id = l.user_id
+                WHERE m.user_id = ? ORDER BY m.joined_at
+                """, userId));
         export.put("compras", purchases(userId));
         export.put("comparacoesPorDia", rows("""
                 SELECT usage_date AS "dia", count(*) AS "comparacoes"

@@ -130,7 +130,7 @@ public class ShoppingComparisonService {
      */
     public ShoppingListComparisonResponse compareShoppingList(
             UUID userId, UUID listId, UUID cityId, Pageable pageable, List<UUID> storeIds, boolean premium) {
-        var shoppingList = shoppingLists.getOwnedList(userId, listId);
+        var shoppingList = shoppingLists.getList(userId, listId);
         locations.requireCity(cityId);
         Instant comparedAt = clock.instant();
         ComparisonAccess access = ComparisonAccess.forPlan(premium);
@@ -174,7 +174,7 @@ public class ShoppingComparisonService {
      */
     public ShoppingRecommendationResponse recommendShoppingList(
             UUID userId, UUID listId, UUID cityId, List<UUID> storeIds, boolean premium) {
-        var shoppingList = shoppingLists.getOwnedList(userId, listId);
+        var shoppingList = shoppingLists.getList(userId, listId);
         Instant comparedAt = clock.instant();
         List<StoreResponse> availableStores = stores.selectComparisonStores(cityId, storeIds, maximumRecommendationStores);
         List<UUID> productIds = shoppingList.items().stream()

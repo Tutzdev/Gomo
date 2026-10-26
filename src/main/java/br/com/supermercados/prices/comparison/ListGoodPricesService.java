@@ -70,7 +70,7 @@ public class ListGoodPricesService {
     }
 
     public ListGoodPricesResponse find(UUID userId, UUID listId, UUID cityId, boolean premium) {
-        var list = shoppingLists.getOwnedList(userId, listId);
+        var list = shoppingLists.getList(userId, listId);
         locations.requireCity(cityId);
         List<StoreResponse> cityStores = stores.selectComparisonStores(cityId, null, MAXIMUM_STORES);
         if (list.items().isEmpty() || cityStores.isEmpty()) {
