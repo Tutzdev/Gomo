@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -56,7 +57,8 @@ public class ShoppingListItem {
     /** Into the cart. Checking again keeps the first time and who did it: a retried request changes nothing. */
     void check(UUID userId, Instant now) {
         if (checkedAt == null) {
-            checkedAt = now;
+            // The precision PostgreSQL keeps, so the answer to this request and every later read say the same time.
+            checkedAt = now.truncatedTo(ChronoUnit.MICROS);
             checkedBy = userId;
         }
     }
