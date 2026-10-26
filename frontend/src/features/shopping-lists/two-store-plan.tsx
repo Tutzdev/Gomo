@@ -2,7 +2,7 @@ import { Lock, Store } from "lucide-react";
 import { StatusBadge } from "@/components/page/page-elements";
 import { useUpsell } from "@/features/plan/upsell-context";
 import { formatCurrency } from "@/lib/brand";
-import type { ShoppingCombination } from "@/types/api";
+import type { ShoppingCombination, ShoppingRecommendation } from "@/types/api";
 
 /**
  * The split people actually do: at most two stops. Shown next to the single store and the split in every store,
@@ -11,9 +11,12 @@ import type { ShoppingCombination } from "@/types/api";
 export function TwoStorePlan({
   pair,
   everyStore,
+  savings,
 }: {
   pair: ShoppingCombination;
   everyStore: ShoppingCombination;
+  /** Against the best single store; exists also when no store has the whole list. */
+  savings: ShoppingRecommendation["twoStoreSavings"];
 }) {
   const { showUpsell } = useUpsell();
   if (pair.pricedItems === 0 || pair.subtotalKnown === null) return null;
@@ -24,8 +27,8 @@ export function TwoStorePlan({
         <h3 className="font-bold">Em até 2 mercados</h3>
         <p className="mt-3 text-sm text-muted">
           {pair.stores.length
-            ? `Dividir não compensa nesta lista: comprar tudo no ${pair.stores[0].storeName} já é o melhor.`
-            : "Dividir não compensa nesta lista: um mercado só já é o melhor."}
+            ? `Dividir não compensa nesta lista: uma segunda parada economizaria menos de R$ 5. Comprar tudo no ${pair.stores[0].storeName} já é o melhor.`
+            : "Dividir não compensa nesta lista: uma segunda parada economizaria menos de R$ 5."}
         </p>
       </section>
     );
@@ -54,6 +57,11 @@ export function TwoStorePlan({
           Economia de {formatCurrency(pair.savingsAgainstCompleteStore)} em relação ao mercado mais barato com a lista
           completa.
         </p>
+      ) : savings && savings.savings > 0 ? (
+        <p className="mt-3 text-sm font-semibold">
+          Economia de {formatCurrency(savings.savings)} nos {savings.comparedItems} itens que o {savings.storeName} também
+          tem.
+        </p>
       ) : null}
       {extraStops > 0 && extraSavings !== null ? (
         <p className="mt-2 text-sm text-muted">
@@ -69,7 +77,7 @@ export function TwoStorePlan({
           className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-primary/25 bg-primary-soft px-4 text-sm font-bold text-primary-dark hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           onClick={() =>
             showUpsell("SPLIT_PURCHASE", {
-              savings: pair.savingsAgainstCompleteStore ?? undefined,
+              savings: pair.savingsAgainstCompleteStore ?? savings?.savings ?? undefined,
               storeCount: pair.storeCount,
             })
           }

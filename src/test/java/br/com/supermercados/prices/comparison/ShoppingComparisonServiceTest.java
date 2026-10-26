@@ -235,6 +235,34 @@ class ShoppingComparisonServiceTest {
         assertThat(response.closestMatches().getFirst().missingItems()).isEqualTo(1);
     }
 
+    @Test
+    void twoStoreSavingsExistEvenWhenNoStoreHasTheWholeList() {
+        UUID rice = UUID.randomUUID();
+        UUID beans = UUID.randomUUID();
+        UUID oil = UUID.randomUUID();
+        UUID wide = UUID.randomUUID();
+        UUID cheap = UUID.randomUUID();
+        when(shoppingLists.getOwnedList(userId, listId))
+                .thenReturn(shoppingList(List.of(item(rice), item(beans), item(oil))));
+        when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(List.of(
+                store(wide, "Wide"), store(cheap, "Cheap")));
+        when(prices.findLatestForStoresAndProducts(
+                org.mockito.ArgumentMatchers.eq(List.of(wide, cheap)), org.mockito.ArgumentMatchers.anyList()))
+                .thenReturn(List.of(
+                        PriceFixtures.regular(rice, wide, "10.00", now),
+                        PriceFixtures.regular(beans, wide, "6.00", now),
+                        PriceFixtures.regular(rice, cheap, "6.00", now)));
+
+        ShoppingRecommendationResponse response = comparisons.recommendShoppingList(userId, listId, cityId);
+
+        assertThat(response.status()).isEqualTo(RecommendationStatus.NO_COMPLETE_STORE);
+        assertThat(response.twoStoreCombination().savingsAgainstCompleteStore()).isNull();
+        assertThat(response.twoStoreSavings().storeId()).isEqualTo(wide);
+        assertThat(response.twoStoreSavings().comparedItems()).isEqualTo(2);
+        // Rice bought at "Cheap": 2 × (10.00 − 6.00).
+        assertThat(response.twoStoreSavings().savings()).isEqualByComparingTo("8.00");
+    }
+
     private ShoppingListItemResponse item(UUID productId) {
         return new ShoppingListItemResponse(UUID.randomUUID(), productId, "Synthetic product",
                 new BigDecimal("2.000"));

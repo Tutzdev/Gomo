@@ -23,6 +23,8 @@ public class ShoppingPriceCalculator {
 
     /** Bounds the pairs tried (n² / 2) when a city has many stores; the best pairs come from the best stores. */
     private static final int MAXIMUM_PAIR_CANDIDATES = 40;
+    /** What a second stop must save, on the same items, to be worth the trip. */
+    static final BigDecimal MINIMUM_SECOND_STOP_SAVINGS = new BigDecimal("5.00");
 
     private final PricePolicy pricePolicy;
 
@@ -102,7 +104,9 @@ public class ShoppingPriceCalculator {
     /**
      * The best purchase split across at most two stores: the one that prices the most items, then the lowest
      * total, then the fewest stores. Buying each item where it is cheapest can mean a trip to every market; two
-     * stops is what people actually do, so this is the split the screen recommends first.
+     * stops is what people actually do, so this is the split the screen recommends first. A second stop that
+     * only adds items already priced has to save at least {@link #MINIMUM_SECOND_STOP_SAVINGS}: crossing town
+     * for R$ 0,40 is not "more practical".
      */
     public ShoppingCombinationResponse combineInTwoStores(List<ShoppingListItemResponse> requestedItems,
             List<ShoppingStoreComparison> comparisons, StoreRecommendationCandidate completeStore) {
@@ -114,15 +118,26 @@ public class ShoppingPriceCalculator {
                         .thenComparing(ShoppingStoreComparison::storeName, String.CASE_INSENSITIVE_ORDER))
                 .limit(MAXIMUM_PAIR_CANDIDATES)
                 .toList();
-        ShoppingCombinationResponse best = null;
+        ShoppingCombinationResponse single = null;
+        ShoppingCombinationResponse pair = null;
         for (int first = 0; first < candidates.size(); first++) {
-            best = better(best, combine(requestedItems, List.of(candidates.get(first)), completeStore));
+            single = better(single, combine(requestedItems, List.of(candidates.get(first)), completeStore));
             for (int second = first + 1; second < candidates.size(); second++) {
-                best = better(best, combine(requestedItems,
+                pair = better(pair, combine(requestedItems,
                         List.of(candidates.get(first), candidates.get(second)), completeStore));
             }
         }
-        return best != null ? best : combine(requestedItems, List.of(), completeStore);
+        if (single == null) {
+            return combine(requestedItems, List.of(), completeStore);
+        }
+        // A pair whose cheapest lines all come from one store is that store: the single one already covers it.
+        if (pair == null || pair.stores().size() < 2 || better(single, pair) == single) {
+            return single;
+        }
+        boolean coversMore = pair.pricedItems() > single.pricedItems();
+        boolean savesEnough = single.subtotalKnown().subtract(pair.subtotalKnown())
+                .compareTo(MINIMUM_SECOND_STOP_SAVINGS) >= 0;
+        return coversMore || savesEnough ? pair : single;
     }
 
     private static ShoppingCombinationResponse better(ShoppingCombinationResponse current,

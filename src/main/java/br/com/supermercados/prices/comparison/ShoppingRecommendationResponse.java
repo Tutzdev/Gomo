@@ -6,7 +6,9 @@ import java.util.UUID;
 
 /**
  * {@code combination} buys each item where it is cheapest, in as many stores as that takes;
- * {@code twoStoreCombination} is the best split that needs at most two stops.
+ * {@code twoStoreCombination} is the best split that needs at most two stops. {@code splitSavings} and
+ * {@code twoStoreSavings} say what each one saves against the same best single store, also when no store has
+ * the whole list.
  */
 public record ShoppingRecommendationResponse(
         UUID shoppingListId,
@@ -19,7 +21,8 @@ public record ShoppingRecommendationResponse(
         List<StoreRecommendationCandidate> closestMatches,
         ShoppingCombinationResponse combination,
         SplitSavings splitSavings,
-        ShoppingCombinationResponse twoStoreCombination) {
+        ShoppingCombinationResponse twoStoreCombination,
+        SplitSavings twoStoreSavings) {
 
     public ShoppingRecommendationResponse {
         closestMatches = List.copyOf(closestMatches);

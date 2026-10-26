@@ -205,6 +205,27 @@ class ShoppingPriceCalculatorTest {
     }
 
     @Test
+    void secondStopThatSavesLessThanFiveReaisIsNotWorthTheTrip() {
+        UUID rice = UUID.randomUUID();
+        UUID beans = UUID.randomUUID();
+        UUID otherStore = UUID.randomUUID();
+        var items = List.of(item(rice, "1.000"), item(beans, "1.000"));
+        var complete = calculator.calculate(storeId, "Complete", items, Map.of(
+                rice, PriceFixtures.regular(rice, storeId, "20.00", now),
+                beans, PriceFixtures.regular(beans, storeId, "8.00", now)), now);
+        var slightlyCheaper = calculator.calculate(otherStore, "Slightly cheaper", items, Map.of(
+                rice, PriceFixtures.regular(rice, otherStore, "19.60", now)), now);
+        var winner = new StoreRecommendationCandidate(storeId, "Complete", new BigDecimal("28.00"),
+                2, 2, 0, List.of(), true, false);
+
+        var pair = calculator.combineInTwoStores(items, List.of(complete, slightlyCheaper), winner);
+
+        assertThat(pair.stores()).extracting(ShoppingCombinationResponse.StorePurchase::storeName)
+                .containsExactly("Complete");
+        assertThat(pair.savingsAgainstCompleteStore()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
     void twoStoreCombinationKeepsOneStoreWhenSplittingSavesNothing() {
         UUID first = UUID.randomUUID();
         UUID otherStore = UUID.randomUUID();

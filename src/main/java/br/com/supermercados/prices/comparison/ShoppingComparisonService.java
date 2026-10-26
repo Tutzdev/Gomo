@@ -195,17 +195,19 @@ public class ShoppingComparisonService {
         if (recommendation != null) {
             return new ShoppingRecommendationResponse(listId, cityId, CURRENCY, comparedAt, candidates.size(),
                     RecommendationStatus.COMPLETE_STORE_FOUND, recommendation, List.of(), combination,
-                    splitSavings(recommendation, comparisons, fullCombination), twoStores);
+                    splitSavings(recommendation, comparisons, fullCombination), twoStores,
+                    splitSavings(recommendation, comparisons, fullPair));
         }
 
         List<StoreRecommendationCandidate> closestMatches = findClosestMatches(candidates);
         StoreRecommendationCandidate bestCoverage = closestMatches.isEmpty() ? null : closestMatches.getFirst();
         return new ShoppingRecommendationResponse(listId, cityId, CURRENCY, comparedAt, candidates.size(),
                 RecommendationStatus.NO_COMPLETE_STORE, null, closestMatches, combination,
-                splitSavings(bestCoverage, comparisons, fullCombination), twoStores);
+                splitSavings(bestCoverage, comparisons, fullCombination), twoStores,
+                splitSavings(bestCoverage, comparisons, fullPair));
     }
 
-    /** Compares the items the reference store prices with the cheapest price of each one among all stores. */
+    /** Compares the items the reference store prices with what each one costs in {@code combination}. */
     private SplitSavings splitSavings(StoreRecommendationCandidate reference,
             List<ShoppingStoreComparison> comparisons, ShoppingCombinationResponse combination) {
         if (reference == null) {

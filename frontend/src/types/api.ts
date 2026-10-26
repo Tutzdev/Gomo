@@ -347,8 +347,10 @@ export interface ShoppingRecommendation {
     comparedItems: number;
     savings: number;
   } | null;
-  /** The best split with at most two stops; a single store when splitting saves nothing. */
+  /** The best split with at most two stops; a single store when a second stop saves less than R$ 5. */
   twoStoreCombination: ShoppingCombination;
+  /** What the two-store split saves against the same store as `splitSavings`. */
+  twoStoreSavings: ShoppingRecommendation["splitSavings"];
 }
 
 export interface ProductSearchFacets {

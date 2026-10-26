@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pagination, StatusBadge } from "@/components/page/page-elements";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { formatCurrency, formatDate } from "@/lib/brand";
+import { cn } from "@/lib/cn";
 import { shoppingListApi } from "@/services/gomo-api";
 import { LockedStores } from "@/features/plan/plan-locks";
 import { ShoppingRoute } from "@/features/plan/shopping-route";
@@ -94,6 +95,7 @@ export function ListComparison({
         : priciest,
     null,
   );
+  const pairShown = twoStoreCombination.pricedItems > 0 && twoStoreCombination.subtotalKnown !== null;
   const bestTotals = new Map(
     combination.stores.flatMap((store) =>
       store.items.flatMap((item) =>
@@ -188,8 +190,9 @@ export function ListComparison({
             </>
           )}
         </section>
-        <TwoStorePlan pair={twoStoreCombination} everyStore={combination} />
-        <section className="surface p-5">
+        <TwoStorePlan pair={twoStoreCombination} everyStore={combination} savings={recommendation.data.twoStoreSavings} />
+        {/* With three cards, the third one fills the whole second row between md and xl instead of half of it. */}
+        <section className={cn("surface p-5", pairShown && "md:col-span-2 xl:col-span-1")}>
           <h3 className="font-bold">Menor preço por item entre mercados</h3>
           <div className="mt-2">
             <StatusBadge
@@ -275,7 +278,7 @@ export function ListComparison({
               id: "pair",
               label: "Em 2 mercados",
               combination: twoStoreCombination,
-              savings: twoStoreCombination.savingsAgainstCompleteStore,
+              savings: recommendation.data.twoStoreSavings?.savings ?? twoStoreCombination.savingsAgainstCompleteStore,
             },
             {
               id: "every",
