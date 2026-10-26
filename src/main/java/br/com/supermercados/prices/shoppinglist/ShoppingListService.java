@@ -7,6 +7,7 @@ import br.com.supermercados.prices.subscription.FreePlan;
 import br.com.supermercados.prices.subscription.PlanLimit;
 import br.com.supermercados.prices.subscription.PlanLimitException;
 import java.time.Clock;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -41,6 +42,12 @@ public class ShoppingListService {
 
     public long countOwnedLists(UUID userId) {
         return lists.countByUserId(userId);
+    }
+
+    /** The lists bought again and again: weekly and monthly ones. */
+    public List<ShoppingListSummary> findRecurringLists(UUID userId) {
+        return lists.findByUserIdAndShoppingTypeInOrderByName(userId,
+                List.of(ShoppingType.WEEKLY, ShoppingType.MONTHLY)).stream().map(ShoppingListSummary::from).toList();
     }
 
     /** The generic products the person keeps in any of their lists. */

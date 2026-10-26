@@ -1,6 +1,8 @@
 package br.com.supermercados.prices.shoppinglist;
 
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -12,6 +14,8 @@ import org.springframework.data.jpa.repository.Query;
 public interface ShoppingListRepository extends JpaRepository<ShoppingList, UUID> {
 
     Page<ShoppingList> findByUserId(UUID userId, Pageable pageable);
+
+    List<ShoppingList> findByUserIdAndShoppingTypeInOrderByName(UUID userId, Collection<ShoppingType> types);
 
     long countByUserId(UUID userId);
 
