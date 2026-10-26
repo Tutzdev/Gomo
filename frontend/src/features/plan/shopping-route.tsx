@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { catalogApi } from "@/services/gomo-api";
 import type { ShoppingCombination } from "@/types/api";
 import { distanceKm, googleMapsDirectionsUrl, planRoute, routeLength, type GeoPoint } from "./route-planner";
+import { TravelCostPanel } from "./travel-cost-panel";
 
 type LocationState =
   | { status: "idle" }
@@ -178,6 +179,8 @@ function RouteResult({
   const singleStore = reference ? coordinates.get(reference.storeId) : undefined;
   const singleStoreKm = singleStore ? distanceKm(origin, singleStore) : null;
   const extraKm = singleStoreKm === null ? null : totalKm - singleStoreKm;
+  const lastStop = route.at(-1)?.stop;
+  const splitRoundTripKm = totalKm + (lastStop ? distanceKm(lastStop, origin) : 0);
 
   return (
     <div className="mt-4">
@@ -205,6 +208,16 @@ function RouteResult({
             ? `Dividir a compra economiza ${formatCurrency(savings)} e soma ${formatKm(extraKm)} em relação a ir só ao ${reference.storeName}.`
             : `Dividir a compra economiza ${formatCurrency(savings)} sem aumentar a distância em relação a ir só ao ${reference.storeName}.`}
         </p>
+      ) : null}
+      {/* Without every store on the map the trip would look shorter than it is: no estimate then. */}
+      {reference && savings !== null && savings > 0 && singleStoreKm !== null && missingCoordinates === 0 ? (
+        <TravelCostPanel
+          savings={savings}
+          splitRoundTripKm={splitRoundTripKm}
+          singleRoundTripKm={singleStoreKm * 2}
+          stops={route.length}
+          referenceName={reference.storeName}
+        />
       ) : null}
       {missingCoordinates > 0 ? (
         <p className="mt-1 text-xs text-muted">
