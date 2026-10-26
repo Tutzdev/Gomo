@@ -25,6 +25,7 @@ import type {
   CatalogItem,
   ShoppingList,
   ShoppingListItem,
+  ShoppingType,
 } from "@/types/api";
 import { useDefaultCityId } from "@/lib/use-default-city";
 import { PlanLimitNotice } from "@/features/plan/plan-locks";
@@ -113,7 +114,7 @@ export function ShoppingListDetailPage() {
             variant="secondary"
             onClick={() => setEditingName(!editingName)}
           >
-            {editingName ? "Cancelar edição" : "Renomear lista"}
+            {editingName ? "Cancelar edição" : "Editar lista"}
           </NativeButton>
         }
       />
@@ -377,11 +378,12 @@ function RenameList({
   onSaved: () => Promise<void>;
 }) {
   const [name, setName] = useState(list.name);
+  const [shoppingType, setShoppingType] = useState<ShoppingType>(list.shoppingType);
   const rename = useMutation({
     mutationFn: () =>
       shoppingListApi.update(list.id, {
         name: name.trim(),
-        shoppingType: list.shoppingType,
+        shoppingType,
       }),
     onSuccess: onSaved,
   });
@@ -401,12 +403,24 @@ function RenameList({
         required
         onChange={(event) => setName(event.target.value)}
       />
+      <SelectField
+        id="list-frequency"
+        label="Frequência"
+        hint="Semanal e mensal: o Início mostra quanto sai hoje e compara com a semana passada."
+        value={shoppingType}
+        onChange={(event) => setShoppingType(event.target.value as ShoppingType)}
+      >
+        <option value="CUSTOM">Personalizada</option>
+        <option value="DAILY">Diária</option>
+        <option value="WEEKLY">Semanal</option>
+        <option value="MONTHLY">Mensal</option>
+      </SelectField>
       <NativeButton
         type="submit"
         loading={rename.isPending}
         disabled={!name.trim()}
       >
-        Salvar nome
+        Salvar
       </NativeButton>
       <InlineError>{rename.error?.message}</InlineError>
     </form>

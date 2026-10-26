@@ -6,6 +6,8 @@ import { NativeButton } from "@/components/ui/native-button";
 import { PageHeading, SurfaceTitle } from "@/components/page/page-elements";
 import { alertApi, catalogApi, preferenceApi, savingsApi, shoppingListApi } from "@/services/gomo-api";
 import { monthName, recentMonths } from "@/features/savings/savings-month";
+import { RecurringListsCard } from "@/features/shopping-lists/recurring-lists-card";
+import { useDefaultCityId } from "@/lib/use-default-city";
 import { formatCurrency, formatDate } from "@/lib/brand";
 
 export function OverviewPage() {
@@ -16,6 +18,7 @@ export function OverviewPage() {
   const unread = useQuery({ queryKey: ["notifications", "unread"], queryFn: alertApi.unreadNotifications });
   const preferences = useQuery({ queryKey: ["preferences"], queryFn: preferenceApi.get });
   const cities = useQuery({ queryKey: ["cities", "all"], queryFn: () => catalogApi.cities(undefined, 0, 100) });
+  const defaultCityId = useDefaultCityId();
 
   const preferredCity = cities.data?.content.find((city) => city.id === preferences.data?.preferredCityId);
   const hasError = lists.isError || alerts.isError || unread.isError || preferences.isError;
@@ -27,6 +30,7 @@ export function OverviewPage() {
       {hasError ? <ErrorState message="Parte das informações não pôde ser carregada." retry={() => void Promise.all([lists.refetch(), alerts.refetch(), unread.refetch(), preferences.refetch()])} /> : null}
 
       <SavingsHighlight />
+      {defaultCityId ? <RecurringListsCard cityId={defaultCityId} /> : null}
 
       <section aria-label="Resumo da conta" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryItem icon={ListChecks} label="Listas salvas" value={lists.data ? String(lists.data.totalElements) : "—"} loading={lists.isLoading} to="/app/listas" />

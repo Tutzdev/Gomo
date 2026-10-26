@@ -653,3 +653,24 @@ export interface ListSubstitutes {
     savingsPercent: number;
   }>;
 }
+
+/** A weekly or monthly list at its best single market today, next to about a week ago. */
+export interface RecurringList {
+  listId: string;
+  name: string;
+  shoppingType: ShoppingType;
+  cityId: string;
+  storeId: string | null;
+  storeName: string | null;
+  total: number | null;
+  /** The market has every item; otherwise `total` is what it has. */
+  complete: boolean;
+  pricedItems: number;
+  requestedItems: number;
+  previousDay: string | null;
+  previousTotal: number | null;
+  previousStoreName: string | null;
+  /** total − previousTotal: negative is cheaper today. null without a week to compare or when the list changed. */
+  difference: number | null;
+  listChanged: boolean;
+}

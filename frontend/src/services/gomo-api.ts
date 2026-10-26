@@ -11,6 +11,7 @@ import type {
   ListGoodPrices,
   ListSubstitutes,
   Purchase,
+  RecurringList,
   SavingsReport,
   Trip,
   City,
@@ -475,4 +476,9 @@ export const savingsApi = {
   /** No month: this month. */
   month: (month?: string) => apiRequest<SavingsReport>(`/savings?${queryString({ month })}`),
   deletePurchase: (id: string) => apiRequest<void>(`/purchases/${id}`, { method: "DELETE" }),
+};
+
+export const recurringListApi = {
+  /** The person's weekly and monthly lists recalculated now in the city. */
+  mine: (cityId: string) => apiRequest<RecurringList[]>(`/recurring-lists?${queryString({ cityId })}`),
 };
