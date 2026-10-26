@@ -13,7 +13,23 @@ import org.springframework.data.repository.query.Param;
 
 interface AlertNotificationRepository extends JpaRepository<AlertNotification, UUID> {
 
-    Page<AlertNotification> findByUserId(UUID userId, Pageable pageable);
+    String DETAILED = """
+            select new br.com.supermercados.prices.alert.AlertNotificationResponse(
+                notification.id, notification.alertId, notification.priceRecordId, notification.storeId,
+                notification.unitPrice, notification.createdAt, notification.readAt, alert.productId, product.name,
+                store.name, alert.kind, alert.targetPrice, alert.discountPercent)
+            from AlertNotification notification
+            join PriceAlert alert on alert.id = notification.alertId
+            join Product product on product.id = alert.productId
+            join Store store on store.id = notification.storeId
+            """;
+
+    @Query(value = DETAILED + " where notification.userId = :userId",
+            countQuery = "select count(notification) from AlertNotification notification where notification.userId = :userId")
+    Page<AlertNotificationResponse> findDetailedByUserId(@Param("userId") UUID userId, Pageable pageable);
+
+    @Query(DETAILED + " where notification.id = :id and notification.userId = :userId")
+    Optional<AlertNotificationResponse> findDetailedByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
 
     Optional<AlertNotification> findByIdAndUserId(UUID id, UUID userId);
 

@@ -68,10 +68,19 @@ class AlertIntegrationTests {
         price("unread-count", "9.00");
 
         JsonNode notifications = read(perform(get("/api/v1/notifications"), token)
-                .andExpect(jsonPath("$.content.length()").value(1)));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].unitPrice").value(9.00))
+                .andExpect(jsonPath("$.content[0].productId").value(PRODUCT_A.toString()))
+                .andExpect(jsonPath("$.content[0].productName").value("Produto FICTÍCIO Alpha"))
+                .andExpect(jsonPath("$.content[0].storeName").value("Loja fictícia A"))
+                .andExpect(jsonPath("$.content[0].alertKind").value("TARGET_PRICE"))
+                .andExpect(jsonPath("$.content[0].targetPrice").value(10.00)));
         perform(get("/api/v1/notifications/unread-count"), token).andExpect(jsonPath("$.unread").value(1));
         perform(patch("/api/v1/notifications/" + notifications.path("content").get(0).path("id").asString()
-                + "/read"), token).andExpect(status().isOk());
+                + "/read"), token)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.readAt").isString())
+                .andExpect(jsonPath("$.storeName").value("Loja fictícia A"));
         perform(get("/api/v1/notifications/unread-count"), token).andExpect(jsonPath("$.unread").value(0));
     }
 

@@ -22,8 +22,7 @@ public class AlertNotificationService {
 
     @Transactional(readOnly = true)
     public PageResponse<AlertNotificationResponse> findMine(UUID userId, Pageable pageable) {
-        return PageResponse.from(notifications.findByUserId(userId, pageable)
-                .map(AlertNotificationResponse::from));
+        return PageResponse.from(notifications.findDetailedByUserId(userId, pageable));
     }
 
     @Transactional(readOnly = true)
@@ -34,8 +33,12 @@ public class AlertNotificationService {
     @Transactional
     public AlertNotificationResponse markRead(UUID userId, UUID notificationId) {
         AlertNotification notification = notifications.findByIdAndUserId(notificationId, userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Notificação não encontrada."));
+                .orElseThrow(this::notFound);
         notification.markRead(clock.instant());
-        return AlertNotificationResponse.from(notification);
+        return notifications.findDetailedByIdAndUserId(notificationId, userId).orElseThrow(this::notFound);
+    }
+
+    private ApiException notFound() {
+        return new ApiException(HttpStatus.NOT_FOUND, "Notificação não encontrada.");
     }
 }

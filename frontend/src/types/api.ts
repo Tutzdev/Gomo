@@ -409,6 +409,13 @@ export interface AlertNotification {
   unitPrice: number;
   createdAt: string;
   readAt: string | null;
+  productId: string;
+  productName: string;
+  storeName: string;
+  /** The condition of the alert that fired: `targetPrice` or `discountPercent`, by kind. */
+  alertKind: PriceAlertKind;
+  targetPrice: number | null;
+  discountPercent: number | null;
 }
 
 export interface UserPreference {
