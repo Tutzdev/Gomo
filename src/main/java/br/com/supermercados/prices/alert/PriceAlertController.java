@@ -64,6 +64,11 @@ public class PriceAlertController {
         return notifications.findMine(user.id(), PageRequests.create(page, size, sort));
     }
 
+    @GetMapping("/notifications/unread-count")
+    public UnreadNotificationsResponse unreadNotifications(@AuthenticationPrincipal AuthenticatedUser user) {
+        return notifications.countUnread(user.id());
+    }
+
     @PatchMapping("/notifications/{id}/read")
     public AlertNotificationResponse markRead(
             @AuthenticationPrincipal AuthenticatedUser user,

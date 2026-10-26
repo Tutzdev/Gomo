@@ -26,6 +26,11 @@ public class AlertNotificationService {
                 .map(AlertNotificationResponse::from));
     }
 
+    @Transactional(readOnly = true)
+    public UnreadNotificationsResponse countUnread(UUID userId) {
+        return new UnreadNotificationsResponse(notifications.countByUserIdAndReadAtIsNull(userId));
+    }
+
     @Transactional
     public AlertNotificationResponse markRead(UUID userId, UUID notificationId) {
         AlertNotification notification = notifications.findByIdAndUserId(notificationId, userId)

@@ -329,6 +329,7 @@ export const alertApi = {
     apiRequest<PageResponse<AlertNotification>>(
       `/notifications?${queryString({ page, size })}`,
     ),
+  unreadNotifications: () => apiRequest<{ unread: number }>("/notifications/unread-count"),
   markNotificationRead: (id: string) =>
     apiRequest<AlertNotification>(`/notifications/${id}/read`, {
       method: "PATCH",

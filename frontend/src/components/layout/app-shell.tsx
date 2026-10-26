@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Bell, Menu, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -6,6 +7,7 @@ import { NativeButton } from "@/components/ui/native-button";
 import { Sheet } from "@/components/ui/sheet";
 import { useAuth } from "@/features/auth/auth-context";
 import { UpsellProvider } from "@/features/plan/upsell-provider";
+import { alertApi } from "@/services/gomo-api";
 import type { User } from "@/types/api";
 import { cn } from "@/lib/cn";
 import "@/components/ui/animated-icons.css";
@@ -117,14 +119,7 @@ export function AppShell() {
                     Conhecer o Premium
                   </Link>
                 ) : null}
-                <Link
-                  to="/app/notificacoes"
-                  className="icon-button"
-                  aria-label="Notificações"
-                  title="Notificações"
-                >
-                  <Bell className="size-5" aria-hidden />
-                </Link>
+                <NotificationBell />
                 <div className="min-w-0 text-right">
                   <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
                   <p className="text-xs text-muted">{planLabel(user)}</p>
@@ -174,4 +169,29 @@ function planLabel(user: User) {
     return `Teste Premium até ${endsAt}`;
   }
   return user.premium ? "Premium" : "Plano grátis";
+}
+
+/** The bell shows how many notifications are waiting; it checks again every few minutes. */
+function NotificationBell() {
+  const unread = useQuery({
+    queryKey: ["notifications", "unread"],
+    queryFn: alertApi.unreadNotifications,
+    refetchInterval: 5 * 60 * 1000,
+  });
+  const count = unread.data?.unread ?? 0;
+  const label = count === 0 ? "Notificações" : count === 1 ? "Notificações: 1 nova" : `Notificações: ${count} novas`;
+
+  return (
+    <Link to="/app/notificacoes" className="icon-button relative" aria-label={label} title={label}>
+      <Bell className="size-5" aria-hidden />
+      {count > 0 ? (
+        <span
+          className="absolute -right-0.5 -top-0.5 grid min-w-4.5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-bold leading-4.5 text-white tabular-nums"
+          aria-hidden
+        >
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
+    </Link>
+  );
 }

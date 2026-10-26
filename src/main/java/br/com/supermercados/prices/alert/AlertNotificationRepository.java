@@ -17,6 +17,8 @@ interface AlertNotificationRepository extends JpaRepository<AlertNotification, U
 
     Optional<AlertNotification> findByIdAndUserId(UUID id, UUID userId);
 
+    long countByUserIdAndReadAtIsNull(UUID userId);
+
     @Modifying
     @Query(value = """
             INSERT INTO alert_notifications (
