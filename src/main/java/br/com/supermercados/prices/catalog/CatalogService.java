@@ -170,7 +170,7 @@ public class CatalogService {
         List<StoreResponse> selected = comparisonStores(cityId, storeIds);
         List<UUID> productIds = items.findProductIds(itemId);
         if (selected.isEmpty() || productIds.isEmpty()) {
-            return new CatalogItemHistoryResponse(itemId, since, List.of());
+            return new CatalogItemHistoryResponse(itemId, since, List.of(), PriceVerdict.of(List.of(), today()));
         }
 
         Map<UUID, List<CatalogItemHistoryResponse.PricePoint>> pointsByStore = new LinkedHashMap<>();
@@ -202,7 +202,7 @@ public class CatalogService {
                 .map(store -> new CatalogItemHistoryResponse.StoreSeries(store.id(), store.name(),
                         pointsByStore.get(store.id())))
                 .toList();
-        return new CatalogItemHistoryResponse(itemId, since, series);
+        return new CatalogItemHistoryResponse(itemId, since, series, PriceVerdict.of(series, today()));
     }
 
     // Only real, current prices are compared; a store without one is counted, never listed as a fake row.
@@ -226,6 +226,11 @@ public class CatalogService {
         }).sorted(Comparator.comparing((CatalogItemDetailResponse.StoreOffer offer) -> offer.price().unitPrice(),
                 Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(CatalogItemDetailResponse.StoreOffer::storeName))
                 .toList();
+    }
+
+    /** The shoppers' calendar day, the same one the history groups prices by. */
+    private LocalDate today() {
+        return LocalDate.ofInstant(clock.instant(), FreePlan.USAGE_ZONE);
     }
 
     public CatalogItem require(UUID itemId) {
