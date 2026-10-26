@@ -2,6 +2,8 @@ package br.com.supermercados.prices.alert;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -26,8 +28,14 @@ class PriceAlert {
     @Column(nullable = false)
     private UUID cityId;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private PriceAlertKind kind;
+
+    @Column(precision = 12, scale = 2)
     private BigDecimal targetPrice;
+
+    private Integer discountPercent;
 
     @Column(nullable = false)
     private boolean active;
@@ -51,7 +59,9 @@ class PriceAlert {
         this.userId = userId;
         productId = request.productId();
         cityId = request.cityId();
-        targetPrice = request.targetPrice().setScale(2, RoundingMode.UNNECESSARY);
+        kind = request.kind();
+        targetPrice = request.targetPrice() == null ? null : request.targetPrice().setScale(2, RoundingMode.UNNECESSARY);
+        discountPercent = request.discountPercent();
         active = true;
         createdAt = now;
         updatedAt = now;
@@ -83,8 +93,16 @@ class PriceAlert {
         return cityId;
     }
 
+    PriceAlertKind getKind() {
+        return kind;
+    }
+
     BigDecimal getTargetPrice() {
         return targetPrice;
+    }
+
+    Integer getDiscountPercent() {
+        return discountPercent;
     }
 
     boolean isActive() {

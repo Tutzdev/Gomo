@@ -40,6 +40,12 @@ public class PriceAlertService {
                     "No plano grátis você mantém até 2 alertas ativos. Desative um ou assine o Premium.");
         }
 
+        if (!request.hasOnlyItsOwnField()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, request.kind() == PriceAlertKind.TARGET_PRICE
+                    ? "Informe o preço desejado."
+                    : "Informe quantos por cento abaixo da média (de 5 a 50).");
+        }
+
         products.requireProduct(request.productId());
         locations.requireCity(request.cityId());
 
