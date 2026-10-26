@@ -8,12 +8,12 @@ import { NativeButton } from "@/components/ui/native-button";
 import { useAuth } from "@/features/auth/auth-context";
 import { CatalogItemThumbnail } from "@/features/catalog/catalog-item-picker";
 import { pendingCheck, type TripOperation } from "@/features/trip/trip-queue";
-import { clearSession, loadSession, loadSnapshot, saveSession, saveSnapshot, type TripSession } from "@/features/trip/trip-session";
+import { clearSession, EMPTY_SESSION, loadSession, loadSnapshot, saveSession, saveSnapshot, type TripSession } from "@/features/trip/trip-session";
 import { useTripQueue, type SyncState } from "@/features/trip/use-trip-queue";
 import { formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { contributionApi, tripApi } from "@/services/gomo-api";
-import type { Purchase, TripItem } from "@/types/api";
+import type { Purchase, Trip, TripItem } from "@/types/api";
 
 const formatQuantity = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 
@@ -59,9 +59,20 @@ export function TripPage() {
     async (operation: TripOperation) => {
       switch (operation.kind) {
         case "check":
-          return tripApi.check(listId, operation.itemId);
-        case "uncheck":
-          return tripApi.uncheck(listId, operation.itemId);
+        case "uncheck": {
+          const updated = operation.kind === "check"
+            ? await tripApi.check(listId, operation.itemId)
+            : await tripApi.uncheck(listId, operation.itemId);
+          // Once the operation leaves the queue, the screen reads the trip again: it must already say what the
+          // server said, or the item would jump back out of the cart until the next refresh.
+          queryClient.setQueryData<Trip>(["trip", listId, storeId], (current) => current && {
+            ...current,
+            items: current.items.map((item) => item.itemId === updated.id
+              ? { ...item, checkedAt: updated.checkedAt, checkedBy: updated.checkedBy, checkedByName: updated.checkedByName }
+              : item),
+          });
+          return updated;
+        }
         case "contribution":
           return contributionApi.submit({
             productId: operation.productId,
@@ -77,8 +88,21 @@ export function TripPage() {
             storeId: operation.storeId,
             items: operation.items,
           });
-          clearSession(listId, storeId);
-          setSession({ boughtHere: [], shelfPrices: {} });
+          if (result.listRestarted) {
+            clearSession(listId, storeId);
+            setSession(EMPTY_SESSION);
+          } else {
+            // The marks stay (the list continues at the next market), but these items are already bought.
+            setSession((current) => {
+              const next = {
+                boughtHere: [],
+                shelfPrices: {},
+                recorded: [...new Set([...current.recorded, ...operation.items.map((item) => item.itemId)])],
+              };
+              saveSession(listId, storeId, next);
+              return next;
+            });
+          }
           setRecorded(result);
           await Promise.all([
             queryClient.invalidateQueries({ queryKey: ["trip", listId] }),
@@ -112,7 +136,13 @@ export function TripPage() {
 
   const toPick = items.filter((item) => !item.inCart);
   const inCart = items.filter((item) => item.inCart);
-  const cartTotal = inCart.reduce((sum, item) => sum + (item.paidPrice === null ? 0 : item.paidPrice * item.quantity), 0);
+  // What "Terminei a compra" sends: what went into the cart here (or, checked on another phone, everything in
+  // the cart), minus what an earlier purchase already recorded.
+  const recordedHere = new Set(session.recorded);
+  const boughtHere = new Set(session.boughtHere);
+  const bought = inCart.filter((item) => !recordedHere.has(item.itemId)
+    && (boughtHere.size === 0 || boughtHere.has(item.itemId)));
+  const cartTotal = bought.reduce((sum, item) => sum + (item.paidPrice === null ? 0 : item.paidPrice * item.quantity), 0);
   const toggle = (item: TripItem & { inCart: boolean }) => {
     add({ kind: item.inCart ? "uncheck" : "check", itemId: item.itemId });
     updateSession((current) => ({
@@ -120,6 +150,8 @@ export function TripPage() {
       boughtHere: item.inCart
         ? current.boughtHere.filter((itemId) => itemId !== item.itemId)
         : [...new Set([...current.boughtHere, item.itemId])],
+      // Taken out of the cart and put back: a new purchase of it, not the recorded one.
+      recorded: current.recorded.filter((itemId) => itemId !== item.itemId),
     }));
   };
   const saveShelfPrice = (item: TripItem, price: number) => {
@@ -131,8 +163,6 @@ export function TripPage() {
     setEditing(null);
   };
   const finish = () => {
-    const boughtHere = new Set(session.boughtHere);
-    const bought = inCart.filter((item) => boughtHere.size === 0 || boughtHere.has(item.itemId));
     add({
       kind: "purchase",
       purchaseId: crypto.randomUUID(),
@@ -203,10 +233,10 @@ export function TripPage() {
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/85">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
           <div>
-            <p className="text-xs text-muted">No carrinho</p>
+            <p className="text-xs text-muted">Nesta compra</p>
             <p className="text-xl font-extrabold tabular-nums">{formatCurrency(cartTotal)}</p>
           </div>
-          <NativeButton size="lg" disabled={!inCart.length || purchaseWaiting} onClick={() => setConfirming(true)}>
+          <NativeButton size="lg" disabled={!bought.length || purchaseWaiting} onClick={() => setConfirming(true)}>
             <ShoppingCart className="size-5" aria-hidden />
             Terminei a compra
           </NativeButton>
@@ -217,7 +247,7 @@ export function TripPage() {
         open={confirming}
         onOpenChange={setConfirming}
         title="Registrar a compra?"
-        description={`${inCart.length} ${inCart.length === 1 ? "item" : "itens"} no carrinho, ${formatCurrency(cartTotal)} no ${trip.data.storeName}. O Gomo compara com a média dos mercados da cidade e soma na sua economia do mês.`}
+        description={`${bought.length} ${bought.length === 1 ? "item" : "itens"} no carrinho, ${formatCurrency(cartTotal)} no ${trip.data.storeName}. O Gomo compara com a média dos mercados da cidade e soma na sua economia do mês.`}
         confirmLabel="Registrar compra"
         onConfirm={finish}
       />

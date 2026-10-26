@@ -32,7 +32,7 @@ export function RecurringListsCard({ cityId }: { cityId: string }) {
 }
 
 function RecurringRow({ list }: { list: RecurringList }) {
-  const name = list.shoppingType === "MONTHLY" ? `Sua compra do mês (${list.name})` : `Sua compra da semana (${list.name})`;
+  const name = `${list.shoppingType === "MONTHLY" ? "Sua lista do mês" : "Sua lista da semana"} “${list.name}”`;
   return (
     <li>
       <Link to={`/app/listas/${list.listId}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 hover:bg-[#fafafa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
