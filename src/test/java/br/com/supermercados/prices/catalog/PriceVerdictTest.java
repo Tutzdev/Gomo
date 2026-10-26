@@ -54,6 +54,24 @@ class PriceVerdictTest {
     }
 
     @Test
+    void priceThatNeverMovesIsTheUsualPriceNotTheLowest() {
+        PriceVerdict verdict = PriceVerdict.of(List.of(
+                series("10.00", "10.00", "10.00", "10.00", "10.00", "10.00", "10.00", "10.00")), TODAY);
+
+        assertThat(verdict.kind()).isEqualTo(PriceVerdict.Kind.USUAL);
+        assertThat(verdict.differencePercent()).isZero();
+    }
+
+    @Test
+    void promotionThatKeepsGoingStaysTheLowestWhileItIsUnderTheAverage() {
+        PriceVerdict verdict = PriceVerdict.of(List.of(
+                series("10.00", "10.00", "10.00", "10.00", "10.00", "8.00", "8.00", "8.00")), TODAY);
+
+        assertThat(verdict.kind()).isEqualTo(PriceVerdict.Kind.LOWEST_IN_PERIOD);
+        assertThat(verdict.lowestDay()).isEqualTo(TODAY.minusDays(1));
+    }
+
+    @Test
     void tooFewDaysOrAnOldLatestPriceGiveNoVerdict() {
         PriceVerdict fewDays = PriceVerdict.of(List.of(series("10.00", "9.00", "8.00")), TODAY);
         PriceVerdict stale = PriceVerdict.of(List.of(

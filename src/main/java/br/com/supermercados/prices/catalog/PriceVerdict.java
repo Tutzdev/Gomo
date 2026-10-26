@@ -26,7 +26,10 @@ public record PriceVerdict(
         int days) {
 
     public enum Kind {
-        /** As cheap as or cheaper than every previous day of the window. */
+        /**
+         * Cheaper than every previous day of the window, or tied with the cheapest one while still under the
+         * average: a price that never moves is the usual price, not the lowest.
+         */
         LOWEST_IN_PERIOD,
         /** At least 5% under the average. */
         BELOW_AVERAGE,
@@ -70,8 +73,10 @@ public record PriceVerdict(
         BigDecimal difference = current.subtract(average).divide(average, 4, RoundingMode.HALF_UP);
         int differencePercent = difference.movePointRight(2).setScale(0, RoundingMode.HALF_UP).intValue();
 
-        Kind kind = current.compareTo(lowest.getValue()) <= 0 ? Kind.LOWEST_IN_PERIOD
-                : difference.compareTo(THRESHOLD.negate()) <= 0 ? Kind.BELOW_AVERAGE
+        boolean belowAverage = difference.compareTo(THRESHOLD.negate()) <= 0;
+        int againstLowest = current.compareTo(lowest.getValue());
+        Kind kind = againstLowest < 0 || againstLowest == 0 && belowAverage ? Kind.LOWEST_IN_PERIOD
+                : belowAverage ? Kind.BELOW_AVERAGE
                 : difference.compareTo(THRESHOLD) >= 0 ? Kind.ABOVE_AVERAGE
                 : Kind.USUAL;
         return new PriceVerdict(kind, current, average, lowest.getValue(), lowest.getKey(), differencePercent,
