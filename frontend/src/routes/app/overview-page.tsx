@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bell, CircleDollarSign, ListChecks, MapPin, Search, Store } from "lucide-react";
+import { Bell, CircleDollarSign, ListChecks, MapPin, PiggyBank, Search, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/feedback";
 import { NativeButton } from "@/components/ui/native-button";
 import { PageHeading, SurfaceTitle } from "@/components/page/page-elements";
-import { alertApi, catalogApi, preferenceApi, shoppingListApi } from "@/services/gomo-api";
-import { formatDate } from "@/lib/brand";
+import { alertApi, catalogApi, preferenceApi, savingsApi, shoppingListApi } from "@/services/gomo-api";
+import { monthName, recentMonths } from "@/features/savings/savings-month";
+import { formatCurrency, formatDate } from "@/lib/brand";
 
 export function OverviewPage() {
   // Each key holds exactly what its query fetched: the recent lists are a short page of their own, while the
@@ -24,6 +25,8 @@ export function OverviewPage() {
       <PageHeading title="Início" description="Suas listas, alertas e preferências em um só lugar." action={<NativeButton to="/app/produtos"><Search className="size-4" aria-hidden />Buscar preços</NativeButton>} />
 
       {hasError ? <ErrorState message="Parte das informações não pôde ser carregada." retry={() => void Promise.all([lists.refetch(), alerts.refetch(), unread.refetch(), preferences.refetch()])} /> : null}
+
+      <SavingsHighlight />
 
       <section aria-label="Resumo da conta" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryItem icon={ListChecks} label="Listas salvas" value={lists.data ? String(lists.data.totalElements) : "—"} loading={lists.isLoading} to="/app/listas" />
@@ -63,6 +66,40 @@ function SummaryItem({ icon: Icon, label, value, loading, to }: { icon: typeof L
     <Link to={to} className="surface flex min-h-28 items-center gap-4 p-4 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
       <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary"><Icon className="size-5" aria-hidden /></span>
       <div className="min-w-0"><p className="text-sm text-muted">{label}</p><p className="mt-1 truncate text-xl font-extrabold">{loading ? "…" : value}</p></div>
+    </Link>
+  );
+}
+
+/** "Em outubro, o Gomo te fez economizar R$ 83": the month so far, or how to start counting. */
+function SavingsHighlight() {
+  const [month] = recentMonths(1);
+  const report = useQuery({ queryKey: ["savings", month], queryFn: () => savingsApi.month(month) });
+  if (!report.data) return null;
+  const { purchases, savings } = report.data;
+
+  return (
+    <Link
+      to="/app/economia"
+      className="surface mb-4 flex items-center gap-4 border-success/25 bg-success-soft p-4 transition-colors hover:border-success/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:p-5"
+    >
+      <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-white text-success"><PiggyBank className="size-6" aria-hidden /></span>
+      <div className="min-w-0">
+        {purchases === 0 ? (
+          <>
+            <p className="font-bold">Quanto o Gomo te faz economizar?</p>
+            <p className="mt-0.5 text-sm text-muted">Use o modo “No mercado” da sua lista e toque em “Terminei a compra”: a economia do mês aparece aqui.</p>
+          </>
+        ) : (
+          <>
+            <p className="text-lg font-extrabold">
+              {savings >= 0
+                ? `Em ${monthName(month)}, o Gomo te fez economizar ${formatCurrency(savings)}`
+                : `Em ${monthName(month)}, suas compras saíram ${formatCurrency(-savings)} acima da média`}
+            </p>
+            <p className="mt-0.5 text-sm text-muted">{purchases} {purchases === 1 ? "compra registrada" : "compras registradas"}, comparadas com a média dos mercados da cidade.</p>
+          </>
+        )}
+      </div>
     </Link>
   );
 }

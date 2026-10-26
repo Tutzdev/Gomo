@@ -132,6 +132,10 @@ export const router = createBrowserRouter([
             lazy: () => import("@/routes/app/trip-page").then(({ TripPage }) => ({ Component: TripPage })),
           },
           {
+            path: "economia",
+            lazy: () => import("@/routes/app/savings-page").then(({ SavingsPage }) => ({ Component: SavingsPage })),
+          },
+          {
             path: "alertas",
             lazy: () => import("@/routes/app/alerts-page").then(({ AlertsPage }) => ({ Component: AlertsPage })),
           },

@@ -1,4 +1,4 @@
-import { BellRing, CalendarRange, LineChart, ListPlus, Lock, Route, Store, Tag, TrendingDown, type LucideIcon } from "lucide-react";
+import { BellRing, CalendarRange, LineChart, ListPlus, Lock, PiggyBank, Route, Store, Tag, TrendingDown, type LucideIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/brand";
 
 /** The moment that led to the upgrade message. Each one gets copy about what the person just tried to do. */
@@ -8,6 +8,7 @@ export type UpsellTrigger =
   | "ACTIVE_ALERTS"
   | "BELOW_AVERAGE_ALERTS"
   | "DEALS_FOR_MY_LISTS"
+  | "SAVINGS_REPORT"
   | "PRICE_HISTORY"
   | "LOCKED_STORES"
   | "SPLIT_PURCHASE"
@@ -67,6 +68,17 @@ export function upsellCopy(trigger: UpsellTrigger, context: UpsellContext = {}):
         description:
           "A página de ofertas mostra a cidade inteira. No Premium ela filtra pelos produtos das suas listas, para você saber na hora o que da sua compra está barato.",
         unlocks: ["Ofertas só dos produtos das suas listas", "Alerta quando ficar abaixo da média", "Compra dividida em até 2 mercados"],
+      };
+    case "SAVINGS_REPORT":
+      return {
+        icon: PiggyBank,
+        title:
+          context.savings && context.savings > 0
+            ? `Veja de onde vieram os ${formatCurrency(context.savings)} economizados`
+            : "Veja compra por compra quanto você economizou",
+        description:
+          "O total do mês fica aberto para todos. No Premium aparece cada compra, item por item, com o preço que você pagou e a média dos mercados da cidade.",
+        unlocks: ["Cada compra com a economia item por item", "Ofertas só dos produtos das suas listas", "Compra dividida em até 2 mercados"],
       };
     case "PRICE_HISTORY":
       return {
