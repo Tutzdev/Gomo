@@ -10,12 +10,12 @@ import br.com.supermercados.prices.price.PriceService;
 import br.com.supermercados.prices.price.StockAvailability;
 import br.com.supermercados.prices.price.UsualPrice;
 import br.com.supermercados.prices.support.PostgresTestDatabase;
+import br.com.supermercados.prices.support.SignedInAccounts;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +42,6 @@ import tools.jackson.databind.ObjectMapper;
 @Sql("/fixtures/catalog.sql")
 class PriceInsightsIntegrationTests {
 
-    private static final String PASSWORD = "synthetic-test-password";
     private static final UUID SOURCE = UUID.fromString("00000000-0000-0000-0000-000000000101");
     private static final UUID STORE_A = UUID.fromString("00000000-0000-0000-0000-000000000201");
     private static final UUID STORE_B = UUID.fromString("00000000-0000-0000-0000-000000000202");
@@ -158,22 +157,7 @@ class PriceInsightsIntegrationTests {
     }
 
     String premiumAccount() throws Exception {
-        String email = UUID.randomUUID() + "@example.test";
-        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of("name", "Pessoa sintética", "email", email,
-                                "password", PASSWORD))))
-                .andExpect(status().isAccepted());
-        String token = json.readTree(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of("email", email, "password", PASSWORD))))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray())
-                .path("accessToken").asString();
-        // The account and its session are still in this transaction's persistence context: write them out,
-        // change the account and forget both, so the next request reads them as a new request would.
-        entityManager.flush();
-        jdbc.update("update app_users set email_verified_at = current_timestamp, subscriber = true where email = ?",
-                email);
-        entityManager.clear();
-        return token;
+        return new SignedInAccounts(mvc, json, jdbc, entityManager).premium().token();
     }
 
     ResultActions perform(MockHttpServletRequestBuilder request, String token) throws Exception {

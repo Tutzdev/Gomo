@@ -120,12 +120,7 @@ public class ShoppingListService {
         item.changeQuantity(request.quantity());
         list.touch(clock.instant());
 
-        var product = products.requireProduct(item.getProductId());
-        var catalogItem = item.getCatalogItemId() == null ? null : catalog.findById(item.getCatalogItemId()).orElse(null);
-
-        return new ShoppingListItemResponse(item.getId(), product.getId(),
-                catalogItem == null ? product.getName() : catalogItem.getDisplayName(), item.getQuantity(),
-                item.getCatalogItemId(), catalogItem == null ? product.getImageUrl() : catalogItem.getImageUrl());
+        return itemResponse(item);
     }
 
     @Transactional
@@ -133,6 +128,49 @@ public class ShoppingListService {
         var list = lockOwnedList(userId, listId);
         items.delete(requireItem(listId, itemId));
         list.touch(clock.instant());
+    }
+
+    /** Into the cart, or back out of it. Idempotent, so the "No mercado" mode can resend after losing signal. */
+    @Transactional
+    public ShoppingListItemResponse checkItem(UUID userId, UUID listId, UUID itemId, boolean checked) {
+        lockOwnedList(userId, listId);
+        var item = requireItem(listId, itemId);
+        if (checked) {
+            item.check(userId, clock.instant());
+        } else {
+            item.uncheck();
+        }
+        return itemResponse(item);
+    }
+
+    /** Starts the next shopping trip with nothing in the cart. */
+    @Transactional
+    public void clearChecks(UUID userId, UUID listId) {
+        lockOwnedList(userId, listId);
+        items.clearChecks(listId);
+    }
+
+    /**
+     * After a purchase: when every item of the list went into a cart, the list starts over for the next trip.
+     * A list split between two markets keeps its marks until the second purchase.
+     */
+    @Transactional
+    public boolean clearChecksIfEverythingWasBought(UUID userId, UUID listId) {
+        lockOwnedList(userId, listId);
+        if (items.countByShoppingListIdAndCheckedAtIsNull(listId) > 0) {
+            return false;
+        }
+        items.clearChecks(listId);
+        return true;
+    }
+
+    private ShoppingListItemResponse itemResponse(ShoppingListItem item) {
+        var product = products.requireProduct(item.getProductId());
+        var catalogItem = item.getCatalogItemId() == null ? null : catalog.findById(item.getCatalogItemId()).orElse(null);
+        return new ShoppingListItemResponse(item.getId(), product.getId(),
+                catalogItem == null ? product.getName() : catalogItem.getDisplayName(), item.getQuantity(),
+                item.getCatalogItemId(), catalogItem == null ? product.getImageUrl() : catalogItem.getImageUrl(),
+                item.getCheckedAt(), item.getCheckedBy());
     }
 
     private ShoppingList lockOwnedList(UUID userId, UUID listId) {

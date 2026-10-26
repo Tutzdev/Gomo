@@ -27,6 +27,8 @@ public class AccountDeletionService {
     private static final SecureRandom RANDOM = new SecureRandom();
     /** Everything that belongs only to the person; shopping list items go with their lists. */
     private static final List<String> PERSONAL_DATA = List.of(
+            // Purchase items go with their purchases.
+            "DELETE FROM purchases WHERE user_id = ?",
             "DELETE FROM shopping_lists WHERE user_id = ?",
             "DELETE FROM alert_notifications WHERE user_id = ?",
             "DELETE FROM price_alerts WHERE user_id = ?",

@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 public interface ShoppingListItemRepository extends JpaRepository<ShoppingListItem, UUID> {
@@ -12,7 +13,7 @@ public interface ShoppingListItemRepository extends JpaRepository<ShoppingListIt
     @Query("""
             select new br.com.supermercados.prices.shoppinglist.ShoppingListItemResponse(
                 item.id, item.productId, coalesce(catalog.displayName, product.name), item.quantity,
-                item.catalogItemId, coalesce(catalog.imageUrl, product.imageUrl))
+                item.catalogItemId, coalesce(catalog.imageUrl, product.imageUrl), item.checkedAt, item.checkedBy)
             from ShoppingListItem item join Product product on product.id = item.productId
             left join CatalogItem catalog on catalog.id = item.catalogItemId
             where item.shoppingListId = :listId
@@ -27,6 +28,12 @@ public interface ShoppingListItemRepository extends JpaRepository<ShoppingListIt
     boolean existsByShoppingListIdAndCatalogItemId(UUID shoppingListId, UUID catalogItemId);
 
     long countByShoppingListId(UUID shoppingListId);
+
+    long countByShoppingListIdAndCheckedAtIsNull(UUID shoppingListId);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update ShoppingListItem item set item.checkedAt = null, item.checkedBy = null where item.shoppingListId = :listId")
+    int clearChecks(UUID listId);
 
     @Query("""
             select distinct item.catalogItemId from ShoppingListItem item, ShoppingList list

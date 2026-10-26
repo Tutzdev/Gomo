@@ -77,6 +77,7 @@ public class AccountDataExportService {
                 FROM price_contributions c JOIN products p ON p.id = c.product_id JOIN stores s ON s.id = c.store_id
                 WHERE c.contributor_id = ? ORDER BY c.submitted_at
                 """, userId));
+        export.put("compras", purchases(userId));
         export.put("comparacoesPorDia", rows("""
                 SELECT usage_date AS "dia", count(*) AS "comparacoes"
                 FROM comparison_usage WHERE user_id = ? GROUP BY usage_date ORDER BY usage_date
@@ -114,6 +115,31 @@ public class AccountDataExportService {
                         LEFT JOIN catalog_items c ON c.id = i.catalog_item_id
                     WHERE i.shopping_list_id = ? ORDER BY 1
                     """, list.get("id")));
+            return row;
+        }).toList();
+    }
+
+    /** "Terminei a compra" of the "No mercado" mode, with what was paid and the city average of that moment. */
+    private List<Map<String, Object>> purchases(UUID userId) {
+        List<Map<String, Object>> found = jdbc.queryForList("""
+                SELECT p.id, p.list_name, s.name AS store_name, p.purchased_at, p.total_paid, p.compared_items,
+                    p.compared_city_average - p.compared_paid AS savings
+                FROM purchases p JOIN stores s ON s.id = p.store_id WHERE p.user_id = ? ORDER BY p.purchased_at
+                """, userId);
+        return found.stream().map(purchase -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("lista", purchase.get("list_name"));
+            row.put("mercado", purchase.get("store_name"));
+            row.put("compradaEm", readable(purchase.get("purchased_at")));
+            row.put("totalPago", purchase.get("total_paid"));
+            row.put("itensComparados", purchase.get("compared_items"));
+            row.put("economiaContraAMediaDaCidade", purchase.get("savings"));
+            row.put("itens", rows("""
+                    SELECT product_name AS "produto", quantity AS "quantidade", unit_price AS "precoPago",
+                        CASE price_source WHEN 'SHELF' THEN 'digitado na gôndola' ELSE 'preço coletado' END AS "origemDoPreco",
+                        city_average_price AS "mediaDaCidade"
+                    FROM purchase_items WHERE purchase_id = ? ORDER BY product_name
+                    """, purchase.get("id")));
             return row;
         }).toList();
     }

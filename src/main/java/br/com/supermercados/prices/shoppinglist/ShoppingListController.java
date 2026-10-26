@@ -79,4 +79,22 @@ public class ShoppingListController {
         service.removeItem(user.id(), id, itemId);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}/items/{itemId}/check")
+    public ShoppingListItemResponse check(@AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID id, @PathVariable UUID itemId) {
+        return service.checkItem(user.id(), id, itemId, true);
+    }
+
+    @DeleteMapping("/{id}/items/{itemId}/check")
+    public ShoppingListItemResponse uncheck(@AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID id, @PathVariable UUID itemId) {
+        return service.checkItem(user.id(), id, itemId, false);
+    }
+
+    @DeleteMapping("/{id}/checks")
+    public ResponseEntity<Void> clearChecks(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        service.clearChecks(user.id(), id);
+        return ResponseEntity.noContent().build();
+    }
 }

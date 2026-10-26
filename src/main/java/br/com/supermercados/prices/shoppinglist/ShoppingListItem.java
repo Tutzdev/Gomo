@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -32,6 +33,10 @@ public class ShoppingListItem {
     @Column(nullable = false, precision = 12, scale = 3)
     private BigDecimal quantity;
 
+    private Instant checkedAt;
+
+    private UUID checkedBy;
+
     ShoppingListItem(UUID shoppingListId, UUID productId, BigDecimal quantity) {
         this(shoppingListId, productId, null, quantity);
     }
@@ -46,5 +51,18 @@ public class ShoppingListItem {
 
     void changeQuantity(BigDecimal quantity) {
         this.quantity = quantity;
+    }
+
+    /** Into the cart. Checking again keeps the first time and who did it: a retried request changes nothing. */
+    void check(UUID userId, Instant now) {
+        if (checkedAt == null) {
+            checkedAt = now;
+            checkedBy = userId;
+        }
+    }
+
+    void uncheck() {
+        checkedAt = null;
+        checkedBy = null;
     }
 }
