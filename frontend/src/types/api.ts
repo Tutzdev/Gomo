@@ -91,6 +91,19 @@ export interface CatalogItemHistory {
     storeName: string;
     points: Array<{ day: string; price: number }>;
   }>;
+  verdict: PriceVerdict;
+}
+
+/** Today's city lowest price read against the previous days of the history. */
+export interface PriceVerdict {
+  kind: "LOWEST_IN_PERIOD" | "BELOW_AVERAGE" | "USUAL" | "ABOVE_AVERAGE" | "NOT_ENOUGH_DATA";
+  currentPrice: number | null;
+  averagePrice: number | null;
+  lowestPrice: number | null;
+  lowestDay: string | null;
+  /** Negative is cheaper than the average. */
+  differencePercent: number | null;
+  days: number;
 }
 
 export interface AuthResponse {

@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/brand";
 import { catalogApi } from "@/services/gomo-api";
 import { PriceHistoryChart } from "./price-history-chart";
 import { buildHistoryDays, formatDay } from "./price-history-data";
+import { PriceVerdictBanner } from "./price-verdict-banner";
 import { useUpsell } from "./upsell-context";
 import { usePlan } from "./use-plan";
 import { useVisitorOffer } from "./use-visitor-offer";
@@ -62,6 +63,7 @@ function PremiumHistory({ itemId, cityId, storeIds }: { itemId: string; cityId: 
 
   return (
     <div className="p-4 sm:p-5">
+      <PriceVerdictBanner verdict={history.data.verdict} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted" aria-label="Legenda">
           <li className="flex items-center gap-2"><span className="h-0.5 w-5 rounded-full bg-[#d62a23]" aria-hidden />Menor preço da cidade</li>
@@ -128,7 +130,7 @@ export function LockedPriceHistory() {
       <div className="locked-history__overlay">
         <span className="grid size-10 place-items-center rounded-full bg-white text-primary shadow-sm"><Lock className="size-5" aria-hidden /></span>
         <p className="mt-3 max-w-xs text-center font-display text-lg font-bold leading-snug">Veja como o preço variou nos últimos 90 dias</p>
-        <p className="mt-1 max-w-xs text-center text-sm text-[#4d3f3e]">Saiba se o preço de hoje é promoção de verdade ou o mesmo de sempre.</p>
+        <p className="mt-1 max-w-xs text-center text-sm text-[#4d3f3e]">O Gomo diz se o preço de hoje é bom, de sempre ou se vale esperar.</p>
         {user ? (
           <button type="button" className="locked-history__button" onClick={() => showUpsell("PRICE_HISTORY")}>
             Ver histórico no Premium
