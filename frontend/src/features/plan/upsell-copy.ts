@@ -76,7 +76,7 @@ export function upsellCopy(trigger: UpsellTrigger, context: UpsellContext = {}):
             ? `Dividindo a compra, você economiza ${formatCurrency(context.savings)}`
             : "Descubra onde comprar cada item",
         description: `O Premium mostra o que comprar em cada um dos ${context.storeCount ?? 2} mercados e monta a rota até eles a partir de onde você está.`,
-        unlocks: ["O que comprar em cada mercado", "Rota com a distância até cada um", "Todos os mercados da cidade"],
+        unlocks: ["O que comprar em cada mercado, em 2 ou em todos", "Rota e quanto sobra depois da gasolina ou do ônibus", "Todos os mercados da cidade"],
       };
     case "DAILY_COMPARISONS":
       return {

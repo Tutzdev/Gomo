@@ -247,7 +247,7 @@ export function ListComparison({
             </p>
           ) : null}
           <p className="mt-3 text-xs text-muted">
-            Frete e deslocamento não estão incluídos. Apenas produtos com a
+            Frete não está incluído; o custo do deslocamento aparece na rota. Apenas produtos com a
             mesma identidade são comparados; não há substituição automática de
             marcas ou embalagens.
           </p>
