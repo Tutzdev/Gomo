@@ -4,6 +4,7 @@ import br.com.supermercados.prices.price.PricePolicy;
 import br.com.supermercados.prices.price.PriceRecord;
 import br.com.supermercados.prices.price.PriceRecordRepository;
 import br.com.supermercados.prices.price.PriceStatus;
+import br.com.supermercados.prices.price.UsualPrice;
 import br.com.supermercados.prices.store.Store;
 import br.com.supermercados.prices.subscription.PremiumAccess;
 import br.com.supermercados.prices.store.StoreService;
@@ -14,6 +15,7 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -26,8 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PriceAlertEvaluator {
 
-    static final Duration AVERAGE_WINDOW = Duration.ofDays(30);
-    static final int MINIMUM_AVERAGE_DAYS = 7;
     /** A price still at or below the last notice gets one reminder a week, not one per collection. */
     static final Duration REMINDER = Duration.ofDays(7);
 
@@ -78,7 +78,7 @@ public class PriceAlertEvaluator {
 
         List<PriceAlert> candidates = alerts.findActiveForEvaluation(record.getProductId(), store.getCityId());
         Set<UUID> premiumUsers = findPremiumUsers(candidates, now);
-        UsualPrice usualPrice = new UsualPrice(record.getProductId(), store.getCityId(), now);
+        CityUsualPrice usualPrice = new CityUsualPrice(record.getProductId(), store.getCityId(), now);
         for (PriceAlert alert : candidates) {
             boolean premium = premiumUsers.contains(alert.getUserId());
             // Kept, not deleted, when Premium ends: the alert speaks again if the person comes back.
@@ -102,7 +102,7 @@ public class PriceAlertEvaluator {
     }
 
     /** The highest price that fires the alert; {@code null} while there is no usual price to compare with. */
-    private static BigDecimal threshold(PriceAlert alert, UsualPrice usualPrice) {
+    private static BigDecimal threshold(PriceAlert alert, CityUsualPrice usualPrice) {
         if (alert.getKind() == PriceAlertKind.TARGET_PRICE) {
             return alert.getTargetPrice();
         }
@@ -115,27 +115,26 @@ public class PriceAlertEvaluator {
     }
 
     /**
-     * The usual price of the product in the city: the average of the daily lowest price over the last 30 days,
-     * leaving out the last 24 hours so a promotion that just started does not lower its own reference. Loaded
-     * once per evaluated price, and only if some alert needs it.
+     * The {@link UsualPrice} of the product in the whole city, the same one the price verdict shows. Loaded once
+     * per evaluated price, and only if some alert needs it.
      */
-    private final class UsualPrice {
+    private final class CityUsualPrice {
 
         private final UUID productId;
         private final UUID cityId;
-        private final Instant now;
+        private final LocalDate today;
         private Optional<BigDecimal> average;
 
-        private UsualPrice(UUID productId, UUID cityId, Instant now) {
+        private CityUsualPrice(UUID productId, UUID cityId, Instant now) {
             this.productId = productId;
             this.cityId = cityId;
-            this.now = now;
+            this.today = LocalDate.ofInstant(now, UsualPrice.ZONE);
         }
 
         private BigDecimal get() {
             if (average == null) {
-                average = prices.findDailyLowestAverage(productId, cityId, now.minus(AVERAGE_WINDOW),
-                        now.minus(Duration.ofDays(1)), MINIMUM_AVERAGE_DAYS);
+                average = prices.findDailyLowestAverage(productId, cityId, UsualPrice.windowStart(today), today,
+                        UsualPrice.MINIMUM_DAYS);
             }
             return average.orElse(null);
         }

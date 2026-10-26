@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -132,8 +133,9 @@ class PriceAlertEvaluatorTest {
         PriceAlert twentyPercent = belowAverageAlert(productId, cityId, 20);
         PriceAlert tenPercent = belowAverageAlert(productId, cityId, 10);
         when(alerts.findActiveForEvaluation(productId, cityId)).thenReturn(List.of(twentyPercent, tenPercent));
-        when(prices.findDailyLowestAverage(productId, cityId, NOW.minus(Duration.ofDays(30)),
-                NOW.minus(Duration.ofDays(1)), 7)).thenReturn(Optional.of(new BigDecimal("10.0000")));
+        // Today in São Paulo is 2026-09-15: the 30 days before it, leaving today out.
+        when(prices.findDailyLowestAverage(productId, cityId, LocalDate.parse("2026-08-16"),
+                LocalDate.parse("2026-09-15"), 7)).thenReturn(Optional.of(new BigDecimal("10.00")));
         when(notifications.insertIfAbsent(any(), any(), eq(tenPercent.getId()), eq(record.getId()), eq(storeId),
                 eq(new BigDecimal("8.50")), eq(NOW))).thenReturn(1);
 

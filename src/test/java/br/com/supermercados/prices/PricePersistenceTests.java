@@ -10,6 +10,7 @@ import br.com.supermercados.prices.price.PriceRecordRepository;
 import br.com.supermercados.prices.price.PriceService;
 import br.com.supermercados.prices.price.PriceStatus;
 import br.com.supermercados.prices.price.StockAvailability;
+import br.com.supermercados.prices.price.UsualPrice;
 import br.com.supermercados.prices.product.ProductService;
 import br.com.supermercados.prices.shoppinglist.AddItemRequest;
 import br.com.supermercados.prices.shoppinglist.ShoppingListRequest;
@@ -19,6 +20,7 @@ import br.com.supermercados.prices.support.PostgresTestDatabase;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -210,27 +212,49 @@ class PricePersistenceTests {
     }
 
     @Test
-    void usualPriceAveragesTheCityDailyLowestAndLeavesOutUnavailableAndRecentPrices() {
-        Instant now = Instant.now().minusSeconds(5);
+    void usualPriceAveragesTheCityDailyLowestAndLeavesOutUnavailableAndTodaysPrices() {
+        LocalDate today = LocalDate.now(UsualPrice.ZONE);
         for (int day = 2; day <= 9; day++) {
-            Instant collected = now.minus(Duration.ofDays(day));
+            Instant collected = noonOf(today.minusDays(day));
             prices.appendObservation(observation(STORE_A, PRODUCT_A, "usual-a-" + day, "10.00", collected));
             if (day <= 5) {
                 prices.appendObservation(observation(STORE_B, PRODUCT_A, "usual-b-" + day, "8.00", collected));
             }
         }
         prices.appendObservation(new PriceObservation(PRODUCT_A, STORE_B, SOURCE, "usual-unavailable",
-                new BigDecimal("1.00"), null, "BRL", now.minus(Duration.ofDays(3)), null, null,
+                new BigDecimal("1.00"), null, "BRL", noonOf(today.minusDays(3)).plusSeconds(60), null, null,
                 StockAvailability.UNAVAILABLE));
-        prices.appendObservation(observation(STORE_A, PRODUCT_A, "usual-today", "2.00", now.minusSeconds(3600)));
+        prices.appendObservation(observation(STORE_A, PRODUCT_A, "usual-today", "2.00", Instant.now().minusSeconds(5)));
 
-        var average = priceRecords.findDailyLowestAverage(PRODUCT_A, cityId(), now.minus(Duration.ofDays(30)),
-                now.minus(Duration.ofDays(1)), 7);
-        var notEnoughDays = priceRecords.findDailyLowestAverage(PRODUCT_A, cityId(), now.minus(Duration.ofDays(30)),
-                now.minus(Duration.ofDays(1)), 9);
+        var average = priceRecords.findDailyLowestAverage(PRODUCT_A, cityId(), UsualPrice.windowStart(today), today, 7);
+        var notEnoughDays = priceRecords.findDailyLowestAverage(PRODUCT_A, cityId(), UsualPrice.windowStart(today),
+                today, 9);
 
         assertThat(average).hasValueSatisfying(value -> assertThat(value).isEqualByComparingTo("9.00"));
         assertThat(notEnoughDays).isEmpty();
+    }
+
+    @Test
+    void everyNewPriceKeepsTheLowestPriceOfItsDayWithThePromotionRule() {
+        LocalDate day = LocalDate.now(UsualPrice.ZONE).minusDays(1);
+        Instant morning = noonOf(day).minus(Duration.ofHours(3));
+        prices.appendObservation(observation(STORE_A, PRODUCT_A, "day-regular", "10.00", morning));
+        prices.appendObservation(new PriceObservation(PRODUCT_A, STORE_A, SOURCE, "day-promotion",
+                new BigDecimal("12.00"), new BigDecimal("7.50"), "BRL", noonOf(day), null,
+                noonOf(day).plus(Duration.ofDays(3)), StockAvailability.AVAILABLE));
+        prices.appendObservation(new PriceObservation(PRODUCT_A, STORE_A, SOURCE, "day-sold-out",
+                new BigDecimal("1.00"), null, "BRL", noonOf(day).plusSeconds(60), null, null,
+                StockAvailability.UNAVAILABLE));
+        prices.appendObservation(observation(STORE_A, PRODUCT_A, "day-later", "11.00", noonOf(day).plus(Duration.ofHours(3))));
+
+        assertThat(jdbc.queryForObject("""
+                SELECT lowest_price FROM daily_lowest_prices WHERE product_id = ? AND store_id = ? AND price_day = ?
+                """, BigDecimal.class, PRODUCT_A, STORE_A, day)).isEqualByComparingTo("7.50");
+    }
+
+    /** Noon in São Paulo, safely inside the shoppers' calendar day whatever time the test runs. */
+    private static Instant noonOf(LocalDate day) {
+        return day.atTime(12, 0).atZone(UsualPrice.ZONE).toInstant();
     }
 
     private PriceObservation observation(UUID store, UUID product, String reference, String amount, Instant collected) {
