@@ -7,6 +7,7 @@ import type {
   CatalogItem,
   CatalogItemDetail,
   CatalogItemHistory,
+  DealsPage,
   City,
   CollectionHealth,
   PageResponse,
@@ -415,4 +416,22 @@ export const subscriptionApi = {
   cancelSubscription: () => apiRequest<SubscriptionStatus>("/subscription", { method: "DELETE" }),
   premiumValue: (cityId: string) =>
     apiRequest<PremiumValue>(`/subscription/premium-value?${queryString({ cityId })}`),
+};
+
+export interface DealFilters {
+  cityId: string;
+  storeId?: string;
+  category?: string;
+  /** Premium: only the products of the person's lists. Sent with the session; the rest is public. */
+  onlyMyLists?: boolean;
+  page?: number;
+  size?: number;
+}
+
+export const dealApi = {
+  list: ({ onlyMyLists = false, ...filters }: DealFilters) =>
+    apiRequest<DealsPage>(
+      `/deals?${queryString({ ...filters, onlyMyLists: onlyMyLists ? "true" : undefined })}`,
+      { anonymous: !onlyMyLists },
+    ),
 };

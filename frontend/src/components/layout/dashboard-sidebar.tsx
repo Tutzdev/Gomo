@@ -10,6 +10,7 @@ import {
   Settings,
   ShieldCheck,
   Store,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
@@ -35,6 +36,7 @@ type NavigationItem = {
 const navigation: NavigationItem[] = [
   { label: "Início", to: "/app", icon: House },
   { label: "Buscar preços", to: "/app/produtos", icon: Search, alsoActiveOn: ["/app/comparar"], open: true },
+  { label: "Ofertas da semana", to: "/app/ofertas", icon: Tag, open: true },
   { label: "Minhas listas", to: "/app/listas", icon: ListChecks },
   { label: "Alertas de preço", to: "/app/alertas", icon: CircleDollarSign },
   { label: "Supermercados", to: "/app/supermercados", icon: Store, open: true },

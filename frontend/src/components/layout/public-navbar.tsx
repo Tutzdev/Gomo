@@ -9,6 +9,7 @@ import { useAuth } from "@/features/auth/auth-context";
 // Searching is open without an account, so the search sits next to the landing sections.
 const navigation = [
   { label: "Buscar preços", href: "/app/produtos" },
+  { label: "Ofertas", href: "/ofertas" },
   { label: "Como funciona", href: "/#como-funciona" },
   { label: "Preço", href: "/#preco" },
   { label: "Dúvidas", href: "/#duvidas" },

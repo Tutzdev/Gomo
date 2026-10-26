@@ -53,6 +53,11 @@ export const router = createBrowserRouter([
     lazy: () => import("@/routes/legal-pages").then(({ PrivacyPage }) => ({ Component: PrivacyPage })),
   },
   {
+    path: "/ofertas",
+    hydrateFallbackElement,
+    lazy: () => import("@/routes/deals-page").then(({ DealsPage }) => ({ Component: DealsPage })),
+  },
+  {
     path: "/precos/:slug",
     hydrateFallbackElement,
     lazy: () => import("@/routes/product-price-page").then(({ ProductPricePage }) => ({ Component: ProductPricePage })),
@@ -90,6 +95,10 @@ export const router = createBrowserRouter([
         lazy: () => import("@/routes/app/product-detail-page").then(({ ProductDetailPage }) => ({
           Component: ProductDetailPage,
         })),
+      },
+      {
+        path: "ofertas",
+        lazy: () => import("@/routes/app/deals-page").then(({ AppDealsPage }) => ({ Component: AppDealsPage })),
       },
       {
         path: "supermercados",

@@ -7,7 +7,13 @@ export type RecommendationStatus = "COMPLETE_STORE_FOUND" | "NO_COMPLETE_STORE";
 export type PremiumSource = "SUBSCRIPTION" | "TRIAL" | "ADMIN" | "BETA" | "NONE";
 export type BillingCycle = "MONTHLY" | "ANNUAL";
 /** Free-plan limits the API reports in a PLAN_LIMIT problem. */
-export type PlanLimit = "SHOPPING_LISTS" | "LIST_ITEMS" | "ACTIVE_ALERTS" | "PRICE_HISTORY" | "BELOW_AVERAGE_ALERTS";
+export type PlanLimit =
+  | "SHOPPING_LISTS"
+  | "LIST_ITEMS"
+  | "ACTIVE_ALERTS"
+  | "PRICE_HISTORY"
+  | "BELOW_AVERAGE_ALERTS"
+  | "DEALS_FOR_MY_LISTS";
 
 export interface PageResponse<T> {
   content: T[];
@@ -488,4 +494,33 @@ export interface AdminAudit {
   resourceType: string;
   resourceId: string;
   occurredAt: string;
+}
+
+/** A product cheaper than usual at one store, against the usual price of the city. */
+export interface Deal {
+  itemId: string;
+  name: string;
+  brand: string | null;
+  sizeLabel: string;
+  category: string | null;
+  imageUrl: string | null;
+  storeId: string;
+  storeName: string;
+  price: number;
+  usualPrice: number;
+  discountPercent: number;
+  /** The store's own promotion. */
+  promotion: boolean;
+  lowestIn90Days: boolean;
+  collectedAt: string;
+}
+
+export interface DealsPage {
+  cityId: string;
+  computedAt: string;
+  minimumDiscountPercent: number;
+  deals: PageResponse<Deal>;
+  stores: Array<{ storeId: string; storeName: string; deals: number }>;
+  categories: Array<{ category: string; deals: number }>;
+  onlyMyLists: boolean;
 }

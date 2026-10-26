@@ -21,7 +21,7 @@ import { useVisitorOffer } from "@/features/plan/use-visitor-offer";
 
 interface AddToListProps {
   product?: Product;
-  catalogItem?: CatalogItem;
+  catalogItem?: Pick<CatalogItem, "id" | "name">;
 }
 
 /**

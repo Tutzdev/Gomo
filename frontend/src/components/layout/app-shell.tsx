@@ -15,6 +15,7 @@ import "@/components/ui/animated-icons.css";
 const pageNames: Record<string, string> = {
   "/app": "Início",
   "/app/produtos": "Buscar preços",
+  "/app/ofertas": "Ofertas da semana",
   "/app/supermercados": "Supermercados",
   "/app/listas": "Minhas listas",
   "/app/alertas": "Alertas de preço",

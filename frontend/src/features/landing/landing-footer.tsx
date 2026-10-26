@@ -18,6 +18,7 @@ const pageLinks: FooterLink[] = [
 
 const appLinks: FooterLink[] = [
   { label: "Buscar preços", to: "/app/produtos" },
+  { label: "Ofertas da semana", to: "/ofertas" },
   { label: "Minhas listas", to: "/app/listas" },
   { label: "Alertas de preço", to: "/app/alertas" },
   { label: "Supermercados", to: "/app/supermercados" },

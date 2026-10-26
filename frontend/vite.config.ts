@@ -83,6 +83,7 @@ function robotsTxt(siteUrl: string | undefined): Plugin {
     "Allow: /api/v1/catalog/items/",
     "Allow: /api/v1/stores?",
     "Allow: /api/v1/cities?",
+    "Allow: /api/v1/deals?",
     ...(site ? ["", `Sitemap: ${site}/api/v1/sitemap.xml`] : []),
   ];
   const content = `${lines.join("\n")}\n`;
