@@ -94,16 +94,23 @@ export interface CatalogItemHistory {
   verdict: PriceVerdict;
 }
 
-/** Today's city lowest price read against the previous days of the history. */
+/**
+ * The cheapest current offer read against the usual price (average of the daily lowest price over the 30 days
+ * before today, the same reference as the alerts) and the lowest price of the history.
+ */
 export interface PriceVerdict {
   kind: "LOWEST_IN_PERIOD" | "BELOW_AVERAGE" | "USUAL" | "ABOVE_AVERAGE" | "NOT_ENOUGH_DATA";
   currentPrice: number | null;
+  /** The usual price. */
   averagePrice: number | null;
   lowestPrice: number | null;
   lowestDay: string | null;
-  /** Negative is cheaper than the average. */
+  /** Negative is cheaper than the usual price. */
   differencePercent: number | null;
+  /** Days with a price behind the usual price. */
   days: number;
+  /** Calendar days from the first price of the history to today. */
+  periodDays: number;
 }
 
 export interface AuthResponse {

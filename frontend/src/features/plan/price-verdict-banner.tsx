@@ -48,9 +48,9 @@ export function PriceVerdictBanner({ verdict, productId }: { verdict: PriceVerdi
 }
 
 function verdictCopy(verdict: PriceVerdict): { icon: LucideIcon; tone: Tone; title: string; detail: string } | null {
-  const { currentPrice, averagePrice, lowestPrice, lowestDay, differencePercent, days } = verdict;
+  const { currentPrice, averagePrice, lowestPrice, lowestDay, differencePercent, days, periodDays } = verdict;
   if (verdict.kind === "NOT_ENOUGH_DATA" || currentPrice === null || averagePrice === null) return null;
-  const average = formatCurrency(averagePrice);
+  const usual = `${formatCurrency(averagePrice)} (média de ${days} dias com preço no último mês)`;
   const difference = Math.abs(differencePercent ?? 0);
 
   switch (verdict.kind) {
@@ -58,32 +58,32 @@ function verdictCopy(verdict: PriceVerdict): { icon: LucideIcon; tone: Tone; tit
       return {
         icon: Trophy,
         tone: "success",
-        title: `Bom momento: ${formatCurrency(currentPrice)} é o menor preço dos últimos ${days + 1} dias`,
-        detail: `A média do período é ${average}. Se é um produto que você usa sempre, vale levar agora.`,
+        title: `Bom momento: ${formatCurrency(currentPrice)} é o menor preço dos últimos ${periodDays} dias`,
+        detail: `O preço de sempre é ${usual}. Se é um produto que você usa sempre, vale levar agora.`,
       };
     case "BELOW_AVERAGE":
       return {
         icon: ThumbsUp,
         tone: "success",
-        title: `Preço bom: ${difference}% abaixo da média`,
-        detail: `Hoje sai ${formatCurrency(currentPrice)}; a média dos últimos ${days} dias com preço é ${average}.`,
+        title: `Preço bom: ${difference}% abaixo do preço de sempre`,
+        detail: `Hoje sai ${formatCurrency(currentPrice)}; o preço de sempre é ${usual}.`,
       };
     case "USUAL":
       return {
         icon: Minus,
         tone: "neutral",
         title: "Preço de sempre",
-        detail: `${formatCurrency(currentPrice)} está perto da média de ${average}. Nem promoção, nem alta.`,
+        detail: `${formatCurrency(currentPrice)} está perto de ${usual}. Nem promoção, nem alta.`,
       };
     case "ABOVE_AVERAGE":
       return {
         icon: Hourglass,
         tone: "warning",
-        title: `Vale esperar: ${difference}% acima da média`,
+        title: `Vale esperar: ${difference}% acima do preço de sempre`,
         detail:
           lowestPrice !== null && lowestDay !== null
-            ? `Hoje sai ${formatCurrency(currentPrice)}, mas a média é ${average} e já esteve por ${formatCurrency(lowestPrice)} em ${formatDay(lowestDay)}.`
-            : `Hoje sai ${formatCurrency(currentPrice)}, mas a média é ${average}.`,
+            ? `Hoje sai ${formatCurrency(currentPrice)}, mas o preço de sempre é ${usual} e já esteve por ${formatCurrency(lowestPrice)} em ${formatDay(lowestDay)}.`
+            : `Hoje sai ${formatCurrency(currentPrice)}, mas o preço de sempre é ${usual}.`,
       };
   }
 }

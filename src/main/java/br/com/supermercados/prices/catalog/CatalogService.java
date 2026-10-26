@@ -1,7 +1,6 @@
 package br.com.supermercados.prices.catalog;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -30,6 +29,7 @@ import br.com.supermercados.prices.price.PricePolicy;
 import br.com.supermercados.prices.price.PriceQuote;
 import br.com.supermercados.prices.price.PriceRecord;
 import br.com.supermercados.prices.price.PriceRecordRepository;
+import br.com.supermercados.prices.price.UsualPrice;
 import br.com.supermercados.prices.product.Product;
 import br.com.supermercados.prices.product.ProductRepository;
 import br.com.supermercados.prices.store.StoreResponse;
@@ -158,8 +158,9 @@ public class CatalogService {
     }
 
     /**
-     * Daily lowest price per store over the Premium history window, for the price-variation chart. A promotion
-     * counts under the same rule as {@link PricePolicy}: unconditional and valid when it was collected.
+     * Daily lowest price per store over the Premium history window, for the price-variation chart, read from
+     * {@code daily_lowest_prices} (a promotion counts under the same rule as {@link PricePolicy}). The verdict
+     * reads that history against the cheapest current offer of the same stores.
      */
     public CatalogItemHistoryResponse history(UUID itemId, UUID cityId, List<UUID> storeIds, boolean premium) {
         if (!premium) {
@@ -167,30 +168,24 @@ public class CatalogService {
         }
         require(itemId);
         Instant since = clock.instant().minus(FreePlan.PREMIUM_HISTORY);
+        LocalDate today = UsualPrice.today(clock);
         List<StoreResponse> selected = comparisonStores(cityId, storeIds);
         List<UUID> productIds = items.findProductIds(itemId);
         if (selected.isEmpty() || productIds.isEmpty()) {
-            return new CatalogItemHistoryResponse(itemId, since, List.of(), PriceVerdict.of(List.of(), today()));
+            return new CatalogItemHistoryResponse(itemId, since, List.of(), PriceVerdict.of(List.of(), null, today));
         }
 
         Map<UUID, List<CatalogItemHistoryResponse.PricePoint>> pointsByStore = new LinkedHashMap<>();
         jdbc.query("""
-                SELECT store_id,
-                       CAST(collected_at AT TIME ZONE 'America/Sao_Paulo' AS DATE) AS price_day,
-                       MIN(CASE
-                               WHEN promotional_price IS NOT NULL AND promotion_condition IS NULL
-                                    AND promotion_valid_until > collected_at THEN promotional_price
-                               ELSE regular_price
-                           END) AS lowest_price
-                FROM price_records
-                WHERE product_id IN (:productIds) AND store_id IN (:storeIds) AND collected_at >= :since
-                  AND availability <> 'UNAVAILABLE'
+                SELECT store_id, price_day, MIN(lowest_price) AS lowest_price
+                FROM daily_lowest_prices
+                WHERE product_id IN (:productIds) AND store_id IN (:storeIds) AND price_day >= :since
                 GROUP BY store_id, price_day
                 ORDER BY store_id, price_day
                 """, new MapSqlParameterSource()
                 .addValue("productIds", productIds)
                 .addValue("storeIds", selected.stream().map(StoreResponse::id).toList())
-                .addValue("since", Timestamp.from(since)), row -> {
+                .addValue("since", LocalDate.ofInstant(since, UsualPrice.ZONE)), row -> {
             pointsByStore.computeIfAbsent(row.getObject("store_id", UUID.class), ignored -> new ArrayList<>())
                     .add(new CatalogItemHistoryResponse.PricePoint(
                             row.getObject("price_day", LocalDate.class), row.getBigDecimal("lowest_price")));
@@ -202,7 +197,9 @@ public class CatalogService {
                 .map(store -> new CatalogItemHistoryResponse.StoreSeries(store.id(), store.name(),
                         pointsByStore.get(store.id())))
                 .toList();
-        return new CatalogItemHistoryResponse(itemId, since, series, PriceVerdict.of(series, today()));
+        BigDecimal currentPrice = rankOffers(itemId, selected).stream().findFirst()
+                .map(offer -> offer.price().unitPrice()).orElse(null);
+        return new CatalogItemHistoryResponse(itemId, since, series, PriceVerdict.of(series, currentPrice, today));
     }
 
     // Only real, current prices are compared; a store without one is counted, never listed as a fake row.
@@ -226,11 +223,6 @@ public class CatalogService {
         }).sorted(Comparator.comparing((CatalogItemDetailResponse.StoreOffer offer) -> offer.price().unitPrice(),
                 Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(CatalogItemDetailResponse.StoreOffer::storeName))
                 .toList();
-    }
-
-    /** The shoppers' calendar day, the same one the history groups prices by. */
-    private LocalDate today() {
-        return LocalDate.ofInstant(clock.instant(), FreePlan.USAGE_ZONE);
     }
 
     public CatalogItem require(UUID itemId) {

@@ -1,20 +1,26 @@
 package br.com.supermercados.prices.catalog;
 
+import br.com.supermercados.prices.price.UsualPrice;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 
 /**
- * Whether today's price is a good one, read from the price history: the city's lowest price on the latest day,
- * against the average and the lowest of the previous days. A chart answers this too, but only for people who
- * like charts; the verdict says it in one line.
+ * Whether today's price is a good one. "Today's price" is the cheapest current offer, the same one the page lists
+ * first; it is read against the {@link UsualPrice} (the same reference as the alerts below the average) and against
+ * the lowest price of the previous days of the history. A chart answers this too, but only for people who like
+ * charts; the verdict says it in one line.
  *
- * @param differencePercent how far the current price is from the average, rounded; negative is cheaper
- * @param days days with a price before the latest one, the base of the average
+ * @param averagePrice the usual price
+ * @param differencePercent how far the current price is from the usual price, rounded; negative is cheaper
+ * @param days days with a price behind the usual price
+ * @param periodDays calendar days from the first price of the history to today, for "the lowest in N days"
  */
 public record PriceVerdict(
         Kind kind,
@@ -23,67 +29,63 @@ public record PriceVerdict(
         BigDecimal lowestPrice,
         LocalDate lowestDay,
         Integer differencePercent,
-        int days) {
+        int days,
+        int periodDays) {
 
     public enum Kind {
         /**
-         * Cheaper than every previous day of the window, or tied with the cheapest one while still under the
-         * average: a price that never moves is the usual price, not the lowest.
+         * Cheaper than every previous day of the history, or tied with the cheapest one while still under the
+         * usual price: a price that never moves is the usual price, not the lowest.
          */
         LOWEST_IN_PERIOD,
-        /** At least 5% under the average. */
+        /** At least 5% under the usual price. */
         BELOW_AVERAGE,
-        /** Within 5% of the average. */
+        /** Within 5% of the usual price. */
         USUAL,
-        /** At least 5% over the average: worth waiting. */
+        /** At least 5% over the usual price: worth waiting. */
         ABOVE_AVERAGE,
-        /** Too few days, or no price in the last days, to say anything honest. */
+        /** No current price, or too few days for a usual price: nothing honest to say. */
         NOT_ENOUGH_DATA
     }
 
-    /** Fewer previous days than this and an "average" says nothing about the usual price. */
-    static final int MINIMUM_DAYS = 7;
-    /** A latest price older than this is not "today's price" anymore. */
-    static final int MAXIMUM_AGE_DAYS = 2;
     private static final BigDecimal THRESHOLD = new BigDecimal("0.05");
 
-    static PriceVerdict of(List<CatalogItemHistoryResponse.StoreSeries> stores, LocalDate today) {
-        TreeMap<LocalDate, BigDecimal> lowestByDay = new TreeMap<>();
+    /**
+     * @param stores the history of each store; points of {@code today} itself are not part of the reference
+     * @param currentPrice the cheapest current offer, or {@code null} when no store has one
+     */
+    static PriceVerdict of(List<CatalogItemHistoryResponse.StoreSeries> stores, BigDecimal currentPrice,
+            LocalDate today) {
+        NavigableMap<LocalDate, BigDecimal> previous = new TreeMap<>();
         for (var store : stores) {
             for (var point : store.points()) {
-                lowestByDay.merge(point.day(), point.price(), BigDecimal::min);
+                if (point.day().isBefore(today)) {
+                    previous.merge(point.day(), point.price(), BigDecimal::min);
+                }
             }
         }
-        if (lowestByDay.isEmpty() || lowestByDay.lastKey().isBefore(today.minusDays(MAXIMUM_AGE_DAYS))) {
-            return notEnoughData(null, lowestByDay.size());
+        var usual = UsualPrice.of(previous, today);
+        if (currentPrice == null || usual.isEmpty()) {
+            return new PriceVerdict(Kind.NOT_ENOUGH_DATA, currentPrice, null, null, null, null,
+                    usual.map(UsualPrice::days).orElse(0), 0);
         }
 
-        BigDecimal current = lowestByDay.lastEntry().getValue();
-        var previous = lowestByDay.headMap(lowestByDay.lastKey(), false);
-        if (previous.size() < MINIMUM_DAYS) {
-            return notEnoughData(current, previous.size());
-        }
-        BigDecimal average = previous.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(previous.size()), 2, RoundingMode.HALF_UP);
         Map.Entry<LocalDate, BigDecimal> lowest = previous.entrySet().stream()
                 // The most recent day wins a tie: "it was this price on <day>" should point to the latest time.
                 .min(Comparator.comparing(Map.Entry<LocalDate, BigDecimal>::getValue)
                         .thenComparing(Map.Entry::getKey, Comparator.reverseOrder()))
                 .orElseThrow();
-        BigDecimal difference = current.subtract(average).divide(average, 4, RoundingMode.HALF_UP);
+        BigDecimal difference = usual.get().differenceOf(currentPrice);
         int differencePercent = difference.movePointRight(2).setScale(0, RoundingMode.HALF_UP).intValue();
 
         boolean belowAverage = difference.compareTo(THRESHOLD.negate()) <= 0;
-        int againstLowest = current.compareTo(lowest.getValue());
+        int againstLowest = currentPrice.compareTo(lowest.getValue());
         Kind kind = againstLowest < 0 || againstLowest == 0 && belowAverage ? Kind.LOWEST_IN_PERIOD
                 : belowAverage ? Kind.BELOW_AVERAGE
                 : difference.compareTo(THRESHOLD) >= 0 ? Kind.ABOVE_AVERAGE
                 : Kind.USUAL;
-        return new PriceVerdict(kind, current, average, lowest.getValue(), lowest.getKey(), differencePercent,
-                previous.size());
-    }
-
-    private static PriceVerdict notEnoughData(BigDecimal current, int days) {
-        return new PriceVerdict(Kind.NOT_ENOUGH_DATA, current, null, null, null, null, days);
+        int periodDays = (int) ChronoUnit.DAYS.between(previous.firstKey(), today);
+        return new PriceVerdict(kind, currentPrice, usual.get().average(), lowest.getValue(), lowest.getKey(),
+                differencePercent, usual.get().days(), periodDays);
     }
 }
