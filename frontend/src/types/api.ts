@@ -368,11 +368,20 @@ export interface StoreProduct {
   price: PriceQuote;
 }
 
+/** TARGET_PRICE: a price the person chose. BELOW_AVERAGE: a percentage below the 30-day usual price. */
+export type PriceAlertKind = "TARGET_PRICE" | "BELOW_AVERAGE";
+
+export type CreatePriceAlertInput =
+  | { productId: string; cityId: string; kind: "TARGET_PRICE"; targetPrice: number }
+  | { productId: string; cityId: string; kind: "BELOW_AVERAGE"; discountPercent: number };
+
 export interface PriceAlert {
   id: string;
   productId: string;
   cityId: string;
-  targetPrice: number;
+  kind: PriceAlertKind;
+  targetPrice: number | null;
+  discountPercent: number | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;

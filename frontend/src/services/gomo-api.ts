@@ -12,6 +12,7 @@ import type {
   PageResponse,
   PremiumValue,
   PriceAlert,
+  CreatePriceAlertInput,
   PriceContribution,
   PriceRecord,
   Product,
@@ -320,7 +321,7 @@ export const alertApi = {
     apiRequest<PageResponse<PriceAlert>>(
       `/alerts?${queryString({ page, size })}`,
     ),
-  create: (input: { productId: string; cityId: string; targetPrice: number }) =>
+  create: (input: CreatePriceAlertInput) =>
     apiRequest<PriceAlert>("/alerts", { method: "POST", body: input }),
   deactivate: (id: string) =>
     apiRequest<PriceAlert>(`/alerts/${id}/deactivation`, { method: "PATCH" }),
