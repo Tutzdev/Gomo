@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CircleDollarSign, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, CircleDollarSign, LogOut, Plus, Trash2, Users } from "lucide-react";
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   EmptyState,
   ErrorState,
@@ -9,7 +9,9 @@ import {
   LoadingState,
 } from "@/components/ui/feedback";
 import { SelectField, TextField } from "@/components/ui/form-field";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { NativeButton } from "@/components/ui/native-button";
+import { useAuth } from "@/features/auth/auth-context";
 import { PageHeading } from "@/components/page/page-elements";
 import { ComparisonStoreFilter } from "@/features/catalog/comparison-store-filter";
 import {
@@ -18,9 +20,10 @@ import {
 } from "@/features/catalog/catalog-item-picker";
 import { GoodPricesCard } from "@/features/shopping-lists/good-prices-card";
 import { ListComparison } from "@/features/shopping-lists/list-comparison";
+import { ShareListSheet } from "@/features/shopping-lists/share-list-sheet";
 import { SubstitutesCard } from "@/features/shopping-lists/substitutes-card";
 import { formatDate } from "@/lib/brand";
-import { catalogApi, shoppingListApi } from "@/services/gomo-api";
+import { catalogApi, sharingApi, shoppingListApi } from "@/services/gomo-api";
 import type {
   CatalogItem,
   ShoppingList,
@@ -45,10 +48,23 @@ export function ShoppingListDetailPage() {
   const [compareCityId, setCompareCityId] = useState("");
   const [addedName, setAddedName] = useState("");
   const [editingName, setEditingName] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const navigate = useNavigate();
   const list = useQuery({
     queryKey: ["shopping-list", id],
     queryFn: () => shoppingListApi.get(id),
     enabled: Boolean(id),
+    // A shared list changes in other hands too.
+    refetchInterval: (query) => (query.state.data && (!query.state.data.owned || query.state.data.members.length) ? 15_000 : false),
+  });
+  const { user } = useAuth();
+  const leave = useMutation({
+    mutationFn: () => sharingApi.removeMember(id, user!.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+      navigate("/app/listas", { replace: true });
+    },
   });
   const cities = useQuery({
     queryKey: ["cities", "list-compare"],
@@ -110,13 +126,43 @@ export function ShoppingListDetailPage() {
         title={list.data.name}
         description={`${list.data.items.length} produtos · Atualizada em ${formatDate(list.data.updatedAt)}`}
         action={
-          <NativeButton
-            variant="secondary"
-            onClick={() => setEditingName(!editingName)}
-          >
-            {editingName ? "Cancelar edição" : "Editar lista"}
-          </NativeButton>
+          list.data.owned ? (
+            <div className="flex flex-wrap gap-2">
+              <NativeButton variant="secondary" onClick={() => setSharing(true)}>
+                <Users className="size-4" aria-hidden />
+                {list.data.members.length ? `Compartilhada (${list.data.members.length + 1})` : "Compartilhar"}
+              </NativeButton>
+              <NativeButton
+                variant="secondary"
+                onClick={() => setEditingName(!editingName)}
+              >
+                {editingName ? "Cancelar edição" : "Editar lista"}
+              </NativeButton>
+            </div>
+          ) : (
+            <NativeButton variant="secondary" onClick={() => setLeaving(true)}>
+              <LogOut className="size-4" aria-hidden />
+              Sair da lista
+            </NativeButton>
+          )
         }
+      />
+      {!list.data.owned ? (
+        <p className="mb-5 flex items-center gap-2 rounded-lg bg-primary-soft px-4 py-3 text-sm">
+          <Users className="size-4 shrink-0 text-primary" aria-hidden />
+          Lista de {list.data.ownerName ?? "outra pessoa"}, compartilhada com você: o que você muda aparece para todos.
+        </p>
+      ) : null}
+      {list.data.owned ? <ShareListSheet list={list.data} open={sharing} onOpenChange={setSharing} /> : null}
+      <ConfirmDialog
+        open={leaving}
+        onOpenChange={setLeaving}
+        title="Sair da lista?"
+        description={`A lista "${list.data.name}" some das suas listas. Para voltar, peça um convite novo a ${list.data.ownerName ?? "quem compartilhou"}.`}
+        confirmLabel="Sair da lista"
+        loading={leave.isPending}
+        error={leave.error?.message}
+        onConfirm={() => leave.mutate()}
       />
       {editingName ? (
         <RenameList
@@ -323,6 +369,11 @@ function ListItemRow({
         >
           {item.productName}
         </Link>
+        {item.checkedAt ? (
+          <span className="ml-auto shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success">
+            No carrinho{item.checkedByName ? ` · ${item.checkedByName}` : ""}
+          </span>
+        ) : null}
       </div>
       <form
         className="mt-3 flex flex-wrap items-end gap-3"

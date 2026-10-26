@@ -482,3 +482,24 @@ export const recurringListApi = {
   /** The person's weekly and monthly lists recalculated now in the city. */
   mine: (cityId: string) => apiRequest<RecurringList[]>(`/recurring-lists?${queryString({ cityId })}`),
 };
+
+/** The invite token goes in request bodies: never in an address the server or a proxy writes to its logs. */
+export const sharingApi = {
+  invite: (listId: string) =>
+    apiRequest<{ token: string; expiresAt: string }>(`/shopping-lists/${listId}/invites`, { method: "POST" }),
+  stopSharing: (listId: string) => apiRequest<void>(`/shopping-lists/${listId}/invites`, { method: "DELETE" }),
+  removeMember: (listId: string, userId: string) =>
+    apiRequest<void>(`/shopping-lists/${listId}/members/${userId}`, { method: "DELETE" }),
+  preview: (token: string) =>
+    apiRequest<{
+      listId: string;
+      listName: string;
+      ownerName: string;
+      items: number;
+      members: number;
+      alreadyIn: boolean;
+      expiresAt: string;
+    }>("/list-invites/preview", { method: "POST", body: { token } }),
+  accept: (token: string) =>
+    apiRequest<{ listId: string }>("/list-invites/acceptance", { method: "POST", body: { token } }),
+};

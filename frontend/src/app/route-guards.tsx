@@ -30,8 +30,9 @@ export function AppLayout() {
 /** Pages that belong to an account (lists, alerts, profile): visitors sign in first and come back here. */
 export function AccountGuard() {
   const { user } = useAuth();
-  const { pathname, search } = useLocation();
-  if (!user) return <Navigate to={`/entrar?depois=${encodeURIComponent(pathname + search)}`} replace />;
+  const { pathname, search, hash } = useLocation();
+  // The hash too: an invite link carries its token there.
+  if (!user) return <Navigate to={`/entrar?depois=${encodeURIComponent(pathname + search + hash)}`} replace />;
   return <Outlet />;
 }
 

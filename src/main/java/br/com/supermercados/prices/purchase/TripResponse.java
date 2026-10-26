@@ -41,6 +41,7 @@ public record TripResponse(
             BigDecimal lineTotal,
             boolean promotion,
             Instant checkedAt,
-            UUID checkedBy) {
+            UUID checkedBy,
+            String checkedByName) {
     }
 }

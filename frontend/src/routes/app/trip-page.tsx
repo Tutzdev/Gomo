@@ -181,7 +181,7 @@ export function TripPage() {
         {toPick.length ? (
           <ul className="mt-2 space-y-2">
             {toPick.map((item) => (
-              <TripRow key={item.itemId} item={item} shelfPrice={session.shelfPrices[item.itemId]} editing={editing === item.itemId} onToggle={() => toggle(item)} onEdit={() => setEditing(editing === item.itemId ? null : item.itemId)} onSavePrice={(price) => saveShelfPrice(item, price)} />
+              <TripRow key={item.itemId} item={item} shelfPrice={session.shelfPrices[item.itemId]} editing={editing === item.itemId} onToggle={() => toggle(item)} onEdit={() => setEditing(editing === item.itemId ? null : item.itemId)} onSavePrice={(price) => saveShelfPrice(item, price)} me={user?.id} />
             ))}
           </ul>
         ) : (
@@ -194,7 +194,7 @@ export function TripPage() {
           <h2 id="in-cart" className="text-sm font-bold uppercase tracking-wide text-muted">No carrinho ({inCart.length})</h2>
           <ul className="mt-2 space-y-2">
             {inCart.map((item) => (
-              <TripRow key={item.itemId} item={item} shelfPrice={session.shelfPrices[item.itemId]} editing={editing === item.itemId} onToggle={() => toggle(item)} onEdit={() => setEditing(editing === item.itemId ? null : item.itemId)} onSavePrice={(price) => saveShelfPrice(item, price)} />
+              <TripRow key={item.itemId} item={item} shelfPrice={session.shelfPrices[item.itemId]} editing={editing === item.itemId} onToggle={() => toggle(item)} onEdit={() => setEditing(editing === item.itemId ? null : item.itemId)} onSavePrice={(price) => saveShelfPrice(item, price)} me={user?.id} />
             ))}
           </ul>
         </section>
@@ -232,6 +232,7 @@ function TripRow({
   onToggle,
   onEdit,
   onSavePrice,
+  me,
 }: {
   item: TripItem & { inCart: boolean; paidPrice: number | null };
   shelfPrice: number | undefined;
@@ -239,6 +240,8 @@ function TripRow({
   onToggle: () => void;
   onEdit: () => void;
   onSavePrice: (price: number) => void;
+  /** The person using the phone: their own checks need no name. */
+  me: string | undefined;
 }) {
   const [typed, setTyped] = useState(shelfPrice !== undefined ? String(shelfPrice) : "");
   return (
@@ -261,6 +264,7 @@ function TripRow({
         <div className="min-w-0 flex-1">
           <p className={cn("font-semibold leading-snug", item.inCart && "line-through")}>{item.productName}</p>
           <p className="text-sm text-muted">{formatQuantity(item.quantity)} {item.quantity === 1 ? "unidade" : "unidades"}</p>
+          {item.inCart && item.checkedByName && item.checkedBy !== me ? <p className="text-xs font-semibold text-success">{item.checkedByName} pôs no carrinho</p> : null}
         </div>
         <div className="shrink-0 text-right">
           {item.paidPrice !== null ? (

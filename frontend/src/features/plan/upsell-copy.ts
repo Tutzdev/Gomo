@@ -1,4 +1,4 @@
-import { BellRing, CalendarRange, LineChart, ListPlus, Lock, PackagePlus, PiggyBank, Replace, Route, Store, Tag, TrendingDown, type LucideIcon } from "lucide-react";
+import { BellRing, CalendarRange, LineChart, ListPlus, Lock, PackagePlus, PiggyBank, Replace, Route, Store, Tag, TrendingDown, Users, type LucideIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/brand";
 
 /** The moment that led to the upgrade message. Each one gets copy about what the person just tried to do. */
@@ -11,6 +11,7 @@ export type UpsellTrigger =
   | "SAVINGS_REPORT"
   | "STOCK_UP"
   | "SUBSTITUTES"
+  | "SHARED_LISTS"
   | "PRICE_HISTORY"
   | "LOCKED_STORES"
   | "SPLIT_PURCHASE"
@@ -97,6 +98,14 @@ export function upsellCopy(trigger: UpsellTrigger, context: UpsellContext = {}):
         description:
           "O Premium compara cada item da lista com os equivalentes do mesmo tipo pelo preço por kg, litro ou unidade, e troca na lista com um toque.",
         unlocks: ["Equivalentes mais baratos por kg ou litro", "Hora de estocar nos itens de despensa", "Compra dividida em até 2 mercados"],
+      };
+    case "SHARED_LISTS":
+      return {
+        icon: Users,
+        title: "Faça a lista junto com quem mora com você",
+        description:
+          "No Premium você manda um link e a família entra na lista: todo mundo adiciona o que falta e, no mercado, vê o que já foi para o carrinho. Quem recebe o convite não precisa assinar.",
+        unlocks: ["Lista compartilhada com até 5 pessoas", "Marcações do carrinho em tempo real", "Listas e produtos ilimitados"],
       };
     case "PRICE_HISTORY":
       return {

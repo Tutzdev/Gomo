@@ -13,7 +13,8 @@ export type PlanLimit =
   | "ACTIVE_ALERTS"
   | "PRICE_HISTORY"
   | "BELOW_AVERAGE_ALERTS"
-  | "DEALS_FOR_MY_LISTS";
+  | "DEALS_FOR_MY_LISTS"
+  | "SHARED_LISTS";
 
 export interface PageResponse<T> {
   content: T[];
@@ -253,6 +254,12 @@ export interface ShoppingListSummary {
   createdAt: string;
   updatedAt: string;
   version: number;
+  /** The person owns it; otherwise someone shared it with them. */
+  owned: boolean;
+  /** Who shared it, for a list shared with the person. */
+  ownerName: string | null;
+  /** How many people the owner shared it with. */
+  memberCount: number;
 }
 
 export interface ShoppingListItem {
@@ -265,6 +272,8 @@ export interface ShoppingListItem {
   /** In the cart, in the "No mercado" mode. */
   checkedAt: string | null;
   checkedBy: string | null;
+  /** Who put it in the cart: on a shared list, someone else may be at the market. */
+  checkedByName: string | null;
 }
 
 /** A real-world product ("Coca-Cola 2 L") grouped across every store that sells it. */
@@ -299,8 +308,10 @@ export interface CatalogItemDetail {
   access: ComparisonAccess;
 }
 
-export interface ShoppingList extends ShoppingListSummary {
+export interface ShoppingList extends Omit<ShoppingListSummary, "memberCount"> {
   items: ShoppingListItem[];
+  /** The people the owner shared the list with. */
+  members: Array<{ userId: string; name: string; joinedAt: string }>;
 }
 
 export interface ShoppingComparisonItem {
@@ -555,6 +566,8 @@ export interface TripItem {
   promotion: boolean;
   checkedAt: string | null;
   checkedBy: string | null;
+  /** Who put it in the cart, when someone else shops with the same list. */
+  checkedByName: string | null;
 }
 
 /** A purchase marked as done, against the average of the city's markets at that moment. */

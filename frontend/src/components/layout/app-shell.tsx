@@ -19,6 +19,7 @@ const pageNames: Record<string, string> = {
   "/app/supermercados": "Supermercados",
   "/app/listas": "Minhas listas",
   "/app/economia": "Minha economia",
+  "/app/convite": "Convite para lista",
   "/app/alertas": "Alertas de preço",
   "/app/contribuir": "Contribuir com preço",
   "/app/notificacoes": "Notificações",

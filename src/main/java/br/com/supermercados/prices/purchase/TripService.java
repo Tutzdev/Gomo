@@ -56,7 +56,8 @@ public class TripService {
             var matched = offers.matchedProduct(item.productId(), record);
             return new TripResponse.TripItem(item.id(), item.productId(), item.productName(), item.quantity(),
                     item.catalogItemId(), item.imageUrl(), matched == null ? item.productId() : matched.getId(),
-                    quote.unitPrice(), lineTotal, quote.promotionApplied(), item.checkedAt(), item.checkedBy());
+                    quote.unitPrice(), lineTotal, quote.promotionApplied(), item.checkedAt(), item.checkedBy(),
+                    item.checkedByName());
         }).toList();
         BigDecimal expected = items.stream().map(TripResponse.TripItem::lineTotal)
                 .filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
