@@ -44,8 +44,8 @@ Busca de novas unidades em Volta Redonda pela regra de entrada: sites dos própr
 | Nagumo, outras lojas | Salesforce Commerce | Fora | A única loja de Volta Redonda é a 036 (Ponte Alta), já ativa. |
 | Atacadão, outras lojas | VTEX | Fora | Entre as 220 lojas do e-commerce, só São Geraldo é de Volta Redonda (ver acima). |
 | Hortifruti, outras lojas | GraphQL do site | Fora | Só a unidade do Aterrado aparece em Volta Redonda. |
-| Royal: Aterrado (Av. Paulo de Frontin, 669), Av. Amaral Peixoto, 348, Av. São Lucas, 368, Rua 328, 2 e Empório Royale | VipCommerce | A confirmar | Lojas físicas listadas em diretórios; o Aterrado também tem página no iFood, que não conta. Só entra a unidade que aparecer na lista de centros de distribuição da loja online, com CNPJ e endereço em Volta Redonda. Em 09/2026 o e-commerce não oferecia o Aterrado. A unidade do Voldac é só um plano noticiado em 08/2026. |
-| Bramil, Spani e Pérola, outras unidades | VipCommerce | A confirmar | Nenhuma outra unidade em Volta Redonda foi encontrada além das já ativas; falta conferir a lista de centros de distribuição da loja online de cada rede. |
+| Royal: Aterrado (Av. Paulo de Frontin, 669), Av. Amaral Peixoto, 348, Av. São Lucas, 368, Rua 328, 2 e Empório Royale | VipCommerce | Fora | Conferido em 31/10/2026 nos centros de distribuição da loja online: em Volta Redonda só o Retiro (1) está ativo. O Royale Empório Porão (2, Jardim Amália) existe mas está desativado. As outras lojas físicas não aparecem. A unidade do Voldac é só um plano noticiado em 08/2026. |
+| Bramil, Spani e Pérola, outras unidades | VipCommerce | Fora | Conferido em 31/10/2026: a única unidade de Volta Redonda em cada loja online é a já ativa (Bramil 24, Spani 6, Pérola 1). |
 | Rede Supermarket (Centro, Av. Amaral Peixoto, 748; Av. Antônio de Almeida, 611) e Floresta | Site da rede, iFood | Fora | O botão "compra online" da página da loja não leva a catálogo, e o filtro "Compre Online" da rede não mostra Volta Redonda. O Floresta só aparece no iFood, que é agregador. |
 | Empório Brasil | — | Fora | Só loja física e encartes; sem e-commerce. |
 | Paiva (São Lucas) | — | Fora | Atacarejo sem site de compras. |
@@ -53,6 +53,21 @@ Busca de novas unidades em Volta Redonda pela regra de entrada: sites dos própr
 | Sensor Supermercados | WhatsApp | Fora | Pedido por WhatsApp e Instagram, sem catálogo público com preço. |
 | Assaí | App, Mercado Livre, iFood | Fora | Sem e-commerce próprio com preço por loja. |
 | Carrefour, Supermercados BH, Guanabara, Mundial, Prezunic, Super Rede, Vila Nova, Bahamas, Max, Tenda | — | Fora | Nenhuma loja dessas redes encontrada em Volta Redonda; do Grupo Carrefour, só o Atacadão. |
+
+### Mercados de Barra Mansa pesquisados em 31/10/2026
+
+Mesma regra de entrada. A cidade já estava no banco desde a `V3`. Nas redes VipCommerce, cada unidade da loja online é um centro de distribuição com CNPJ, endereço e `ativo`. Foi lida a lista de todos os centros de cada rede (os de retirada da filial e os ids de 1 a 50), com a mesma sessão anônima que o próprio site abre. Só entra o centro ativo com cidade Barra Mansa.
+
+| Mercado / unidade | Plataforma | Situação | Motivo |
+| --- | --- | --- | --- |
+| Bramil PV11, Av. Domingos Mariano, 485, Centro | VipCommerce, organização 53 / filial 1 / CD 23, CNPJ 32296378002033 | **Coletado** (`bramil_barra_mansa_centro`) | Ativo e com retirada na loja online. |
+| Pérola Ano Bom, Av. Presidente Kennedy, 833 | VipCommerce, organização 329 / filial 1 / CD 2, CNPJ 07954309000321 | **Coletado** (`perola_ano_bom`) | Ativo e com retirada na loja online. |
+| Royal Barra Mansa, Av. Vereador Hamilton Reis Alves, 1391, Jardim Boa Vista | VipCommerce, organização 255 / CD 6, CNPJ 17659742000207 | Fora | O centro existe na loja online, mas está desativado (`ativo = false`). Pode entrar quando for ativado; o Royal tem coletor próprio (`RoyalClient`), que hoje só conhece o Retiro. |
+| Spani | VipCommerce | Fora | Nenhum dos 43 centros da rede é de Barra Mansa. A unidade mais próxima fora de Volta Redonda é Resende (CD 7). |
+| Atacadão | VTEX | Fora | O CEP do Centro de Barra Mansa (27310-060) é atendido pelo vendedor `atacadaobr815`, o São Geraldo de Volta Redonda, já ativo. Não há vendedor de Barra Mansa. |
+| Supermarket (Av. Domingos Mariano, 149), Assaí e mercados de bairro | iFood, encartes | Fora | Sem loja online própria com preço. |
+
+Os coletores das duas unidades são os mesmos `VipStoreCollector` de Volta Redonda, com a cidade na definição (`ServedCity`). Fonte e rede são compartilhadas com a unidade de Volta Redonda; a loja, o código do coletor e a referência de cada preço são próprios.
 
 ## Fontes ativas do MVP
 
