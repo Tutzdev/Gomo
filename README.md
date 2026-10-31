@@ -18,7 +18,7 @@
 
 ## O que é
 
-O Gomo é um **SaaS com backend em Java/Spring Boot**, do scraping ao deploy: **9 supermercados** de Volta Redonda e região, coletados **4 vezes por dia**, num catálogo de **~10 mil produtos comparáveis** (incluindo hortifrúti e açougue por kg). Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
+O Gomo é um **SaaS com backend em Java/Spring Boot**, do scraping ao deploy: **11 supermercados** de Volta Redonda e Barra Mansa, coletados **4 vezes por dia**, num catálogo de **~10 mil produtos comparáveis** (incluindo hortifrúti e açougue por kg). Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
 
 O valor do produto está numa regra simples e difícil de cumprir: **a busca devolve um produto genérico ("Coca-Cola 2 L"), nunca o anúncio de cada loja, e a comparação mostra só mercados com preço real e atual.** Nada de linha "indisponível" ou preço vencido.
 
@@ -49,7 +49,7 @@ Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/produc
 - **Sites que mudam sozinhos:** quando um mercado publica uma versão nova do site, os coletores VipCommerce e Hortifruti encontram de novo a configuração e as consultas atuais nos scripts do próprio site.
 - **Monitor:** `GET /api/v1/status/collections` responde 503 quando um mercado para de atualizar, antes de os preços dele vencerem; a área de admin mostra o último erro de cada coletor.
 - **Agendamento** 4x ao dia, mais uma importação completa semanal com os produtos novos. Na subida, só os coletores com mais de 8 h sem coleta concluída rodam de novo.
-- **Servidor novo pronto sozinho:** com o banco vazio, a aplicação carrega snapshots comprimidos dos 9 mercados e monta o catálogo (~15 min, cabe em 512 MB de heap).
+- **Servidor novo pronto sozinho:** com o banco vazio, a aplicação carrega snapshots comprimidos dos 11 mercados e monta o catálogo (~15 min, cabe em 512 MB de heap).
 
 ### 3. Comparar uma lista inteira, não um produto
 
@@ -106,7 +106,7 @@ A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publica
 
 ## Qualidade e entrega
 
-- **498 testes**: 477 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 21 no frontend (Vitest) para as contas que envolvem dinheiro, a rota e a fila do modo "No mercado".
+- **500 testes**: 479 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 21 no frontend (Vitest) para as contas que envolvem dinheiro, a rota e a fila do modo "No mercado".
 - **44 migrações Flyway** versionadas, com o Hibernate só validando o schema.
 - **Deploy contínuo:** push na `main` → GitHub Actions (testes com PostgreSQL descartável, testes e build do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`, que faz backup do banco antes das migrations. A chave do deploy só aceita esse comando.
 - **Docker Compose** com API, PostgreSQL e Mailpit para rodar o ambiente completo.
