@@ -100,7 +100,7 @@ public final class VipStoreCollector implements SupermarketCollector {
         JsonNode address = store.path("endereco");
         CollectedStore collectedStore = new CollectedStore(definition.name(),
                 address.path("logradouro").asString() + ", " + address.path("numero").asString()
-                        + " - " + address.path("bairro").asString() + " - Volta Redonda/RJ",
+                        + " - " + address.path("bairro").asString() + " - " + definition.city().label(),
                 new BigDecimal(store.path("coordenada_geografica").path("latitude").asString()).setScale(7, RoundingMode.HALF_UP),
                 new BigDecimal(store.path("coordenada_geografica").path("longitude").asString()).setScale(7, RoundingMode.HALF_UP), true);
         if (failures.isEmpty()) checkpoint.complete();
@@ -143,8 +143,8 @@ public final class VipStoreCollector implements SupermarketCollector {
     void validateStore(JsonNode store) {
         require(store, "id", String.valueOf(definition.distributionId()));
         require(store, "cnpj", definition.cnpj());
-        require(store.path("endereco"), "cidade", "Volta Redonda");
-        require(store.path("endereco"), "estado", "Rio de Janeiro");
+        require(store.path("endereco"), "cidade", definition.city().name());
+        require(store.path("endereco"), "estado", definition.city().stateName());
         if (!store.path("ativo").asBoolean() || store.path("exclusivo_televendas").asBoolean()) {
             throw new IllegalStateException("Unidade indisponível para consulta pública");
         }

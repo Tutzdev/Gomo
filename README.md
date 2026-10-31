@@ -106,7 +106,7 @@ A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publica
 
 ## Qualidade e entrega
 
-- **496 testes**: 475 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 21 no frontend (Vitest) para as contas que envolvem dinheiro, a rota e a fila do modo "No mercado".
+- **498 testes**: 477 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 21 no frontend (Vitest) para as contas que envolvem dinheiro, a rota e a fila do modo "No mercado".
 - **44 migrações Flyway** versionadas, com o Hibernate só validando o schema.
 - **Deploy contínuo:** push na `main` → GitHub Actions (testes com PostgreSQL descartável, testes e build do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`, que faz backup do banco antes das migrations. A chave do deploy só aceita esse comando.
 - **Docker Compose** com API, PostgreSQL e Mailpit para rodar o ambiente completo.
