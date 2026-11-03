@@ -73,13 +73,13 @@ class DealFinder {
                 .addValue("limit", MAXIMUM_DEALS);
         return jdbc.query("""
                 WITH fresh AS (
-                    SELECT DISTINCT ON (r.store_id, r.product_id) r.store_id, r.product_id, r.regular_price,
-                           r.promotional_price, r.promotion_condition, r.promotion_valid_until, r.availability,
-                           r.valid_until, r.collected_at
-                    FROM price_records r
-                    WHERE r.store_id IN (:stores) AND r.collected_at > :visitFreshAfter
-                              AND (r.origin_type = 'STORE_VISIT' OR r.collected_at > :freshAfter) AND r.collected_at <= :now
-                    ORDER BY r.store_id, r.product_id, r.collected_at DESC, r.recorded_at DESC, r.id DESC
+                    SELECT r.store_id, r.product_id, r.regular_price, r.promotional_price, r.promotion_condition,
+                           r.promotion_valid_until, r.availability, r.valid_until, r.collected_at
+                    FROM latest_prices latest
+                    JOIN price_records r ON r.id = latest.price_record_id
+                    WHERE latest.store_id IN (:stores) AND latest.collected_at > :visitFreshAfter
+                      AND (latest.origin_type = 'STORE_VISIT' OR latest.collected_at > :freshAfter)
+                      AND latest.collected_at <= :now
                 ), current_prices AS (
                     SELECT DISTINCT ON (link.catalog_item_id, fresh.store_id)
                            link.catalog_item_id, fresh.store_id, fresh.collected_at, promotion.applied,

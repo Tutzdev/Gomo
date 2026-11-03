@@ -73,6 +73,7 @@ public class StoreService {
 
     private Map<UUID, Instant> lastPriceUpdates(List<UUID> storeIds) {
         return prices.findStoreUpdates(storeIds).stream()
+                .filter(update -> update.collectedAt() != null)
                 .collect(Collectors.toMap(StorePriceUpdate::storeId, StorePriceUpdate::collectedAt));
     }
 

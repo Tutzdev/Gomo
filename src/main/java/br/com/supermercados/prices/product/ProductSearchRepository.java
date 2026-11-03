@@ -135,7 +135,7 @@ public class ProductSearchRepository {
         addFilter("lower(p.unit)", "unit", search.unit(), conditions, parameters);
         addFilter("p.quantity", "quantity", search.quantity(), conditions, parameters);
         if (search.storeId() != null) {
-            conditions.add("EXISTS (SELECT 1 FROM price_records r WHERE r.product_id = p.id AND r.store_id = :storeId)");
+            conditions.add("EXISTS (SELECT 1 FROM latest_prices l WHERE l.product_id = p.id AND l.store_id = :storeId)");
             parameters.put("storeId", search.storeId());
         }
         // Parameters used only in the ranking: count and facet queries leave them out, since binding a
@@ -213,18 +213,19 @@ public class ProductSearchRepository {
         if (!search.sort().startsWith("price_")) {
             return sql.relevance();
         }
-        String storeFilter = search.storeId() == null ? "" : " AND r.store_id = :storeId";
+        String storeFilter = search.storeId() == null ? "" : " AND l.store_id = :storeId";
         // Same validity/stock/promotion rules as PricePolicy; newest observation wins, including stock-outs.
         return """
                 (SELECT min(CASE WHEN latest.promotional_price IS NOT NULL
                     AND latest.promotion_valid_until > :now AND latest.promotion_condition IS NULL
                     THEN latest.promotional_price ELSE latest.regular_price END)
-                 FROM (SELECT DISTINCT ON (r.store_id) r.* FROM price_records r
-                     JOIN stores s ON s.id = r.store_id AND s.active
-                     WHERE r.product_id = p.id
+                 FROM latest_prices l
+                 JOIN price_records latest ON latest.id = l.price_record_id
+                 JOIN stores s ON s.id = l.store_id AND s.active
+                 WHERE l.product_id = p.id
                 """ + storeFilter + """
-                     ORDER BY r.store_id, r.collected_at DESC, r.recorded_at DESC, r.id DESC) latest
-                 WHERE latest.collected_at > :visitFreshAfter
+
+                     AND latest.collected_at > :visitFreshAfter
                      AND (latest.origin_type = 'STORE_VISIT' OR latest.collected_at > :freshAfter)
                      AND latest.collected_at <= :now
                      AND (latest.valid_until IS NULL OR latest.valid_until > :now)

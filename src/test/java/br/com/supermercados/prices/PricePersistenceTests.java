@@ -252,6 +252,35 @@ class PricePersistenceTests {
                 """, BigDecimal.class, PRODUCT_A, STORE_A, day)).isEqualByComparingTo("7.50");
     }
 
+    @Test
+    void latestPricesKeepsOnlyTheNewestObservationWhateverTheArrivalOrder() {
+        Instant now = Instant.now().minusSeconds(5);
+        var newest = prices.appendObservation(observation(STORE_A, PRODUCT_A, "latest-new", "5.00", now));
+        prices.appendObservation(observation(STORE_A, PRODUCT_A, "latest-late-arrival", "3.00", now.minusSeconds(60)));
+        prices.appendObservation(observation(STORE_B, PRODUCT_A, "latest-other-store", "4.00", now));
+
+        assertThat(jdbc.queryForObject("""
+                SELECT price_record_id FROM latest_prices WHERE store_id = ? AND product_id = ?
+                """, UUID.class, STORE_A, PRODUCT_A)).isEqualTo(newest.id());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM latest_prices WHERE product_id = ?", Long.class, PRODUCT_A))
+                .isEqualTo(2);
+    }
+
+    @Test
+    void removingTheNewestObservationBringsBackThePreviousOne() {
+        Instant now = Instant.now().minusSeconds(5);
+        var older = prices.appendObservation(observation(STORE_A, PRODUCT_A, "forget-older", "3.00", now.minusSeconds(60)));
+        var newest = prices.appendObservation(observation(STORE_A, PRODUCT_A, "forget-newest", "5.00", now));
+
+        jdbc.update("DELETE FROM price_records WHERE id = ?", newest.id());
+
+        assertThat(priceRecords.findLatestForStoresAndProducts(java.util.List.of(STORE_A), java.util.List.of(PRODUCT_A)))
+                .singleElement().satisfies(record -> assertThat(record.getId()).isEqualTo(older.id()));
+        jdbc.update("DELETE FROM price_records WHERE id = ?", older.id());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM latest_prices WHERE product_id = ?", Long.class, PRODUCT_A))
+                .isZero();
+    }
+
     /** Noon in São Paulo, safely inside the shoppers' calendar day whatever time the test runs. */
     private static Instant noonOf(LocalDate day) {
         return day.atTime(12, 0).atZone(UsualPrice.ZONE).toInstant();

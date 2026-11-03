@@ -18,9 +18,14 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
 
     Optional<PriceRecord> findById(UUID id);
 
+    /**
+     * The newest collection of each store; {@code collectedAt} is null for a store without prices. A max() per
+     * store is one index lookup, where a GROUP BY over price_records read every observation the store ever had.
+     */
     @Query("""
-            SELECT new br.com.supermercados.prices.price.StorePriceUpdate(p.storeId, max(p.collectedAt))
-            FROM PriceRecord p WHERE p.storeId IN :storeIds GROUP BY p.storeId
+            SELECT new br.com.supermercados.prices.price.StorePriceUpdate(s.id,
+                (SELECT max(p.collectedAt) FROM PriceRecord p WHERE p.storeId = s.id))
+            FROM Store s WHERE s.id IN :storeIds
             """)
     List<StorePriceUpdate> findStoreUpdates(@Param("storeIds") Collection<UUID> storeIds);
 
@@ -34,11 +39,13 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
     List<PriceRecord> findAllBySourceIdAndSourceReferenceIn(
             UUID sourceId, Collection<String> sourceReferences);
 
+    /** The newest observation per store and product, read from latest_prices (kept by a trigger, see V54). */
     @Query(value = """
-            SELECT DISTINCT ON (store_id, product_id) *
-            FROM price_records
-            WHERE store_id IN (:storeIds) AND product_id IN (:productIds)
-            ORDER BY store_id, product_id, collected_at DESC, recorded_at DESC, id DESC
+            SELECT r.*
+            FROM latest_prices latest
+            JOIN price_records r ON r.id = latest.price_record_id
+            WHERE latest.store_id IN (:storeIds) AND latest.product_id IN (:productIds)
+            ORDER BY latest.store_id, latest.product_id
             """, nativeQuery = true)
     List<PriceRecord> findLatestForStoresAndProducts(
             @Param("storeIds") Collection<UUID> storeIds,

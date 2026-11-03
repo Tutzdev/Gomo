@@ -90,55 +90,69 @@ public class CatalogService {
         String priced = "SELECT NULL::uuid AS catalog_item_id, 0 AS priced_stores WHERE FALSE";
         if (cityId != null) {
             if (selected.isEmpty()) return Page.empty(pageable);
-            // Per item, the stores whose newest observation of a linked SKU is a usable price right now
-            // (same freshness, validity and stock rules as PricePolicy). Computed as one set, not per item.
+            // Per item, the stores whose newest observation of a linked SKU is a usable price right now (same
+            // freshness, validity and stock rules as PricePolicy). Read from latest_prices, one row per store and
+            // SKU, so the cost does not grow with the price history.
             priced = """
-                    SELECT link.catalog_item_id, count(DISTINCT fresh.store_id) AS priced_stores
-                    FROM (SELECT DISTINCT ON (r.store_id, r.product_id) r.store_id, r.product_id,
-                                r.availability, r.valid_until
-                            FROM price_records r
-                            WHERE r.store_id IN (:stores) AND r.collected_at > :visitFreshAfter
-                              AND (r.origin_type = 'STORE_VISIT' OR r.collected_at > :freshAfter) AND r.collected_at <= :now
-                            ORDER BY r.store_id, r.product_id, r.collected_at DESC, r.recorded_at DESC, r.id DESC) fresh
-                    JOIN catalog_item_products link ON link.product_id = fresh.product_id
-                    WHERE fresh.availability <> 'UNAVAILABLE' AND (fresh.valid_until IS NULL OR fresh.valid_until > :now)
+                    SELECT link.catalog_item_id, count(DISTINCT latest.store_id) AS priced_stores
+                    FROM latest_prices latest
+                    JOIN catalog_item_products link ON link.product_id = latest.product_id
+                    WHERE latest.store_id IN (:stores) AND latest.collected_at > :visitFreshAfter
+                      AND (latest.origin_type = 'STORE_VISIT' OR latest.collected_at > :freshAfter)
+                      AND latest.collected_at <= :now AND latest.availability <> 'UNAVAILABLE'
+                      AND (latest.valid_until IS NULL OR latest.valid_until > :now)
                     GROUP BY link.catalog_item_id""";
             parameters.addValue("stores", selected.stream().map(StoreResponse::id).toList())
                     .addValue("now", java.sql.Timestamp.from(now))
                     .addValue("freshAfter", java.sql.Timestamp.from(now.minus(maxPriceAge)))
                     .addValue("visitFreshAfter", java.sql.Timestamp.from(now.minus(inStoreMaxPriceAge)));
         }
-        String matched = matchedSql(priced, exact, cityId != null);
-        Long exactMatches = jdbc.queryForObject(matched.replace("{columns}", "count(*)"), parameters, Long.class);
-        if (exactMatches == null || exactMatches == 0) matched = matchedSql(priced, approximate, cityId != null);
-        // "coca 1 litro" means the 1 L bottle: other sizes appear only when that size is not sold anywhere.
-        if (terms.size() != null) {
-            parameters.addValue("size", "%|1" + terms.size());
-            Long sized = jdbc.queryForObject(matched.replace("{columns}", "count(*)") + " AND catalog_key LIKE :size",
-                    parameters, Long.class);
-            if (sized != null && sized > 0) matched += " AND catalog_key LIKE :size";
-        }
-        Long total = jdbc.queryForObject(matched.replace("{columns}", "count(*)"), parameters, Long.class);
+        if (terms.size() != null) parameters.addValue("size", "%|1" + terms.size());
+        String found = foundSql(priced, exact, approximate, cityId != null, terms.size() != null);
         parameters.addValue("limit", pageable.getPageSize()).addValue("offset", pageable.getOffset());
         // Searching: the plainest variant first ("Coca-Cola" before "Coca-Cola Zero"). Browsing: the products
         // with current prices in the most stores, i.e. the most useful comparisons.
         String order = terms.tokens().isEmpty() ? "" : "array_length(string_to_array(split_part(catalog_key, '|', 1), ' '), 1), ";
-        List<UUID> ids = jdbc.queryForList(matched.replace("{columns}", "id") + " ORDER BY " + order
+        List<UUID> ids = new ArrayList<>();
+        long[] total = {0};
+        jdbc.query(found + " SELECT id, count(*) OVER () AS total FROM found ORDER BY " + order
                 + "priced_stores DESC, store_count DESC, length(display_name), id LIMIT :limit OFFSET :offset",
-                parameters, UUID.class);
-        Map<UUID, CatalogItem> found = items.findAllById(ids).stream()
+                parameters, row -> {
+                    ids.add(row.getObject("id", UUID.class));
+                    total[0] = row.getLong("total");
+                });
+        // A page past the end has no row to carry the total.
+        if (ids.isEmpty() && pageable.getOffset() > 0) {
+            Long counted = jdbc.queryForObject(found + " SELECT count(*) FROM found", parameters, Long.class);
+            total[0] = counted == null ? 0 : counted;
+        }
+        Map<UUID, CatalogItem> byId = items.findAllById(ids).stream()
                 .collect(Collectors.toMap(CatalogItem::getId, Function.identity()));
-        List<CatalogItem> ordered = ids.stream().map(found::get).toList();
-        return new PageImpl<>(respond(ordered, selected), pageable, total == null ? 0 : total);
+        List<CatalogItem> ordered = ids.stream().map(byId::get).toList();
+        return new PageImpl<>(respond(ordered, selected), pageable, total[0]);
     }
 
-    private static String matchedSql(String priced, List<String> conditions, boolean requirePrice) {
-        return "WITH priced AS (" + priced + "), matched AS (SELECT item.id, item.catalog_key,"
-                + " item.store_count, item.display_name, coalesce(priced.priced_stores, 0) AS priced_stores"
-                + " FROM catalog_items item LEFT JOIN priced ON priced.catalog_item_id = item.id WHERE "
-                + String.join(" AND ", conditions) + ") SELECT {columns} FROM matched WHERE "
-                // Without a current price in the city there is nothing real to compare.
-                + (requirePrice ? "priced_stores > 0" : "TRUE");
+    /**
+     * One statement, so the current prices are worked out once per search. Exact word matches win; a close
+     * spelling only counts when nothing matches exactly, otherwise "coca cola" would also bring "Olá Coco".
+     * "coca 1 litro" means the 1 L bottle: other sizes appear only when that size is not sold anywhere.
+     */
+    private static String foundSql(String priced, List<String> exact, List<String> approximate, boolean requirePrice,
+            boolean sized) {
+        // Without a current price in the city there is nothing real to compare.
+        String priceFilter = requirePrice ? " AND coalesce(priced.priced_stores, 0) > 0" : "";
+        String columns = "SELECT item.id, item.catalog_key, item.store_count, item.display_name,"
+                + " coalesce(priced.priced_stores, 0) AS priced_stores"
+                + " FROM catalog_items item LEFT JOIN priced ON priced.catalog_item_id = item.id WHERE ";
+        return "WITH priced AS MATERIALIZED (" + priced + "),"
+                + " exact AS (" + columns + String.join(" AND ", exact) + priceFilter + "),"
+                + " matched AS (SELECT * FROM exact UNION ALL " + columns + String.join(" AND ", approximate)
+                + priceFilter + " AND NOT EXISTS (SELECT 1 FROM exact)),"
+                + (sized
+                        ? " sized AS (SELECT * FROM matched WHERE catalog_key LIKE :size),"
+                                + " found AS (SELECT * FROM sized UNION ALL SELECT * FROM matched"
+                                + " WHERE NOT EXISTS (SELECT 1 FROM sized))"
+                        : " found AS (SELECT * FROM matched)");
     }
 
     /**
