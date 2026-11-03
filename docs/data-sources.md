@@ -8,7 +8,12 @@ As interfaces `ProductDataProvider`, `StoreDataProvider` e `PriceDataProvider` c
 
 ## Regra de entrada
 
-O Gomo só compara mercados que vendem pela internet: e-commerce ou site com catálogo e preço público, lidos como o próprio site do mercado os mostra. Não entram encarte, agregador de delivery (iFood, Rappi), API paga nem parceria com o mercado. Uma resposta 403, login ou captcha descarta a fonte, sem contornar o bloqueio.
+Um mercado entra no Gomo de um destes dois jeitos (regra revista em 03/11/2026):
+
+1. **Loja online** (`price_channel = ONLINE`): e-commerce ou site com catálogo e preço público, lidos como o próprio site do mercado os mostra, 4 vezes por dia. Uma resposta 403, login ou captcha descarta a fonte, sem contornar o bloqueio.
+2. **Preço conferido na loja** (`price_channel = IN_STORE`): o mercado não vende online, e a equipe do Gomo vai à loja e anota o preço da etiqueta. A visita é gravada na aba **Preço na loja** do admin (`POST /api/v1/admin/stores/{id}/visits`), com uma cesta de 100 itens que mais pesam na compra do mês. Esse preço tem origem própria (`STORE_VISIT`) e vale **7 dias** (`PRICE_IN_STORE_MAX_AGE`), contra 2 dias do preço coletado, porque ninguém visita uma prateleira 4 vezes por dia. No app ele aparece como "Anotado na loja em …". Um mercado com loja online não aceita preço de visita, para não misturar as duas origens.
+
+Continuam fora: agregador de delivery (iFood, Rappi), que bloqueia coleta e cobra mais que a prateleira; API paga; e preço digitado pelo usuário sem moderação. A sugestão de produto que falta no catálogo existe (`/api/v1/product-suggestions`, moderada no admin), mas aprovar só marca como aceita: o produto é cadastrado à mão depois.
 
 ## Situação das fontes em 16/10/2026
 
@@ -68,6 +73,20 @@ Mesma regra de entrada. A cidade já estava no banco desde a `V3`. Nas redes Vip
 | Supermarket (Av. Domingos Mariano, 149), Assaí e mercados de bairro | iFood, encartes | Fora | Sem loja online própria com preço. |
 
 Os coletores das duas unidades são os mesmos `VipStoreCollector` de Volta Redonda, com a cidade na definição (`ServedCity`). Fonte e rede são compartilhadas com a unidade de Volta Redonda; a loja, o código do coletor e a referência de cada preço são próprios.
+
+### Barra Mansa: mercados sem loja online (03/11/2026)
+
+Nova busca de lojas online em Barra Mansa: a lista da própria VipCommerce para a cidade traz só Bramil, Pérola e Royal (desativado); a lista "Compre Online" do Supermarket não tem Barra Mansa; não há Nagumo, Hortifruti nem Assaí na cidade. Com a regra do preço conferido na loja, a `V52` cadastra estes cinco mercados físicos, ativos e sem preço até a primeira visita:
+
+| Mercado | Endereço | Fonte da unidade |
+| --- | --- | --- |
+| Supermarket Barra Mansa Centro | Av. Domingos Mariano, 149, Centro | Página da loja no site da rede |
+| Royal Jardim Boa Vista | Av. Vereador Hamilton Reis Alves, 1391, Jardim Boa Vista | Centro de distribuição 6 da VipCommerce (inativo online) e iFood |
+| MAX Supermercado Goiabal | Rua Moisés Braga Lima, 536, Goiabal | Guia Comercial BM |
+| Mercado Pingo de Mel | Rua Padre Luis Santamaria Diez, 137, Vista Alegre | Guia Comercial BM |
+| Mercado Bom Jesus | Estrada Governador Chagas Freitas, 4819, Colônia | Guia Comercial BM |
+
+Enquanto não há visita, o mercado aparece na lista como "Sem preços" e fica fora das buscas e comparações. Se o Royal ativar o CD 6 na loja online, a unidade pode ganhar um coletor; aí o `price_channel` dela muda para `ONLINE` e ela deixa de aceitar preço de visita.
 
 ## Fontes ativas do MVP
 

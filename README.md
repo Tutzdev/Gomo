@@ -10,15 +10,15 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white" alt="Java 21">
   <img src="https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1">
-  <img src="https://img.shields.io/badge/PostgreSQL-44_migrações_Flyway-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + Flyway">
+  <img src="https://img.shields.io/badge/PostgreSQL-46_migrações_Flyway-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + Flyway">
   <img src="https://img.shields.io/badge/Spring_Security-tokens_opacos-6DB33F?logo=springsecurity&logoColor=white" alt="Spring Security">
-  <img src="https://img.shields.io/badge/testes-496-success" alt="496 testes">
+  <img src="https://img.shields.io/badge/testes-510-success" alt="510 testes">
   <img src="https://img.shields.io/badge/deploy-GitHub_Actions_→_VPS-2088FF?logo=githubactions&logoColor=white" alt="Deploy contínuo">
 </p>
 
 ## O que é
 
-O Gomo é um **SaaS com backend em Java/Spring Boot**, do scraping ao deploy: **11 supermercados** de Volta Redonda e Barra Mansa, coletados **4 vezes por dia**, num catálogo de **~10 mil produtos comparáveis** (incluindo hortifrúti e açougue por kg). Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
+O Gomo é um **SaaS com backend em Java/Spring Boot**, do scraping ao deploy: **11 supermercados** com loja online em Volta Redonda e Barra Mansa, coletados **4 vezes por dia**, mais os mercados de Barra Mansa sem loja online, com o preço anotado na prateleira pela equipe, num catálogo de **~10 mil produtos comparáveis** (incluindo hortifrúti e açougue por kg). Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
 
 O valor do produto está numa regra simples e difícil de cumprir: **a busca devolve um produto genérico ("Coca-Cola 2 L"), nunca o anúncio de cada loja, e a comparação mostra só mercados com preço real e atual.** Nada de linha "indisponível" ou preço vencido.
 
@@ -106,8 +106,8 @@ A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publica
 
 ## Qualidade e entrega
 
-- **500 testes**: 479 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 21 no frontend (Vitest) para as contas que envolvem dinheiro, a rota e a fila do modo "No mercado".
-- **44 migrações Flyway** versionadas, com o Hibernate só validando o schema.
+- **510 testes**: 487 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 23 no frontend (Vitest) para as contas que envolvem dinheiro, a rota, a fila do modo "No mercado" e a cesta da visita à loja.
+- **46 migrações Flyway** versionadas, com o Hibernate só validando o schema.
 - **Deploy contínuo:** push na `main` → GitHub Actions (testes com PostgreSQL descartável, testes e build do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`, que faz backup do banco antes das migrations. A chave do deploy só aceita esse comando.
 - **Docker Compose** com API, PostgreSQL e Mailpit para rodar o ambiente completo.
 
