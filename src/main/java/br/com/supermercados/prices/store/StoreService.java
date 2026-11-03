@@ -65,7 +65,8 @@ public class StoreService {
 
     private StoreResponse withStatus(Store store, Instant lastUpdate) {
         StorePriceStatus status = lastUpdate == null ? StorePriceStatus.NO_PRICES
-                : lastUpdate.isAfter(clock.instant().minus(pricePolicy.maxAge())) ? StorePriceStatus.CURRENT
+                : lastUpdate.isAfter(clock.instant().minus(store.getPriceChannel() == StorePriceChannel.IN_STORE
+                        ? pricePolicy.inStoreMaxAge() : pricePolicy.maxAge())) ? StorePriceStatus.CURRENT
                 : StorePriceStatus.OUTDATED;
         return StoreResponse.from(store, lastUpdate, status);
     }

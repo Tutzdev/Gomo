@@ -31,8 +31,11 @@ class DealFinder {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final Duration maxPriceAge;
+    private final Duration inStoreMaxPriceAge;
 
-    DealFinder(NamedParameterJdbcTemplate jdbc, @Value("${app.prices.max-age:P2D}") Duration maxPriceAge) {
+    DealFinder(NamedParameterJdbcTemplate jdbc, @Value("${app.prices.max-age:P2D}") Duration maxPriceAge,
+            @Value("${app.prices.in-store-max-age:P7D}") Duration inStoreMaxPriceAge) {
+        this.inStoreMaxPriceAge = inStoreMaxPriceAge;
         this.jdbc = jdbc;
         this.maxPriceAge = maxPriceAge;
     }
@@ -61,6 +64,7 @@ class DealFinder {
                 .addValue("stores", storeIds)
                 .addValue("now", Timestamp.from(now))
                 .addValue("freshAfter", Timestamp.from(now.minus(maxPriceAge)))
+                .addValue("visitFreshAfter", Timestamp.from(now.minus(inStoreMaxPriceAge)))
                 .addValue("historySince", today.minusDays(HISTORY_DAYS))
                 .addValue("usualSince", UsualPrice.windowStart(today))
                 .addValue("today", today)
@@ -73,7 +77,8 @@ class DealFinder {
                            r.promotional_price, r.promotion_condition, r.promotion_valid_until, r.availability,
                            r.valid_until, r.collected_at
                     FROM price_records r
-                    WHERE r.store_id IN (:stores) AND r.collected_at > :freshAfter AND r.collected_at <= :now
+                    WHERE r.store_id IN (:stores) AND r.collected_at > :visitFreshAfter
+                              AND (r.origin_type = 'STORE_VISIT' OR r.collected_at > :freshAfter) AND r.collected_at <= :now
                     ORDER BY r.store_id, r.product_id, r.collected_at DESC, r.recorded_at DESC, r.id DESC
                 ), current_prices AS (
                     SELECT DISTINCT ON (link.catalog_item_id, fresh.store_id)

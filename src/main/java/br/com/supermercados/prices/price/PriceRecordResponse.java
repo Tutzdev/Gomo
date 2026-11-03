@@ -48,6 +48,6 @@ public record PriceRecordResponse(
                 record.getOriginUrl(),
                 record.getSourceProductReference(),
                 record.getSourceProductName(),
-                PriceSalesChannel.fromSourceReference(record.getSourceProductReference()));
+                PriceSalesChannel.of(record));
     }
 }

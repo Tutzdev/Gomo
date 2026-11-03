@@ -76,7 +76,8 @@ class PublicCollectionIntegrationTests {
         assertThat(first.errorCount()).isZero();
         assertThat(second.errorCount()).isZero();
         assertThat(second.createdCount()).isEqualTo(26);
-        assertThat(jdbc.queryForObject("select count(*) from stores", Integer.class)).isEqualTo(3);
+        assertThat(jdbc.queryForObject("select count(*) from stores where price_channel = 'ONLINE'", Integer.class))
+                .isEqualTo(3);
         int prices = jdbc.queryForObject("select count(*) from price_records", Integer.class);
         assertThat(ingestion.ingest(nagumo.metadata(), nagumoCatalog).skippedCount())
                 .isEqualTo(first.updatedCount() + first.errorCount());

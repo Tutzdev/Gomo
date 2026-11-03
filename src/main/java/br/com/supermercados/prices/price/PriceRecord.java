@@ -90,6 +90,10 @@ public class PriceRecord {
         return from(observation, recordedAt, PriceOriginType.USER_CONTRIBUTION, contributionId);
     }
 
+    static PriceRecord fromStoreVisit(PriceObservation observation, Instant recordedAt) {
+        return from(observation, recordedAt, PriceOriginType.STORE_VISIT, null);
+    }
+
     private static PriceRecord from(
             PriceObservation observation, Instant recordedAt, PriceOriginType originType, UUID contributionId) {
         PriceRecord record = new PriceRecord();

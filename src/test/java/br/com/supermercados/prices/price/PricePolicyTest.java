@@ -106,5 +106,23 @@ class PricePolicyTest {
     void rejectsInvalidFreshnessConfiguration() {
         assertThatThrownBy(() -> new PricePolicy(Duration.ZERO))
                 .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PricePolicy(Duration.ofDays(2), Duration.ofDays(1)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void shelfPriceStaysCurrentForTheInStoreWindowWhileAScrapedOneExpires() {
+        PriceObservation observation = new PriceObservation(productId, storeId, UUID.randomUUID(), "shelf",
+                new java.math.BigDecimal("6.50"), null, "BRL", now.minus(Duration.ofDays(4)), null, null,
+                StockAvailability.AVAILABLE);
+        PriceRecord shelf = PriceRecord.fromStoreVisit(observation, now);
+        PriceRecord scraped = PriceRecord.from(observation, now);
+
+        PriceQuote shelfQuote = policy.quote(shelf, now);
+
+        assertThat(shelfQuote.status()).isEqualTo(PriceStatus.KNOWN);
+        assertThat(shelfQuote.expiresAt()).isEqualTo(now.plus(Duration.ofDays(3)));
+        assertThat(shelfQuote.observation().salesChannel()).isEqualTo(PriceSalesChannel.IN_STORE);
+        assertThat(policy.quote(scraped, now).status()).isEqualTo(PriceStatus.EXPIRED);
     }
 }

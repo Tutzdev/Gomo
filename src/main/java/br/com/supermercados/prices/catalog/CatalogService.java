@@ -53,10 +53,13 @@ public class CatalogService {
     private final PricePolicy policy;
     private final Clock clock;
     private final java.time.Duration maxPriceAge;
+    private final java.time.Duration inStoreMaxPriceAge;
 
     public CatalogService(CatalogItemRepository items, NamedParameterJdbcTemplate jdbc, PriceRecordRepository prices,
             ProductRepository products, StoreService stores, PricePolicy policy, Clock clock,
-            @org.springframework.beans.factory.annotation.Value("${app.prices.max-age:P2D}") java.time.Duration maxPriceAge) {
+            @org.springframework.beans.factory.annotation.Value("${app.prices.max-age:P2D}") java.time.Duration maxPriceAge,
+            @org.springframework.beans.factory.annotation.Value("${app.prices.in-store-max-age:P7D}") java.time.Duration inStoreMaxPriceAge) {
+        this.inStoreMaxPriceAge = inStoreMaxPriceAge;
         this.maxPriceAge = maxPriceAge;
         this.items = items;
         this.jdbc = jdbc;
@@ -94,14 +97,16 @@ public class CatalogService {
                     FROM (SELECT DISTINCT ON (r.store_id, r.product_id) r.store_id, r.product_id,
                                 r.availability, r.valid_until
                             FROM price_records r
-                            WHERE r.store_id IN (:stores) AND r.collected_at > :freshAfter AND r.collected_at <= :now
+                            WHERE r.store_id IN (:stores) AND r.collected_at > :visitFreshAfter
+                              AND (r.origin_type = 'STORE_VISIT' OR r.collected_at > :freshAfter) AND r.collected_at <= :now
                             ORDER BY r.store_id, r.product_id, r.collected_at DESC, r.recorded_at DESC, r.id DESC) fresh
                     JOIN catalog_item_products link ON link.product_id = fresh.product_id
                     WHERE fresh.availability <> 'UNAVAILABLE' AND (fresh.valid_until IS NULL OR fresh.valid_until > :now)
                     GROUP BY link.catalog_item_id""";
             parameters.addValue("stores", selected.stream().map(StoreResponse::id).toList())
                     .addValue("now", java.sql.Timestamp.from(now))
-                    .addValue("freshAfter", java.sql.Timestamp.from(now.minus(maxPriceAge)));
+                    .addValue("freshAfter", java.sql.Timestamp.from(now.minus(maxPriceAge)))
+                    .addValue("visitFreshAfter", java.sql.Timestamp.from(now.minus(inStoreMaxPriceAge)));
         }
         String matched = matchedSql(priced, exact, cityId != null);
         Long exactMatches = jdbc.queryForObject(matched.replace("{columns}", "count(*)"), parameters, Long.class);
