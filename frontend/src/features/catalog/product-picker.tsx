@@ -16,11 +16,14 @@ interface ProductPickerProps {
   onSearchChange?: (search: string) => void;
   cityId?: string;
   storeIds?: string[];
+  /** Text the search starts with (the store-visit basket opens each item already searched). */
+  initialSearch?: string;
+  label?: string;
 }
 
-export function ProductPicker({ id, value, onChange, excludedIds = [], onSearchChange, cityId, storeIds }: ProductPickerProps) {
-  const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
+export function ProductPicker({ id, value, onChange, excludedIds = [], onSearchChange, cityId, storeIds, initialSearch = "", label = "Buscar produto" }: ProductPickerProps) {
+  const [search, setSearch] = useState(initialSearch);
+  const [query, setQuery] = useState(initialSearch.trim());
   const [page, setPage] = useState(0);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -120,7 +123,7 @@ export function ProductPicker({ id, value, onChange, excludedIds = [], onSearchC
   };
 
   return <div className="relative min-w-0" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-    <label htmlFor={`${id}-search`} className="mb-2 block text-sm font-semibold">Buscar produto</label>
+    <label htmlFor={`${id}-search`} className="mb-2 block text-sm font-semibold">{label}</label>
     <div className="relative">
       {selected ? <Check className="pointer-events-none absolute left-3 top-3.5 size-5 text-success" aria-hidden /> : <Search className="pointer-events-none absolute left-3 top-3.5 size-5 text-muted" aria-hidden />}
       <input ref={input} id={`${id}-search`} role="combobox" type="text" autoComplete="off" spellCheck={false}

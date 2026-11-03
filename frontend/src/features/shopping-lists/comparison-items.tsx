@@ -48,6 +48,8 @@ export function ComparisonItems({
                     </summary>
                     {item.price.observation.salesChannel === "ONLINE" ? (
                       <p className="mt-1">Preço do site do mercado. Na loja física pode ser diferente.</p>
+                    ) : item.price.observation.salesChannel === "IN_STORE" ? (
+                      <p className="mt-1">Preço anotado na prateleira pela equipe do Gomo.</p>
                     ) : item.price.observation.salesChannel === "PHYSICAL_FLYER" ? (
                       <p className="mt-1">Oferta do encarte da loja.</p>
                     ) : null}

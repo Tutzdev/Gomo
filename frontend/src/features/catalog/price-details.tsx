@@ -55,16 +55,19 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
       ) : null}
       {observation ? (
         <>
-          {observation.salesChannel === "ONLINE" || observation.salesChannel === "PHYSICAL_FLYER" ? (
+          {observation.salesChannel !== "UNSPECIFIED" ? (
             <p className="text-xs text-muted">
               {observation.salesChannel === "ONLINE"
                 ? "Preço do site do mercado. Na loja física pode ser diferente."
-                : "Oferta do encarte da loja."}
+                : observation.salesChannel === "IN_STORE"
+                  ? "Preço anotado na prateleira pela equipe do Gomo. Pode ter mudado desde a visita."
+                  : "Oferta do encarte da loja."}
             </p>
           ) : null}
           <p className="flex items-center gap-2 text-xs text-muted">
             <Clock3 className="size-3.5" aria-hidden />
-            Visto no site do mercado em {formatDate(observation.collectedAt)}
+            {observation.salesChannel === "IN_STORE" ? "Anotado na loja em" : "Visto no site do mercado em"}{" "}
+            {formatDate(observation.collectedAt)}
           </p>
           {price.expiresAt ? (
             <p className="text-xs text-muted">

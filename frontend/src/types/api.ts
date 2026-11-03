@@ -159,6 +159,29 @@ export interface Product {
 }
 
 export type StorePriceStatus = "CURRENT" | "OUTDATED" | "NO_PRICES";
+export type StorePriceChannel = "ONLINE" | "IN_STORE";
+
+export interface StoreVisitResult {
+  storeId: string;
+  observedAt: string;
+  recordedPrices: number;
+  currentUntil: string;
+}
+
+export interface ProductSuggestion {
+  id: string;
+  name: string;
+  brand: string | null;
+  packageSize: string | null;
+  barcode: string | null;
+  storeId: string | null;
+  price: number | null;
+  note: string | null;
+  submittedAt: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  decidedAt: string | null;
+  rejectionReason: string | null;
+}
 
 export interface Store {
   id: string;
@@ -177,12 +200,14 @@ export interface Store {
   priceSourceNote: string | null;
   /** Only filled by /stores and /stores/{id}; null in comparison responses. */
   priceStatus?: StorePriceStatus | null;
+  /** IN_STORE: no online store; prices are written down at the shelf by the Gomo team. */
+  priceChannel?: StorePriceChannel;
 }
 
 export interface PriceRecord {
   sourceProductReference: string | null;
   sourceProductName: string | null;
-  salesChannel: "ONLINE" | "PHYSICAL_FLYER" | "UNSPECIFIED";
+  salesChannel: "ONLINE" | "PHYSICAL_FLYER" | "IN_STORE" | "UNSPECIFIED";
   id: string;
   productId: string;
   storeId: string;

@@ -21,6 +21,8 @@ import type {
   PriceAlert,
   CreatePriceAlertInput,
   PriceContribution,
+  ProductSuggestion,
+  StoreVisitResult,
   PriceRecord,
   Product,
   ProductSearchFacets,
@@ -411,6 +413,8 @@ export const adminApi = {
   recordPrice: (input: unknown) =>
     apiRequest("/admin/prices", { method: "POST", body: input }),
   collectionHealth: () => apiRequest<CollectionHealth>("/admin/collections/health"),
+  recordStoreVisit: (storeId: string, input: { observedAt: string; items: { productId: string; price: number }[] }) =>
+    apiRequest<StoreVisitResult>(`/admin/stores/${storeId}/visits`, { method: "POST", body: input }),
   collect: (collectorCode: string, existingOnly: boolean) =>
     apiRequest<unknown>(`/admin/collections?${queryString({ collectorCode, existingOnly: String(existingOnly) })}`, { method: "POST" }),
 };
@@ -502,4 +506,27 @@ export const sharingApi = {
     }>("/list-invites/preview", { method: "POST", body: { token } }),
   accept: (token: string) =>
     apiRequest<{ listId: string }>("/list-invites/acceptance", { method: "POST", body: { token } }),
+};
+
+export interface ProductSuggestionInput {
+  name: string;
+  brand?: string;
+  packageSize?: string;
+  barcode?: string;
+  storeId?: string;
+  price?: number;
+  note?: string;
+}
+
+export const suggestionApi = {
+  listMine: (page = 0, size = 50) =>
+    apiRequest<PageResponse<ProductSuggestion>>(`/product-suggestions?${queryString({ page, size })}`),
+  submit: (input: ProductSuggestionInput) =>
+    apiRequest<ProductSuggestion>("/product-suggestions", { method: "POST", body: input }),
+  moderation: (status: ProductSuggestion["status"] = "PENDING", page = 0) =>
+    apiRequest<PageResponse<ProductSuggestion>>(`/admin/product-suggestions?${queryString({ status, page, size: 20 })}`),
+  approve: (id: string) =>
+    apiRequest<ProductSuggestion>(`/admin/product-suggestions/${id}/approval`, { method: "POST" }),
+  reject: (id: string, reason: string) =>
+    apiRequest<ProductSuggestion>(`/admin/product-suggestions/${id}/rejection`, { method: "POST", body: { reason } }),
 };
