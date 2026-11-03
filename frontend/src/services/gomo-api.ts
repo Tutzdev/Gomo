@@ -221,10 +221,10 @@ export const catalogApi = {
   },
   store: (id: string) =>
     apiRequest<Store>(`/stores/${id}`, { anonymous: true }),
-  storeProducts: (id: string, query: string, page = 0) =>
+  storeProducts: (id: string, query: string, page = 0, signal?: AbortSignal) =>
     apiRequest<PageResponse<StoreProduct>>(
       `/stores/${id}/products?${queryString({ query, page, size: 30 })}`,
-      { anonymous: true },
+      { anonymous: true, signal },
     ),
   priceHistory: (productId: string, storeId: string, page = 0, size = 20) =>
     apiRequest<PageResponse<PriceRecord>>(

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, Store } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -18,6 +18,11 @@ import { formatCurrency, formatDate } from "@/lib/brand";
 import { catalogApi } from "@/services/gomo-api";
 import type { CatalogItem } from "@/types/api";
 import { useDefaultCityId } from "@/lib/use-default-city";
+import { useScrollToTopOnChange } from "@/lib/use-scroll-to-top";
+
+const PAGE_SIZE = 24;
+/** Prices change four times a day: a page seen a minute ago is still right, so going back is instant. */
+const CATALOG_STALE_TIME = 2 * 60 * 1000;
 
 export function ProductsPage() {
   const [storeIds, setStoreIds] = useState<string[]>([]);
@@ -36,13 +41,30 @@ export function ProductsPage() {
   });
   const defaultCityId = useDefaultCityId();
   const cityId = selectedCity || defaultCityId;
+  const queryClient = useQueryClient();
   const items = useQuery({
     queryKey: ["catalog-items", "page", query, page, cityId, storeIds],
     queryFn: ({ signal }) =>
-      catalogApi.catalogItems({ query, page, size: 24, cityId, storeIds }, signal),
+      catalogApi.catalogItems({ query, page, size: PAGE_SIZE, cityId, storeIds }, signal),
     enabled: !cities.isPending,
+    staleTime: CATALOG_STALE_TIME,
+    // The cards already on screen stay while the next search or page loads, instead of blinking into a skeleton.
+    placeholderData: keepPreviousData,
   });
-  const waiting = items.isPending || search.trim() !== query;
+  const totalPages = items.data?.totalPages ?? 0;
+  // The next page is usually the next tap: fetch it while the shopper is still reading this one.
+  useEffect(() => {
+    if (items.isPlaceholderData || page + 1 >= totalPages) return;
+    void queryClient.prefetchQuery({
+      queryKey: ["catalog-items", "page", query, page + 1, cityId, storeIds],
+      queryFn: ({ signal }) =>
+        catalogApi.catalogItems({ query, page: page + 1, size: PAGE_SIZE, cityId, storeIds }, signal),
+      staleTime: CATALOG_STALE_TIME,
+    });
+  }, [queryClient, items.isPlaceholderData, page, totalPages, query, cityId, storeIds]);
+  useScrollToTopOnChange(page);
+  const waiting = items.isPending;
+  const refreshing = !waiting && (items.isPlaceholderData || search.trim() !== query);
 
   return (
     <>
@@ -51,8 +73,8 @@ export function ProductsPage() {
         description="Digite o produto como você falaria no mercado. Cada um aparece uma vez, com o preço de todos os mercados que o vendem."
       />
       <section className="surface mb-6" aria-label="Pesquisa no catálogo">
-        <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_16rem_auto] lg:items-end">
-          <div>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-4 sm:gap-4 sm:p-5 lg:grid-cols-[1fr_16rem_auto] lg:items-end">
+          <div className="col-span-2 lg:col-span-1">
             <label htmlFor="catalog-search" className="mb-2 block text-sm font-medium">
               Buscar produto
             </label>
@@ -94,6 +116,7 @@ export function ProductsPage() {
           </SelectField>
           <NativeButton
             variant="secondary"
+            className="self-end"
             aria-expanded={showFilters}
             aria-controls="catalog-filters"
             onClick={() => setShowFilters(!showFilters)}
@@ -116,12 +139,14 @@ export function ProductsPage() {
         ) : null}
       </section>
       {cities.isError ? <ErrorState retry={() => void cities.refetch()} /> : null}
-      <section aria-live="polite" aria-busy={waiting}>
+      <section aria-live="polite" aria-busy={waiting || refreshing}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold">
             {query ? `Resultados para “${query}”` : "Mais encontrados nos mercados"}
           </h2>
-          {!waiting && items.data ? (
+          {refreshing ? (
+            <span className="text-xs text-muted">Atualizando…</span>
+          ) : !waiting && items.data ? (
             <span className="text-xs text-muted">
               {items.data.totalElements.toLocaleString("pt-BR")} produtos
             </span>
@@ -138,7 +163,9 @@ export function ProductsPage() {
           />
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div
+              className={`grid gap-3 transition-opacity duration-150 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3 motion-reduce:transition-none ${refreshing ? "opacity-60" : ""}`}
+            >
               {items.data.content.map((item) => (
                 <CatalogItemCard
                   key={item.id}

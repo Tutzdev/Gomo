@@ -1,5 +1,5 @@
 import { productMetadata } from "@/features/catalog/product-label";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeading, Pagination, StatusBadge } from "@/components/page/page-elements";
@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { TextField } from "@/components/ui/form-field";
 import { catalogApi } from "@/services/gomo-api";
 import { PriceDetails } from "@/features/catalog/price-details";
+import { useScrollToTopOnChange } from "@/lib/use-scroll-to-top";
 
 export function StoreCatalogPage() {
   const { id = "" } = useParams();
@@ -24,8 +25,13 @@ export function StoreCatalogPage() {
   });
   const catalog = useQuery({
     queryKey: ["store-products", id, query, page],
-    queryFn: () => catalogApi.storeProducts(id, query, page),
+    queryFn: ({ signal }) => catalogApi.storeProducts(id, query, page, signal),
+    staleTime: 2 * 60 * 1000,
+    // The products on screen stay while the next search or page loads, instead of blinking into a spinner.
+    placeholderData: keepPreviousData,
   });
+  useScrollToTopOnChange(page);
+  const refreshing = catalog.isPlaceholderData || search.trim() !== query;
   const status = store.data ? storeStatus(store.data) : null;
   return (
     <>
@@ -66,7 +72,7 @@ export function StoreCatalogPage() {
           disponível.
         </p>
       </div>
-      {catalog.isLoading || search.trim() !== query ? (
+      {catalog.isPending ? (
         <LoadingState />
       ) : catalog.isError ? (
         <ErrorState
@@ -80,9 +86,12 @@ export function StoreCatalogPage() {
         />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            aria-busy={refreshing}
+            className={`grid gap-3 transition-opacity duration-150 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 motion-reduce:transition-none ${refreshing ? "opacity-60" : ""}`}
+          >
             {catalog.data.content.map(({ product, price }) => (
-              <article key={product.id} className="surface min-w-0 p-5">
+              <article key={product.id} className="surface min-w-0 p-4 sm:p-5">
                 <h2 className="font-bold">
                   <Link
                     to={`/app/produtos/${product.id}`}
