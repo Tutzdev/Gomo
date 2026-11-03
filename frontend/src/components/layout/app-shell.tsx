@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Bell, Menu, Sparkles } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { BrandLogo } from "@/components/brand-logo";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { NativeButton } from "@/components/ui/native-button";
-import { Sheet } from "@/components/ui/sheet";
 import { useAuth } from "@/features/auth/auth-context";
 import { UpsellProvider } from "@/features/plan/upsell-provider";
 import { alertApi } from "@/services/gomo-api";
@@ -33,27 +34,18 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const menuButton = useRef<HTMLButtonElement>(null);
-  const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem(COLLAPSED_KEY) === "true");
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const desktop = window.matchMedia("(min-width: 64rem)");
-    const closeMobileMenu = () => {
-      if (desktop.matches) setMobileOpen(false);
-    };
-    desktop.addEventListener("change", closeMobileMenu);
-    return () => desktop.removeEventListener("change", closeMobileMenu);
-  }, []);
+  const [collapsed, setCollapsed] = useState(() => readCollapsed());
+  // "No mercado" has its own bar at the bottom (the running total); the tabs would cover it.
+  const showTabBar = !/^\/app\/listas\/[^/]+\/mercado\//.test(location.pathname);
 
   const toggleCollapsed = () => {
     setCollapsed((current) => {
       const next = !current;
-      window.localStorage.setItem(COLLAPSED_KEY, String(next));
+      try {
+        window.localStorage.setItem(COLLAPSED_KEY, String(next));
+      } catch {
+        // Private mode: the choice lasts until the page closes.
+      }
       return next;
     });
   };
@@ -78,7 +70,7 @@ export function AppShell() {
 
   return (
     <UpsellProvider>
-      <div className="motion-icons min-h-screen bg-[#f7f7f8]">
+      <div className="app-shell motion-icons min-h-screen bg-[#f7f7f8]">
         <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo</a>
 
         <aside
@@ -97,19 +89,21 @@ export function AppShell() {
         </aside>
 
         <div className={cn("min-h-screen transition-[padding] duration-200 motion-reduce:transition-none", collapsed ? "lg:pl-20" : "lg:pl-64")}>
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+          <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-white/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur sm:h-16 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="lg:hidden">
-                <button ref={menuButton} type="button" className="icon-button" onClick={() => setMobileOpen(true)} aria-label="Abrir menu lateral" aria-expanded={mobileOpen}>
-                  <Menu className="size-5" aria-hidden />
-                </button>
-              </div>
+              <Link
+                to={user ? "/app" : "/"}
+                aria-label="Gomo — início"
+                className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:hidden"
+              >
+                <BrandLogo compact className="size-8" />
+              </Link>
               <div className="hidden lg:block">
                 <button type="button" className="icon-button" onClick={toggleCollapsed} aria-label={collapsed ? "Expandir navegação" : "Recolher navegação"} aria-expanded={!collapsed}>
                   <Menu className="size-5" aria-hidden />
                 </button>
               </div>
-              <p className="truncate font-semibold text-foreground">{currentPage}</p>
+              <p className="truncate font-display text-lg font-semibold text-foreground sm:font-sans sm:text-base">{currentPage}</p>
             </div>
             {user ? (
               <div className="flex min-w-0 items-center gap-3">
@@ -123,7 +117,7 @@ export function AppShell() {
                   </Link>
                 ) : null}
                 <NotificationBell />
-                <div className="min-w-0 text-right">
+                <div className="hidden min-w-0 text-right sm:block">
                   <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
                   <p className="text-xs text-muted">{planLabel(user)}</p>
                 </div>
@@ -136,32 +130,37 @@ export function AppShell() {
             )}
           </header>
 
-          <main id="conteudo-principal" className="mx-auto w-full max-w-[96rem] p-4 sm:p-6 lg:p-8" tabIndex={-1}>
+          <main
+            id="conteudo-principal"
+            className={cn(
+              "mx-auto w-full max-w-[96rem] p-4 sm:p-6 lg:p-8",
+              showTabBar && "pb-[calc(var(--app-bottom-inset)+1.5rem)] sm:pb-[calc(var(--app-bottom-inset)+1.5rem)] lg:pb-8",
+            )}
+            tabIndex={-1}
+          >
             <Outlet />
           </main>
         </div>
 
-        <Sheet
-          open={mobileOpen}
-          onOpenChange={setMobileOpen}
-          title="Menu da Gomo"
-          side="left"
-          className="motion-icons"
-          bodyClassName="mt-5 -mx-5 -mb-5 overflow-hidden bg-sidebar"
-          onCloseAutoFocus={(event) => { event.preventDefault(); menuButton.current?.focus(); }}
-        >
-            <DashboardSidebar
-              collapsed={false}
-              role={user?.role ?? null}
-              returnPath={returnPath}
-              mobile
-              onNavigate={() => setMobileOpen(false)}
-              onLogout={() => void handleLogout()}
-            />
-        </Sheet>
+        {showTabBar ? (
+          <MobileTabBar
+            user={user}
+            planLabel={user ? planLabel(user) : null}
+            returnPath={returnPath}
+            onLogout={() => void handleLogout()}
+          />
+        ) : null}
       </div>
     </UpsellProvider>
   );
+}
+
+function readCollapsed() {
+  try {
+    return window.localStorage.getItem(COLLAPSED_KEY) === "true";
+  } catch {
+    return false;
+  }
 }
 
 function planLabel(user: User) {

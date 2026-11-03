@@ -1178,3 +1178,130 @@ a {
     display: none;
   }
 }
+
+/* Celular: barra de abas fixa embaixo, ao alcance do polegar. Some no desktop, onde a barra lateral assume. */
+.app-shell {
+  --app-bottom-inset: calc(4.25rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 64rem) {
+  .app-shell {
+    --app-bottom-inset: 0px;
+  }
+}
+
+.mobile-tab-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  border-top: 1px solid var(--border);
+  background: rgb(255 255 255 / 0.94);
+  padding: 0.375rem 0.5rem env(safe-area-inset-bottom);
+  box-shadow: 0 -12px 32px -24px rgb(32 33 36 / 0.45);
+  backdrop-filter: saturate(1.4) blur(12px);
+}
+
+.mobile-tab {
+  display: flex;
+  min-height: 3.5rem;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  border: 0;
+  border-radius: 0.875rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.mobile-tab__icon {
+  display: grid;
+  height: 2rem;
+  width: 3.25rem;
+  place-items: center;
+  border-radius: 999px;
+  transition: background-color 200ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mobile-tab[data-active="true"] {
+  color: var(--primary-dark);
+  font-weight: 800;
+}
+
+.mobile-tab[data-active="true"] .mobile-tab__icon {
+  background: var(--primary-soft-strong);
+  color: var(--primary);
+}
+
+.mobile-tab:active .mobile-tab__icon {
+  transform: scale(0.9);
+}
+
+.mobile-tab:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.mobile-tab__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-tab__dot {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.875rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 2px white;
+}
+
+.more-tile {
+  transition: transform 150ms ease, background-color 150ms ease;
+}
+
+.more-tile:active {
+  transform: scale(0.97);
+}
+
+.more-tile:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sheet-bottom[data-state="open"] {
+  animation: sheet-rise 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-tab__icon,
+  .more-tile {
+    transition: none;
+  }
+
+  .sheet-bottom[data-state="open"] {
+    animation: none;
+  }
+}

@@ -32,7 +32,7 @@ export function OverviewPage() {
       <SavingsHighlight />
       {defaultCityId ? <RecurringListsCard cityId={defaultCityId} /> : null}
 
-      <section aria-label="Resumo da conta" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Resumo da conta" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <SummaryItem icon={ListChecks} label="Listas salvas" value={lists.data ? String(lists.data.totalElements) : "—"} loading={lists.isLoading} to="/app/listas" />
         <SummaryItem icon={Bell} label="Alertas ativos" value={alerts.data ? String(alerts.data.content.filter((item) => item.active).length) : "—"} loading={alerts.isLoading} to="/app/alertas" />
         <SummaryItem icon={CircleDollarSign} label="Notificações não lidas" value={unread.data ? String(unread.data.unread) : "—"} loading={unread.isLoading} to="/app/notificacoes" />
@@ -67,9 +67,9 @@ export function OverviewPage() {
 
 function SummaryItem({ icon: Icon, label, value, loading, to }: { icon: typeof ListChecks; label: string; value: string; loading: boolean; to: string }) {
   return (
-    <Link to={to} className="surface flex min-h-28 items-center gap-4 p-4 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+    <Link to={to} className="surface flex min-h-28 flex-col items-start gap-3 p-4 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus active:scale-[0.98] motion-reduce:active:scale-100 sm:flex-row sm:items-center sm:gap-4">
       <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary"><Icon className="size-5" aria-hidden /></span>
-      <div className="min-w-0"><p className="text-sm text-muted">{label}</p><p className="mt-1 truncate text-xl font-extrabold">{loading ? "…" : value}</p></div>
+      <div className="w-full min-w-0"><p className="text-xs leading-snug text-muted sm:text-sm">{label}</p><p className="mt-1 truncate text-xl font-extrabold">{loading ? "…" : value}</p></div>
     </Link>
   );
 }
