@@ -35,7 +35,7 @@ export function ProfilePage() {
       <PageHeading title="Perfil" description="Seus dados, sua cidade e a confirmação do seu e-mail." />
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="surface anim-trigger p-5 sm:p-6">
-          <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary"><UserRound className="size-5" aria-hidden /></span><div><h2 className="font-bold">Dados da conta</h2><p className="text-sm text-muted">Informações suportadas pelo backend.</p></div></div>
+          <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary-soft text-primary"><UserRound className="size-5" aria-hidden /></span><div><h2 className="font-bold">Dados da conta</h2><p className="text-sm text-muted">Seu nome e o e-mail usado para entrar.</p></div></div>
           <form className="mt-6 space-y-4" onSubmit={(event) => { event.preventDefault(); updateProfile.mutate(); }}>
             <TextField id="profile-name" label="Nome" value={name} maxLength={120} onChange={(event) => setName(event.target.value)} required />
             <TextField id="profile-email" label="E-mail" value={user.email} disabled readOnly />

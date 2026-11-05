@@ -1,10 +1,10 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Bell, Menu, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { BrandLogo } from "@/components/brand-logo";
-import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
-import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
+import { DashboardSidebar, initial } from "@/components/layout/dashboard-sidebar";
 import { NativeButton } from "@/components/ui/native-button";
 import { useAuth } from "@/features/auth/auth-context";
 import { UpsellProvider } from "@/features/plan/upsell-provider";
@@ -30,13 +30,22 @@ const pageNames: Record<string, string> = {
 
 const COLLAPSED_KEY = "gomo.sidebar-collapsed";
 
+/**
+ * The signed-in area as a website: on a computer the red bar stays on the left (and shrinks to icons); on a
+ * tablet or phone the menu button in the header opens the same bar as a drawer.
+ */
 export function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(() => readCollapsed());
-  // "No mercado" has its own bar at the bottom (the running total); the tabs would cover it.
-  const showTabBar = !/^\/app\/listas\/[^/]+\/mercado\//.test(location.pathname);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const account = user ? { name: user.name, plan: planLabel(user) } : null;
+
+  // The drawer closes whenever the page changes: a link inside the page, the back button or the menu itself.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   const toggleCollapsed = () => {
     setCollapsed((current) => {
@@ -82,45 +91,104 @@ export function AppShell() {
           <DashboardSidebar
             collapsed={collapsed}
             role={user?.role ?? null}
+            account={account}
             returnPath={returnPath}
             onToggle={toggleCollapsed}
             onLogout={() => void handleLogout()}
           />
         </aside>
 
+        <Dialog.Root open={menuOpen} onOpenChange={setMenuOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="sidebar-drawer-overlay fixed inset-0 z-50 bg-black/45 lg:hidden" />
+            <Dialog.Content
+              aria-describedby={undefined}
+              className="sidebar-drawer fixed inset-y-0 left-0 z-50 w-[min(86vw,18rem)] bg-sidebar shadow-2xl focus:outline-none lg:hidden"
+            >
+              <Dialog.Title className="sr-only">Menu</Dialog.Title>
+              <DashboardSidebar
+                collapsed={false}
+                role={user?.role ?? null}
+                account={account}
+                returnPath={returnPath}
+                onClose={() => setMenuOpen(false)}
+                onNavigate={() => setMenuOpen(false)}
+                onLogout={() => {
+                  setMenuOpen(false);
+                  void handleLogout();
+                }}
+              />
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+
         <div className={cn("min-h-screen transition-[padding] duration-200 motion-reduce:transition-none", collapsed ? "lg:pl-20" : "lg:pl-64")}>
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-white/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur sm:h-16 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              {/* .icon-button sets its own display, so the breakpoint visibility lives on a wrapper. */}
+              <div className="-ml-2 lg:hidden">
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => setMenuOpen(true)}
+                  aria-label="Abrir menu"
+                  aria-haspopup="dialog"
+                  aria-expanded={menuOpen}
+                >
+                  <Menu className="size-5" aria-hidden />
+                </button>
+              </div>
+              <div className="hidden lg:block">
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={toggleCollapsed}
+                  aria-label={collapsed ? "Expandir navegação" : "Recolher navegação"}
+                  aria-expanded={!collapsed}
+                >
+                  <Menu className="size-5" aria-hidden />
+                </button>
+              </div>
               <Link
                 to={user ? "/app" : "/"}
                 aria-label="Gomo — início"
                 className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:hidden"
               >
-                <BrandLogo compact className="size-8" />
+                <span className="sm:hidden">
+                  <BrandLogo compact className="size-8" />
+                </span>
+                <span className="hidden sm:block">
+                  <BrandLogo className="h-7 sm:h-7" />
+                </span>
               </Link>
-              <div className="hidden lg:block">
-                <button type="button" className="icon-button" onClick={toggleCollapsed} aria-label={collapsed ? "Expandir navegação" : "Recolher navegação"} aria-expanded={!collapsed}>
-                  <Menu className="size-5" aria-hidden />
-                </button>
-              </div>
-              <p className="truncate font-display text-lg font-semibold text-foreground sm:font-sans sm:text-base">{currentPage}</p>
+              <span className="hidden h-6 w-px shrink-0 bg-border sm:block lg:hidden" aria-hidden />
+              <p className="hidden truncate text-base font-semibold text-foreground sm:block">{currentPage}</p>
             </div>
             {user ? (
-              <div className="flex min-w-0 items-center gap-3">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 {!user.premium ? (
                   <Link
                     to="/assinar?origem=topo"
-                    className="hidden min-h-9 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:inline-flex"
+                    className="hidden min-h-9 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:inline-flex"
                   >
                     <Sparkles className="size-3.5" aria-hidden />
                     Conhecer o Premium
                   </Link>
                 ) : null}
                 <NotificationBell />
-                <div className="hidden min-w-0 text-right sm:block">
-                  <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
-                  <p className="text-xs text-muted">{planLabel(user)}</p>
-                </div>
+                <Link
+                  to="/app/perfil"
+                  className="flex min-w-0 items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  aria-label={`Perfil de ${user.name}`}
+                >
+                  <span className="hidden min-w-0 text-right md:block">
+                    <span className="block max-w-48 truncate text-sm font-semibold text-foreground">{user.name}</span>
+                    <span className="block text-xs text-muted">{planLabel(user)}</span>
+                  </span>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary font-display text-base font-semibold text-white" aria-hidden>
+                    {initial(user.name)}
+                  </span>
+                </Link>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -132,24 +200,12 @@ export function AppShell() {
 
           <main
             id="conteudo-principal"
-            className={cn(
-              "mx-auto w-full max-w-[96rem] p-4 sm:p-6 lg:p-8",
-              showTabBar && "pb-[calc(var(--app-bottom-inset)+1.5rem)] sm:pb-[calc(var(--app-bottom-inset)+1.5rem)] lg:pb-8",
-            )}
+            className="mx-auto w-full max-w-[96rem] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8"
             tabIndex={-1}
           >
             <Outlet />
           </main>
         </div>
-
-        {showTabBar ? (
-          <MobileTabBar
-            user={user}
-            planLabel={user ? planLabel(user) : null}
-            returnPath={returnPath}
-            onLogout={() => void handleLogout()}
-          />
-        ) : null}
       </div>
     </UpsellProvider>
   );

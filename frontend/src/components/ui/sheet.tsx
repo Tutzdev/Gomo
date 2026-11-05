@@ -9,8 +9,7 @@ interface SheetProps {
   title: string;
   description?: string;
   children: ReactNode;
-  /** "bottom" is the phone's drawer: it rises from the tab bar and keeps the thumb close to the options. */
-  side?: "left" | "right" | "bottom";
+  side?: "left" | "right";
   onCloseAutoFocus?: (event: Event) => void;
   bodyClassName?: string;
   className?: string;
@@ -36,15 +35,12 @@ export function Sheet({
           className={cn(
             "fixed z-50 flex flex-col bg-white p-5 shadow-2xl",
             "focus:outline-none motion-safe:duration-200",
-            side === "bottom"
-              ? "sheet-bottom inset-x-0 bottom-0 max-h-[88dvh] rounded-t-3xl pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
-              : "inset-y-0 w-[min(88vw,22rem)]",
+            "inset-y-0 w-[min(88vw,22rem)]",
             side === "right" && "right-0 border-l border-border",
             side === "left" && "left-0 border-r border-border",
             className,
           )}
         >
-          {side === "bottom" ? <span className="mx-auto -mt-2 mb-3 h-1.5 w-10 shrink-0 rounded-full bg-border-strong" aria-hidden /> : null}
           <div className="flex shrink-0 items-start justify-between gap-4">
             <div>
               <Dialog.Title className="font-semibold text-foreground">{title}</Dialog.Title>

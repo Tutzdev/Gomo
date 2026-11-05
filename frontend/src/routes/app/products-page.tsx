@@ -73,8 +73,8 @@ export function ProductsPage() {
         description="Digite o produto como você falaria no mercado. Cada um aparece uma vez, com o preço de todos os mercados que o vendem."
       />
       <section className="surface mb-6" aria-label="Pesquisa no catálogo">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-4 sm:gap-4 sm:p-5 lg:grid-cols-[1fr_16rem_auto] lg:items-end">
-          <div className="col-span-2 lg:col-span-1">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-4 sm:gap-4 sm:p-5 xl:grid-cols-[1fr_16rem_auto] xl:items-end">
+          <div className="col-span-2 xl:col-span-1">
             <label htmlFor="catalog-search" className="mb-2 block text-sm font-medium">
               Buscar produto
             </label>

@@ -59,7 +59,7 @@ function saveDraft(storeId: string, draft: Draft | null) {
 /** Shelf prices of a market without an online store, written down item by item during a visit. */
 export function StoreVisitPanel() {
   const queryClient = useQueryClient();
-  const stores = useQuery({ queryKey: ["stores", "in-store"], queryFn: () => catalogApi.stores(undefined, 0, 200) });
+  const stores = useQuery({ queryKey: ["stores", "in-store"], queryFn: () => catalogApi.stores(undefined, 0, 100) });
   const inStore = useMemo(
     () => (stores.data?.content ?? []).filter((store) => store.priceChannel === "IN_STORE"),
     [stores.data],
@@ -191,7 +191,7 @@ export function StoreVisitPanel() {
             <NativeButton type="button" className="mt-4" onClick={addExtra}><Plus className="size-4" aria-hidden />Adicionar produto</NativeButton>
           ) : null}
 
-          <div className="sticky bottom-[var(--app-bottom-inset,0px)] mt-6 flex flex-wrap items-center gap-3 border-t border-border bg-surface py-3">
+          <div className="sticky bottom-0 mt-6 flex flex-wrap items-center gap-3 border-t border-border bg-surface py-3">
             <p className="text-sm font-semibold">{filled.length} de {STORE_VISIT_BASKET_SIZE + draft.extras.length} itens anotados</p>
             <NativeButton type="button" loading={submit.isPending} disabled={!filled.length || duplicated || !draft.observedAt}
               onClick={() => { setMessage(null); submit.mutate(); }}>

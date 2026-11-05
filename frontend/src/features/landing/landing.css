@@ -14,6 +14,10 @@
 @import "@fontsource/nunito/latin-800.css";
 
 .landing {
+  /* Os losangos das linhas-guia passam meio quadrado da moldura; quando ela ocupa a tela toda (1024–1280 px)
+     isso virava rolagem lateral. clip, e não hidden, para o cabeçalho continuar sticky. */
+  overflow-x: clip;
+
   /* Largura das seções redesenhadas: mais aberta que a moldura, sem encostar nas bordas da tela. */
   --landing-wide: 88rem;
   /* Espaço entre uma seção e a próxima: o bastante para cada parte ser lida como um bloco. */

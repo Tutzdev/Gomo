@@ -29,19 +29,20 @@ export function PublicNavbar() {
           <BrandLogo />
         </Link>
 
-        <nav aria-label="Navegação principal" className="hidden items-center gap-1 lg:flex">
+        {/* Cinco links e dois botões só cabem numa linha a partir de 1280 px; abaixo disso, o menu de três traços. */}
+        <nav aria-label="Navegação principal" className="hidden items-center gap-1 xl:flex">
           {navigation.map((item) => (
             <a
               key={item.href}
               href={item.href}
-              className="rounded-full px-4 py-2 text-[0.9375rem] font-bold text-muted transition-colors hover:bg-surface-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-[0.9375rem] font-bold text-muted transition-colors hover:bg-surface-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
               {item.label}
             </a>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2 xl:flex">
           <NativeButton to={platformPath} variant="ghost" className="landing-button">{platformLabel}</NativeButton>
           <NativeButton to={signUpPath} className="landing-button">Começar grátis</NativeButton>
         </div>
