@@ -5,6 +5,7 @@ import { formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { catalogApi } from "@/services/gomo-api";
 import type { CatalogItem } from "@/types/api";
+import { useNearViewport, useProductImage } from "./product-image-url";
 import { HighlightedName } from "./highlighted-name";
 
 interface CatalogItemPickerProps {
@@ -273,24 +274,27 @@ function CatalogItemOption({
 }
 
 export function CatalogItemThumbnail({ imageUrl, size = "md" }: { imageUrl: string | null; size?: "sm" | "md" }) {
-  const [failed, setFailed] = useState(false);
+  const image = useProductImage(imageUrl, size === "sm" ? 40 : 48);
+  const viewport = useNearViewport<HTMLSpanElement>();
   return (
     <span
+      ref={viewport.ref}
       className={cn(
         "grid shrink-0 place-items-center overflow-hidden rounded-md bg-white ring-1 ring-border",
         size === "sm" ? "size-10" : "size-12",
       )}
     >
-      {imageUrl && !failed ? (
+      {image.src && viewport.near ? (
         <img
-          src={imageUrl}
+          src={image.src}
           alt=""
           loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
           width={48}
           height={48}
           className="size-full object-contain p-0.5"
-          onError={() => setFailed(true)}
+          onError={image.onError}
         />
       ) : (
         <Package className="size-5 text-muted" aria-hidden />

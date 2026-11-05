@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Clock3, ListPlus, Lock, Package, Search, Store, Trophy } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import { StatusBadge } from "@/components/page/page-elements";
@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { NativeButton } from "@/components/ui/native-button";
 import { ShareButton } from "@/components/ui/share-button";
 import { useAuth } from "@/features/auth/auth-context";
+import { useProductImage } from "@/features/catalog/product-image-url";
 import { LandingFooter } from "@/features/landing/landing-footer";
 import { ApiError } from "@/lib/api";
 import { BRAND, formatCurrency, formatDate } from "@/lib/brand";
@@ -234,18 +235,18 @@ function ProductPrices({ detail, cityName }: { detail: CatalogItemDetail; cityNa
 }
 
 function ProductPhoto({ imageUrl }: { imageUrl: string | null }) {
-  const [failed, setFailed] = useState(false);
+  const image = useProductImage(imageUrl, 112);
   return (
     <span className="grid size-28 shrink-0 place-items-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
-      {imageUrl && !failed ? (
+      {image.src ? (
         <img
-          src={imageUrl}
+          src={image.src}
           alt=""
           referrerPolicy="no-referrer"
           width={112}
           height={112}
           className="size-full object-contain p-1"
-          onError={() => setFailed(true)}
+          onError={image.onError}
         />
       ) : (
         <Package className="size-9 text-muted" aria-hidden />

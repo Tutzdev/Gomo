@@ -1,5 +1,5 @@
 import { Package } from "lucide-react";
-import { useState } from "react";
+import { useNearViewport, useProductImage } from "@/features/catalog/product-image-url";
 import type { Product } from "@/types/api";
 
 export function ProductImage({
@@ -9,21 +9,24 @@ export function ProductImage({
   product: Product;
   large?: boolean;
 }) {
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const image = useProductImage(product.imageUrl, large ? 96 : 56);
+  const viewport = useNearViewport<HTMLSpanElement>();
   return (
     <span
+      ref={viewport.ref}
       className={`grid shrink-0 place-items-center overflow-hidden rounded-lg bg-white ${large ? "size-24" : "size-14"}`}
     >
-      {product.imageUrl && product.imageUrl !== failedUrl ? (
+      {image.src && viewport.near ? (
         <img
-          src={product.imageUrl}
+          src={image.src}
           alt=""
           loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
           width={large ? 96 : 56}
           height={large ? 96 : 56}
           className="size-full object-contain"
-          onError={() => setFailedUrl(product.imageUrl)}
+          onError={image.onError}
         />
       ) : (
         <Package className="size-7 text-muted" aria-hidden />
