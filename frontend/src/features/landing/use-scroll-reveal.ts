@@ -1,29 +1,28 @@
 import { useLayoutEffect, type RefObject } from "react";
 
 /*
- * Os blocos de cada parte da landing que aparecem ao rolar, e o jeito de cada parte entrar: cada seção tem o seu
- * movimento, para a página não repetir o mesmo "sobe e aparece" do começo ao fim. Blocos irmãos (os cartões de um
- * grid, as perguntas da FAQ, as colunas do rodapé) entram um depois do outro. Os movimentos estão em
- * scroll-reveal.css.
+ * Os blocos da landing que aparecem ao rolar, e o jeito de cada um entrar. O movimento segue o tipo de bloco
+ * (texto sobe, cartão pousa, moldura só aparece), não a seção: assim a página varia sem parecer que cada parte
+ * é de um site diferente. Blocos irmãos (os cartões de um grid, as perguntas da FAQ) entram um depois do outro.
+ * Os movimentos estão em scroll-reveal.css.
  */
 export type Reveals = [selector: string, motion: RevealMotion][];
 
 const PAGE_REVEALS: Reveals = [
   [".hero__title", "focus"],
   [".hero__lead", "rise"],
-  [".hero__actions", "pop"],
-  [".how-intro", "from-left"],
-  [".how-grid > li", "hinge"],
-  [".how-cta", "pop"],
-  [".plans > *", "zoom"],
-  [".landing-faq .landing-heading", "from-left"],
-  [".faq-item", "drop"],
-  [".landing-closing__panel", "unfold"],
-  [".landing-footer__columns > *", "fade"],
-  [".landing-footer__bottom", "fade"],
+  [".hero__actions", "rise"],
+  ["#como-funciona .landing-heading", "rise"],
+  [".how-grid > li", "card"],
+  [".how-cta", "rise"],
+  [".plans", "card"],
+  [".landing-faq .landing-heading", "rise"],
+  [".faq-item", "rise"],
+  // O rodapé fica parado: as últimas linhas da página nunca passam da borda de baixo da tela para "entrar".
+  [".landing-closing", "card"],
 ];
 
-export type RevealMotion = "focus" | "rise" | "pop" | "glide" | "from-left" | "hinge" | "zoom" | "drop" | "unfold" | "fade";
+export type RevealMotion = "focus" | "rise" | "card" | "fade";
 
 /** Siblings past this one share the last delay, so long lists never make the visitor wait. */
 const MAX_STAGGER_STEPS = 5;

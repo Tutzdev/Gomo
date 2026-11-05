@@ -258,7 +258,8 @@
   box-shadow: 0 -20px 60px -30px rgb(169 28 24 / 0.35);
   padding: 0.625rem 0.625rem 0;
   backdrop-filter: blur(6px);
-  animation: hero-board-in 900ms var(--landing-ease-out) both;
+  /* Entra depois da frase (título, texto e botão sobem em ~250 ms), com a mesma curva das outras entradas. */
+  animation: hero-board-in 1100ms 280ms var(--reveal-ease) both;
 }
 
 .hero-board__app {
@@ -391,7 +392,7 @@
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   background: white;
-  animation: hero-rise-in 600ms 200ms var(--landing-ease-out) both;
+  animation: hero-rise-in 700ms 200ms var(--reveal-ease) both;
 }
 
 .hero-board__product {
@@ -474,7 +475,7 @@
   gap: 0.75rem;
   padding: 0.6875rem clamp(0.875rem, 2vw, 1.25rem);
   font-size: 0.875rem;
-  animation: hero-row-in 500ms calc(360ms + var(--row) * 70ms) var(--landing-ease-out) both;
+  animation: hero-row-in 600ms calc(340ms + var(--row) * 60ms) var(--reveal-ease) both;
 }
 
 .hero-board__ranking li + li {
@@ -576,10 +577,11 @@
   }
 }
 
+/* As linhas sobem como o resto da página (e não de lado), só que menos: são pequenas. */
 @keyframes hero-row-in {
   from {
     opacity: 0;
-    transform: translateX(-0.75rem);
+    transform: translateY(0.5rem);
   }
 }
 

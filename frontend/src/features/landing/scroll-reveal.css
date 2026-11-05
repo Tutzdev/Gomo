@@ -1,96 +1,57 @@
 /*
- * Aparecimento ao rolar, com um movimento por parte da página (o nome vem de data-reveal, posto pelo
- * use-scroll-reveal):
- *   focus     título do hero: sai do desfoque, como uma câmera acertando o foco;
- *   rise      textos de apoio: sobem pouco;
- *   pop       botões: crescem com um leve passo além;
- *   glide     fileira de mercados: desliza da direita, como se já estivesse andando;
- *   from-left títulos de seção: entram pela esquerda, no sentido da leitura;
- *   hinge     passos do "Como funciona": dobram para cima, presos pela borda de cima;
- *   zoom      planos: se aproximam;
- *   drop      perguntas: caem de cima, uma atrás da outra;
- *   unfold    chamada final: o painel se abre do centro para as bordas;
- *   fade      rodapé: só aparece.
- * Usa as propriedades translate, scale e rotate (e não transform) e uma animação (e não transition), para não
- * brigar com os hovers que os blocos já têm. Sem JavaScript, sem IntersectionObserver ou com movimento reduzido,
- * as classes não são postas e a página aparece inteira e parada.
+ * Aparecimento ao rolar. Uma família só de movimentos, todos com a mesma curva (rápido no começo, assentando
+ * devagar) e durações parecidas, para a página inteira respirar no mesmo ritmo. O que muda é o tipo de bloco
+ * (o nome vem de data-reveal, posto pelo use-scroll-reveal):
+ *   focus  o título do hero, a primeira coisa da página: sobe pouco saindo de um desfoque leve;
+ *   rise   textos, títulos de seção, botões e perguntas: sobem um pouco e aparecem;
+ *   card   cartões e painéis: sobem um pouco mais, com um quase nada de escala, como quem pousa na mesa;
+ *   fade   o que já se mexe ou é só moldura (fileira de mercados, rodapé): só aparece.
+ * Irmãos entram um depois do outro (--reveal-step). Usa translate e scale (e não transform) e uma animação
+ * (e não transition), para não brigar com os hovers. Sem JavaScript, sem IntersectionObserver ou com movimento
+ * reduzido, as classes não são postas e a página aparece inteira e parada.
  */
+
+.landing {
+  --reveal-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
 
 .landing .reveal:not(.is-revealed) {
   opacity: 0;
 }
 
 .landing .reveal.is-revealed {
-  animation-duration: 760ms;
-  animation-timing-function: var(--landing-ease-out);
-  animation-delay: calc(var(--reveal-step, 0) * 90ms);
+  animation-duration: 800ms;
+  animation-timing-function: var(--reveal-ease);
+  animation-delay: calc(var(--reveal-step, 0) * 80ms);
   animation-fill-mode: backwards;
 }
 
 .landing .reveal[data-reveal="focus"].is-revealed {
   animation-name: reveal-focus;
-  animation-duration: 1000ms;
+  animation-duration: 950ms;
 }
 
 .landing .reveal[data-reveal="rise"].is-revealed {
   animation-name: reveal-rise;
 }
 
-.landing .reveal[data-reveal="pop"].is-revealed {
-  animation-name: reveal-pop;
-  animation-duration: 620ms;
-  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.landing .reveal[data-reveal="glide"].is-revealed {
-  animation-name: reveal-glide;
-  animation-duration: 1100ms;
-}
-
-.landing .reveal[data-reveal="from-left"].is-revealed {
-  animation-name: reveal-from-left;
-  animation-duration: 820ms;
-}
-
-.landing .reveal[data-reveal="hinge"].is-revealed {
-  animation-name: reveal-hinge;
+.landing .reveal[data-reveal="card"].is-revealed {
+  animation-name: reveal-card;
   animation-duration: 900ms;
-  animation-delay: calc(var(--reveal-step, 0) * 120ms);
-}
-
-.landing .reveal[data-reveal="zoom"].is-revealed {
-  animation-name: reveal-zoom;
-  animation-duration: 700ms;
-  animation-delay: calc(var(--reveal-step, 0) * 110ms);
-}
-
-.landing .reveal[data-reveal="drop"].is-revealed {
-  animation-name: reveal-drop;
-  animation-duration: 560ms;
-  animation-delay: calc(var(--reveal-step, 0) * 60ms);
-}
-
-.landing .reveal[data-reveal="unfold"].is-revealed {
-  animation-name: reveal-unfold;
-  animation-duration: 1100ms;
-  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  animation-delay: calc(var(--reveal-step, 0) * 100ms);
 }
 
 .landing .reveal[data-reveal="fade"].is-revealed {
   animation-name: reveal-fade;
-  animation-duration: 600ms;
-}
-
-/* O dobrar precisa de profundidade: a perspectiva fica no grid dos passos. */
-.landing .how-grid {
-  perspective: 1400px;
+  animation-duration: 1000ms;
+  animation-timing-function: var(--landing-ease-standard);
 }
 
 @keyframes reveal-focus {
   from {
     opacity: 0;
-    filter: blur(14px);
-    scale: 1.04;
+    filter: blur(8px);
+    translate: 0 0.75rem;
   }
   to {
     filter: blur(0);
@@ -100,68 +61,15 @@
 @keyframes reveal-rise {
   from {
     opacity: 0;
-    translate: 0 1rem;
+    translate: 0 1.25rem;
   }
 }
 
-@keyframes reveal-pop {
+@keyframes reveal-card {
   from {
     opacity: 0;
-    scale: 0.86;
-  }
-}
-
-@keyframes reveal-glide {
-  from {
-    opacity: 0;
-    translate: 18% 0;
-  }
-}
-
-@keyframes reveal-from-left {
-  from {
-    opacity: 0;
-    translate: -2.5rem 0;
-  }
-}
-
-@keyframes reveal-hinge {
-  from {
-    opacity: 0;
-    transform-origin: 50% 0;
-    rotate: x -32deg;
-    translate: 0 0.75rem;
-  }
-  to {
-    transform-origin: 50% 0;
-  }
-}
-
-@keyframes reveal-zoom {
-  from {
-    opacity: 0;
-    scale: 0.9;
-  }
-}
-
-@keyframes reveal-drop {
-  from {
-    opacity: 0;
-    translate: 0 -0.875rem;
-  }
-}
-
-@keyframes reveal-unfold {
-  from {
-    opacity: 0;
-    clip-path: inset(22% 18% round var(--landing-radius-xl));
-    scale: 0.97;
-  }
-  30% {
-    opacity: 1;
-  }
-  to {
-    clip-path: inset(0 round var(--landing-radius-xl));
+    translate: 0 2rem;
+    scale: 0.985;
   }
 }
 
