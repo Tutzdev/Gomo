@@ -1,9 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { useDefaultCityId } from "@/lib/use-default-city";
-import { catalogApi } from "@/services/gomo-api";
 import { marketLogo } from "./market-logos";
 import { usePrefersReducedMotion } from "./motion-hooks";
+import { useCityMarkets, type CityMarkets } from "./use-city-markets";
 import { useMarquee } from "./use-marquee";
 import { useScrollReveal, type Reveals } from "./use-scroll-reveal";
 import "./markets.css";
@@ -11,15 +10,13 @@ import "./markets.css";
 /** The section mounts after its data arrives, so it runs its own reveal instead of the page's. */
 const REVEALS: Reveals = [
   [".markets__head", "rise"],
-  [".markets__viewport, .markets__static", "glide"],
+  [".markets__viewport, .markets__static", "fade"],
 ];
 
 /** Slow enough to read a name while it passes. */
 const PIXELS_PER_SECOND = 38;
 /** Each copy of the row holds at least this many logos, so a city with few markets still fills the screen. */
 const MIN_ITEMS_PER_COPY = 12;
-
-type CityMarkets = { id: string; name: string; chains: { id: string; name: string }[] };
 
 /**
  * Right below the hero: the markets the Gomo compares in the visitor's city, as a moving row of their logos in
@@ -133,30 +130,6 @@ function MarketLogoItem({ name }: { name: string }) {
       <span className="market-logo__name">{name}</span>
     </span>
   );
-}
-
-/** Cities with at least one listed market, each with its chains once (two Bramil units show one Bramil). */
-function useCityMarkets(): CityMarkets[] {
-  const stores = useQuery({ queryKey: ["stores", "landing"], queryFn: () => catalogApi.stores(undefined, 0, 100), staleTime: 10 * 60 * 1000 });
-  const cities = useQuery({ queryKey: ["cities", "public"], queryFn: () => catalogApi.cities(undefined, 0, 100), staleTime: 10 * 60 * 1000 });
-  const chains = useQuery({ queryKey: ["chains", "public"], queryFn: () => catalogApi.chains(), staleTime: 10 * 60 * 1000 });
-
-  return useMemo(() => {
-    const chainNames = new Map((chains.data?.content ?? []).map((chain) => [chain.id, chain.name]));
-    const result = new Map<string, CityMarkets>();
-    for (const store of stores.data?.content ?? []) {
-      const chainName = chainNames.get(store.supermarketChainId);
-      const cityName = cities.data?.content.find((item) => item.id === store.cityId)?.name;
-      if (!store.active || !chainName || !cityName) continue;
-      const entry = result.get(store.cityId) ?? { id: store.cityId, name: cityName, chains: [] };
-      if (!entry.chains.some((chain) => chain.id === store.supermarketChainId)) {
-        entry.chains.push({ id: store.supermarketChainId, name: chainName });
-      }
-      result.set(store.cityId, entry);
-    }
-    // The city with more markets first: it is the better first impression and usually the visitor's.
-    return [...result.values()].sort((a, b) => b.chains.length - a.chains.length || a.name.localeCompare(b.name, "pt-BR"));
-  }, [stores.data, cities.data, chains.data]);
 }
 
 /** "Royal Supermercados" and "MAX Supermercado" are called by the first word; "Mercado Bom Jesus" keeps it. */

@@ -2,9 +2,9 @@ import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { NativeButton } from "@/components/ui/native-button";
 import { useAuth } from "@/features/auth/auth-context";
-import { formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
-import { isToday, useBiggestPriceGap } from "./use-biggest-price-gap";
+import { useCityMarkets } from "./use-city-markets";
+import { useLandingCatalog } from "./use-landing-catalog";
 import "./how-it-works.css";
 
 /* Quatro passos, cada um com um objeto desenhado. A sacola (a lista mais barata) é o destaque em vermelho. */
@@ -22,9 +22,12 @@ export function FeaturesSection() {
   return (
     <section id="como-funciona" className="landing-section scroll-mt-20" aria-labelledby="how-title">
       <div className="landing-wide">
-        <header className="how-intro">
-          <p className="how-intro__eyebrow">Como funciona</p>
-          <h2 id="how-title" className="landing-heading__title">Você pesquisa uma vez. O Gomo compara a cidade toda.</h2>
+        <header className="landing-heading landing-heading--center">
+          <p className="landing-eyebrow">Como funciona</p>
+          {/* Cada frase começa a própria linha, para o "O" não ficar sozinho no fim da primeira. */}
+          <h2 id="how-title" className="landing-heading__title">
+            Você pesquisa uma vez. <span className="inline-block">O Gomo compara a cidade toda.</span>
+          </h2>
         </header>
 
         <ArtDefs />
@@ -45,18 +48,23 @@ export function FeaturesSection() {
             Comparar preços agora
             <ArrowRight className="size-4" aria-hidden />
           </NativeButton>
-          <PriceGapNote />
+          <CoverageNote />
         </div>
       </div>
     </section>
   );
 }
 
-/** Um exemplo real da cidade quando a API responde; sem dados, fica a frase de apoio sem número. */
-function PriceGapNote() {
-  const gap = useBiggestPriceGap();
+/*
+ * O tamanho do que o Gomo já compara na cidade do visitante, em vez de repetir o exemplo do topo.
+ * Sem dados, fica a frase de apoio sem número.
+ */
+function CoverageNote() {
+  const { cityId, catalog } = useLandingCatalog();
+  const city = useCityMarkets().find((item) => item.id === cityId);
+  const products = catalog.data?.totalElements ?? 0;
 
-  if (!gap) {
+  if (!city || products === 0) {
     return (
       <p className="how-cta__note">
         <strong>Grátis para começar.</strong> Sem cartão de crédito.
@@ -64,13 +72,19 @@ function PriceGapNote() {
     );
   }
 
-  const when = gap.collectedAt && isToday(gap.collectedAt) ? "Hoje" : "Na última coleta";
   return (
     <p className="how-cta__note">
-      <strong>{when},</strong> {gap.productName} vai de {formatCurrency(gap.lowest)} a {formatCurrency(gap.highest)} na
-      mesma cidade.
+      Em <strong>{city.name}</strong>, o Gomo já compara <strong>{productCount(products)} produtos</strong> em{" "}
+      {city.storeCount === 1 ? "1 mercado" : `${city.storeCount} mercados`}.
     </p>
   );
+}
+
+/** "mais de 13 mil" reads faster than "13.283", and stays true until the next thousand. */
+function productCount(total: number) {
+  if (total < 1000) return String(total);
+  const thousands = Math.floor(total / 1000);
+  return thousands === 1 ? "mais de mil" : `mais de ${thousands.toLocaleString("pt-BR")} mil`;
 }
 
 /* Degradês compartilhados pelos desenhos: creme para os objetos neutros, vermelho para o destaque. */
