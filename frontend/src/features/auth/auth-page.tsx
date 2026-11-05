@@ -208,7 +208,7 @@ export function PasswordResetRequestPage() {
       })}>
         <span className="grid size-11 place-items-center rounded-lg bg-primary-soft text-primary"><Mail className="size-5" aria-hidden /></span>
         <h1 className="mt-5 text-3xl font-extrabold tracking-tight">Recupere sua senha</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Informe seu e-mail. Se a conta existir, o backend enviará as instruções configuradas.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">Informe seu e-mail. Se houver uma conta com ele, enviaremos as instruções para criar uma nova senha.</p>
         {sent ? <p className="mt-6 rounded-lg bg-success-soft p-4 text-sm text-success" role="status">Solicitação recebida. Verifique seu e-mail.</p> : <div className="mt-6"><TextField id="reset-email" label="E-mail" type="email" autoComplete="email" error={errors.email?.message} {...register("email")} /><InlineError>{apiError}</InlineError><NativeButton type="submit" className="mt-5 w-full" loading={isSubmitting}>Solicitar redefinição</NativeButton></div>}
       </form>
     </AuthFrame>
