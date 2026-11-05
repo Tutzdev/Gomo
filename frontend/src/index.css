@@ -1179,7 +1179,7 @@ a {
   }
 }
 
-/* Telas menores: a barra lateral vermelha vira uma gaveta aberta pelo botão de menu do topo. */
+/* Telas menores: a barra lateral vermelha vira uma gaveta que entra pela direita, do lado do botão de menu. */
 .sidebar-drawer[data-state="open"] {
   animation: sidebar-drawer-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -1198,7 +1198,7 @@ a {
 
 @keyframes sidebar-drawer-in {
   from {
-    transform: translateX(-100%);
+    transform: translateX(100%);
   }
   to {
     transform: translateX(0);
@@ -1210,7 +1210,7 @@ a {
     transform: translateX(0);
   }
   to {
-    transform: translateX(-100%);
+    transform: translateX(100%);
   }
 }
 

@@ -4,7 +4,8 @@ import { Bell, Menu, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { BrandLogo } from "@/components/brand-logo";
-import { DashboardSidebar, initial } from "@/components/layout/dashboard-sidebar";
+import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { initial } from "@/components/layout/navigation";
 import { NativeButton } from "@/components/ui/native-button";
 import { useAuth } from "@/features/auth/auth-context";
 import { UpsellProvider } from "@/features/plan/upsell-provider";
@@ -77,6 +78,22 @@ export function AppShell() {
           ? "Produtos do mercado"
           : "Gomo");
 
+  // Tablet and phone: the logo takes the corner and the menu sits at the opposite end, after the account.
+  const menuButton = (
+    <div className="-mr-2 lg:hidden">
+      <button
+        type="button"
+        className="icon-button"
+        onClick={() => setMenuOpen(true)}
+        aria-label="Abrir menu"
+        aria-haspopup="dialog"
+        aria-expanded={menuOpen}
+      >
+        <Menu className="size-5" aria-hidden />
+      </button>
+    </div>
+  );
+
   return (
     <UpsellProvider>
       <div className="app-shell motion-icons min-h-screen bg-[#f7f7f8]">
@@ -103,7 +120,7 @@ export function AppShell() {
             <Dialog.Overlay className="sidebar-drawer-overlay fixed inset-0 z-50 bg-black/45 lg:hidden" />
             <Dialog.Content
               aria-describedby={undefined}
-              className="sidebar-drawer fixed inset-y-0 left-0 z-50 w-[min(86vw,18rem)] bg-sidebar shadow-2xl focus:outline-none lg:hidden"
+              className="sidebar-drawer fixed inset-y-0 right-0 z-50 w-[min(86vw,18rem)] bg-sidebar shadow-2xl focus:outline-none lg:hidden"
             >
               <Dialog.Title className="sr-only">Menu</Dialog.Title>
               <DashboardSidebar
@@ -126,18 +143,6 @@ export function AppShell() {
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-white/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur sm:h-16 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               {/* .icon-button sets its own display, so the breakpoint visibility lives on a wrapper. */}
-              <div className="-ml-2 lg:hidden">
-                <button
-                  type="button"
-                  className="icon-button"
-                  onClick={() => setMenuOpen(true)}
-                  aria-label="Abrir menu"
-                  aria-haspopup="dialog"
-                  aria-expanded={menuOpen}
-                >
-                  <Menu className="size-5" aria-hidden />
-                </button>
-              </div>
               <div className="hidden lg:block">
                 <button
                   type="button"
@@ -162,7 +167,7 @@ export function AppShell() {
                 </span>
               </Link>
               <span className="hidden h-6 w-px shrink-0 bg-border sm:block lg:hidden" aria-hidden />
-              <p className="hidden truncate text-base font-semibold text-foreground sm:block">{currentPage}</p>
+              <p className="hidden min-w-0 truncate text-base font-semibold text-foreground sm:block">{currentPage}</p>
             </div>
             {user ? (
               <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -189,11 +194,13 @@ export function AppShell() {
                     {initial(user.name)}
                   </span>
                 </Link>
+                {menuButton}
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <NativeButton to={`/entrar?depois=${returnPath}`} variant="ghost" size="sm" className="hidden sm:inline-flex">Entrar</NativeButton>
                 <NativeButton to={`/entrar?modo=cadastro&depois=${returnPath}`} size="sm">Criar conta grátis</NativeButton>
+                {menuButton}
               </div>
             )}
           </header>

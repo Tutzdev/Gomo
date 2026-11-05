@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, LogIn, LogOut, X } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { BrandLogo } from "@/components/brand-logo";
-import { isNavigationActive, visibleNavigation } from "@/components/layout/navigation";
+import { initial, isNavigationActive, visibleNavigation } from "@/components/layout/navigation";
 import { cn } from "@/lib/cn";
 import type { UserRole } from "@/types/api";
 
@@ -122,8 +122,4 @@ export function DashboardSidebar({
       </div>
     </div>
   );
-}
-
-export function initial(name: string) {
-  return name.trim().charAt(0).toUpperCase() || "G";
 }

@@ -52,3 +52,8 @@ export function isNavigationActive(item: NavigationItem, pathname: string) {
     (item.alsoActiveOn?.some((path) => pathname.startsWith(path)) ?? false)
   );
 }
+
+/** The letter in the round avatar of the header and of the sidebar. */
+export function initial(name: string) {
+  return name.trim().charAt(0).toUpperCase() || "G";
+}
