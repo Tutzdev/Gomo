@@ -12,15 +12,14 @@ interface FooterLink {
 
 const pageLinks: FooterLink[] = [
   { label: "Como funciona", href: "/#como-funciona" },
-  { label: "Preços", href: "/#preco" },
+  { label: "Planos", href: "/#preco" },
   { label: "Dúvidas", href: "/#duvidas" },
 ];
 
+/* Só o que abre sem conta: listas e alertas pediriam login a quem ainda está conhecendo o Gomo. */
 const appLinks: FooterLink[] = [
   { label: "Buscar preços", to: "/app/produtos" },
   { label: "Ofertas da semana", to: "/ofertas" },
-  { label: "Minhas listas", to: "/app/listas" },
-  { label: "Alertas de preço", to: "/app/alertas" },
   { label: "Supermercados", to: "/app/supermercados" },
 ];
 
@@ -32,19 +31,24 @@ const legalLinks: FooterLink[] = [
 export function LandingFooter() {
   const { user } = useAuth();
   const accountLinks: FooterLink[] = user
-    ? [{ label: "Abrir o Gomo", to: "/app" }, { label: "Planos", to: "/assinar" }]
-    : [{ label: "Criar conta", to: "/entrar?modo=cadastro" }, { label: "Entrar", to: "/entrar" }, { label: "Planos", to: "/assinar" }];
+    ? [{ label: "Abrir o Gomo", to: "/app" }, { label: "Assinar", to: "/assinar" }]
+    : [{ label: "Criar conta", to: "/entrar?modo=cadastro" }, { label: "Entrar", to: "/entrar" }];
 
   const columns = [
     { title: "Gomo", links: pageLinks },
-    { title: "No app", links: appLinks },
+    { title: "Sem conta", links: appLinks },
     { title: "Conta", links: accountLinks },
     { title: "Legal", links: legalLinks },
   ];
 
   return (
-    <footer className="landing-band">
-      <div className="landing-frame landing-footer">
+    <footer className="landing-footer-band">
+      <div className="landing-wide landing-footer">
+        <div className="landing-footer__brand">
+          <BrandLogo />
+          <p>Compare preços de supermercado antes de sair de casa.</p>
+        </div>
+
         <nav aria-label="Rodapé" className="landing-footer__columns">
           {columns.map((column) => (
             <div key={column.title}>
@@ -64,11 +68,7 @@ export function LandingFooter() {
           ))}
         </nav>
 
-        <div className="landing-footer__bottom">
-          <BrandLogo />
-          <p>Compare preços de supermercado antes de sair de casa.</p>
-          <p>© {new Date().getFullYear()} Gomo</p>
-        </div>
+        <p className="landing-footer__bottom">© {new Date().getFullYear()} Gomo</p>
       </div>
     </footer>
   );

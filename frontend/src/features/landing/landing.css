@@ -1,9 +1,9 @@
 /*
  * Estilos da landing page pública.
- * Direção: branco, bastante respiro entre as seções e o vermelho da marca só onde há ação ou preço.
- * Hero, "Como funciona" e planos usam a largura mais aberta (.landing-wide); mercados, dúvidas,
- * chamada final e rodapé continuam na moldura de linhas-guia (.landing-frame).
- * Fredoka nos títulos e preços, Nunito no texto (tokens --font-landing-*); a Manrope fica no resto.
+ * Direção: branco, respiro entre as seções e o vermelho da marca só onde há ação ou preço.
+ * Uma linguagem só do começo ao fim: todas as seções na mesma largura (.landing-wide), com o mesmo espaço
+ * vertical (.landing-section) e o mesmo cabeçalho (selo vermelho + título). Fredoka em todos os títulos e
+ * preços, Nunito em todo o texto (tokens --font-landing-*).
  */
 
 /* Servida pelo próprio site, como as de index.css (onde está a Fredoka). */
@@ -14,33 +14,29 @@
 @import "@fontsource/nunito/latin-800.css";
 
 .landing {
-  /* Os losangos das linhas-guia passam meio quadrado da moldura; quando ela ocupa a tela toda (1024–1280 px)
-     isso virava rolagem lateral. clip, e não hidden, para o cabeçalho continuar sticky. */
+  /* clip, e não hidden, para o cabeçalho continuar sticky. */
   overflow-x: clip;
 
-  /* Largura das seções redesenhadas: mais aberta que a moldura, sem encostar nas bordas da tela. */
   --landing-wide: 88rem;
-  /* Espaço entre uma seção e a próxima: o bastante para cada parte ser lida como um bloco. */
-  --landing-section-space: clamp(5rem, 9vw, 8.5rem);
+  /* Espaço acima e abaixo de cada seção: entre duas seções fica o dobro, o bastante para cada uma ler como bloco. */
+  --landing-section-space: clamp(2.75rem, 5vw, 4.5rem);
 
   --font-landing-hero: "Fredoka", "Nunito", system-ui, sans-serif;
   --font-landing-body: "Nunito", "Manrope", system-ui, sans-serif;
   --font-landing-steps: "Nunito", "Manrope", system-ui, sans-serif;
   --font-landing-price: "Fredoka", "Nunito", system-ui, sans-serif;
 
+  --landing-ink: #2b1d1c;
   --landing-ink-soft: #4d4446;
   --landing-guide: #efe6e5;
-  --landing-marker: #e2d3d2;
-  --landing-dots: #e6dad9;
-  --landing-dark: #211b1b;
   --landing-radius-xl: 1.75rem;
   --landing-radius-lg: 1.5rem;
   --landing-radius-md: 1rem;
   --landing-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --landing-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --landing-gutter: 1rem;
 
   background: white;
+  font-family: var(--font-landing-body);
   interpolate-size: allow-keywords;
 }
 
@@ -49,6 +45,8 @@
 .landing-button {
   border-radius: 999px;
   padding-inline: 1.5rem;
+  font-family: var(--font-landing-body);
+  font-weight: 800;
 }
 
 .landing-button--on-red {
@@ -72,35 +70,11 @@
   color: white;
 }
 
-.landing-text-link {
-  border-radius: 0.25rem;
-  color: var(--foreground);
-  font-weight: 600;
-  transition: color 300ms var(--landing-ease-standard);
-}
-
-.landing-text-link:hover {
-  color: var(--primary);
-}
-
-.landing-text-link:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 4px;
-}
-
-.landing-container {
-  width: 100%;
-  max-width: 80rem;
-  margin-inline: auto;
-  padding-inline: 1rem;
-}
-
-/* O topo usa a mesma Nunito da hero, para a primeira dobra ler como uma peça só. */
+/* O topo usa a mesma Nunito do resto, para a página ler como uma peça só. */
 .landing .public-navbar {
   font-family: var(--font-landing-body);
 }
 
-/* A largura aberta das seções redesenhadas (hero, como funciona e planos). */
 .landing-wide {
   width: 100%;
   max-width: var(--landing-wide);
@@ -108,37 +82,61 @@
   padding-inline: clamp(1rem, 4vw, 3rem);
 }
 
-/* Uma seção redesenhada: o mesmo espaço vertical em todas, para o ritmo do scroll ser previsível. */
 .landing-section {
   padding-block: var(--landing-section-space);
 }
 
-/* A moldura: no desktop, duas linhas verticais finas acompanham o conteúdo da página inteira. */
-.landing-frame {
-  position: relative;
-  max-width: 80rem;
-  margin-inline: auto;
+
+/* ---------- Cabeçalho de seção: o mesmo em todas ---------- */
+
+.landing-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.875rem;
 }
 
-/* Cada seção começa com uma linha horizontal; no desktop, um losango marca onde ela cruza a moldura. */
-.landing-band {
-  border-top: 1px solid var(--landing-guide);
+.landing-heading--center {
+  max-width: 46rem;
+  margin-inline: auto;
+  align-items: center;
+  text-align: center;
+}
+
+/* O selo acima do título: um ponto vermelho e o nome da seção. */
+.landing-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-dark);
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.landing-eyebrow::before {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+  background: var(--primary);
+  content: "";
 }
 
 .landing-heading__title {
-  font-size: clamp(1.875rem, 3.4vw, 2.625rem);
+  color: var(--landing-ink);
+  font-family: var(--font-landing-hero);
+  font-size: clamp(2rem, 4vw, 3.125rem);
   font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
 .landing-heading__text {
   max-width: 40rem;
-  margin-top: 1rem;
-  color: var(--muted);
+  color: var(--landing-ink-soft);
   font-size: 1.0625rem;
-  line-height: 1.7;
+  line-height: 1.65;
   text-wrap: pretty;
 }
 
@@ -148,7 +146,6 @@
   display: grid;
   align-items: start;
   gap: 2.5rem;
-  padding: clamp(3.5rem, 7vw, 6rem) var(--landing-gutter);
 }
 
 .landing-faq__list {
@@ -164,12 +161,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  min-height: 4rem;
-  padding-block: 1rem;
+  min-height: 4.25rem;
+  padding-block: 1.125rem;
+  color: var(--landing-ink);
   font-size: 1.0625rem;
   font-weight: 700;
   list-style: none;
   cursor: pointer;
+  transition: color 200ms var(--landing-ease-standard);
+}
+
+.faq-item summary:hover {
+  color: var(--primary-dark);
 }
 
 .faq-item summary::-webkit-details-marker {
@@ -191,7 +194,11 @@
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   color: var(--primary);
-  transition: transform 220ms var(--landing-ease-out), background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+  transition:
+    transform 320ms var(--landing-ease-out),
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
 }
 
 .faq-item[open] .faq-item__icon {
@@ -204,7 +211,7 @@
 .faq-item p {
   max-width: 44rem;
   padding: 0 3.5rem 1.5rem 0;
-  color: var(--muted);
+  color: var(--landing-ink-soft);
   line-height: 1.7;
 }
 
@@ -213,86 +220,127 @@
   .faq-item::details-content {
     overflow: hidden;
     block-size: 0;
-    transition: block-size 280ms var(--landing-ease-out), content-visibility 280ms allow-discrete;
+    opacity: 0;
+    transition:
+      block-size 360ms var(--landing-ease-out),
+      opacity 300ms var(--landing-ease-standard),
+      content-visibility 360ms allow-discrete;
   }
 
   .faq-item[open]::details-content {
     block-size: auto;
+    opacity: 1;
   }
 }
 
 /* ---------- Chamada final ---------- */
 
 .landing-closing {
-  padding: clamp(3rem, 6vw, 4.5rem) var(--landing-gutter);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: var(--landing-radius-xl);
+  background:
+    radial-gradient(120% 140% at 50% 0%, var(--primary) 45%, var(--primary-strong) 100%);
+  padding: clamp(3rem, 7vw, 5.5rem) clamp(1.5rem, 5vw, 4rem);
+  color: white;
+  text-align: center;
 }
 
-.landing-closing__panel {
-  border-radius: var(--landing-radius-xl);
-  background: var(--primary);
-  padding: clamp(2.5rem, 6vw, 4.5rem);
-  color: white;
+/* A marca do Gomo enorme, branca e quase apagada, cortada pela borda de baixo. */
+.landing-closing__mark {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: -38%;
+  width: min(64rem, 140%);
+  max-width: none;
+  translate: -50% 0;
+  opacity: 0.07;
+  filter: brightness(0) invert(1);
+  pointer-events: none;
+  user-select: none;
 }
 
 .landing-closing__title {
-  max-width: 36rem;
-  font-size: clamp(1.875rem, 4vw, 3rem);
+  max-width: 40rem;
+  font-family: var(--font-landing-hero);
+  font-size: clamp(2rem, 4.4vw, 3.25rem);
   font-weight: 600;
-  line-height: 1.05;
-  letter-spacing: -0.025em;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
 .landing-closing__text {
+  max-width: 34rem;
   margin-top: 1rem;
-  color: rgb(255 255 255 / 0.88);
-  font-size: 1.0625rem;
+  color: rgb(255 255 255 / 0.9);
+  font-size: 1.125rem;
+  line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .landing-closing__actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.75rem;
   margin-top: 2rem;
 }
 
 /* ---------- Rodapé ---------- */
 
+.landing-footer-band {
+  border-top: 1px solid var(--landing-guide);
+}
+
 .landing-footer {
-  padding: clamp(3.5rem, 7vw, 5.5rem) var(--landing-gutter) 2rem;
+  display: grid;
+  gap: 2.5rem;
+  padding-top: clamp(2.5rem, 5vw, 3.5rem);
+  padding-bottom: 2rem;
+}
+
+.landing-footer__brand {
+  display: grid;
+  justify-items: start;
+  gap: 0.875rem;
+  max-width: 18rem;
+  color: var(--landing-ink-soft);
+  font-size: 0.9375rem;
+  line-height: 1.55;
 }
 
 .landing-footer__columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  justify-content: center;
-  gap: 2.5rem 1.5rem;
-  text-align: center;
+  gap: 2rem 1.5rem;
 }
 
 .landing-footer__title {
-  color: var(--foreground);
-  font-size: 0.9375rem;
-  font-weight: 500;
+  color: var(--landing-ink);
+  font-size: 0.875rem;
+  font-weight: 800;
 }
 
 .landing-footer__links {
   display: grid;
-  gap: 0.875rem;
-  margin: 1.25rem 0 0;
+  gap: 0.625rem;
+  margin: 0.875rem 0 0;
   padding: 0;
   list-style: none;
 }
 
-/* Como na referência: só a cor muda, devagar o bastante para parecer um fade. */
 .landing-footer__link {
   border-radius: 0.25rem;
   color: var(--muted);
-  font-size: 1.125rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-  transition: color 500ms var(--landing-ease-standard);
+  transition: color 250ms var(--landing-ease-standard);
 }
 
 .landing-footer__link:hover {
@@ -306,84 +354,25 @@
 }
 
 .landing-footer__bottom {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: clamp(3.5rem, 7vw, 5rem);
-  border-top: 1px dashed var(--border-strong);
-  padding-top: 2rem;
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--landing-guide);
+  padding-top: 1.5rem;
   color: var(--muted);
-  font-size: 0.875rem;
-  text-align: center;
+  font-size: 0.8125rem;
 }
 
 /* ---------- Responsivo ---------- */
 
-@media (min-width: 40rem) {
-  .landing {
-    --landing-gutter: 1.5rem;
-  }
-
-  .landing-container {
-    padding-inline: 1.5rem;
-  }
-}
-
 @media (min-width: 48rem) {
-  /* Quatro colunas: duas por linha até caberem todas lado a lado, sempre centralizadas. */
   .landing-footer__columns {
-    grid-template-columns: repeat(2, minmax(0, 14rem));
-    gap: 2.5rem 4rem;
-  }
-
-  .landing-footer__link {
-    font-size: 1.25rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 64rem) {
-  .landing {
-    --landing-gutter: 4rem;
-  }
-
-  .landing-container {
-    padding-inline: 2rem;
-  }
-
-  .landing-frame {
-    border-inline: 1px solid var(--landing-guide);
-  }
-
-  .landing-footer__columns {
-    grid-template-columns: repeat(4, minmax(0, 12rem));
-    column-gap: 3rem;
-  }
-
-  .landing-band > .landing-frame::before,
-  .landing-band > .landing-frame::after {
-    position: absolute;
-    z-index: 1;
-    top: 0;
-    width: 0.4375rem;
-    height: 0.4375rem;
-    background: var(--landing-marker);
-    content: "";
-  }
-
-  .landing-band > .landing-frame::before {
-    left: 0;
-    transform: translate(-50%, -50%) rotate(45deg);
-  }
-
-  .landing-band > .landing-frame::after {
-    right: 0;
-    transform: translate(50%, -50%) rotate(45deg);
-  }
-
   .landing-faq {
-    grid-template-columns: 20rem minmax(0, 1fr);
-    gap: 4rem;
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    gap: 5rem;
   }
 
   .landing-faq .landing-heading {
@@ -391,5 +380,8 @@
     top: 7rem;
   }
 
+  .landing-footer {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    column-gap: 4rem;
+  }
 }
-

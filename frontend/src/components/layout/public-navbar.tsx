@@ -11,7 +11,7 @@ const navigation = [
   { label: "Buscar preços", href: "/app/produtos" },
   { label: "Ofertas", href: "/ofertas" },
   { label: "Como funciona", href: "/#como-funciona" },
-  { label: "Preço", href: "/#preco" },
+  { label: "Planos", href: "/#preco" },
   { label: "Dúvidas", href: "/#duvidas" },
 ];
 

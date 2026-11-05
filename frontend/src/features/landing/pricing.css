@@ -26,6 +26,11 @@
   gap: 1rem;
 }
 
+/* O selo de seção fica colado no título, como nas outras seções. */
+.plans__intro .landing-eyebrow {
+  margin-bottom: -0.25rem;
+}
+
 .plans__intro-text {
   max-width: 26rem;
   color: var(--muted);
@@ -59,7 +64,6 @@
 
   .plans__intro {
     grid-column: auto;
-    justify-content: space-between;
   }
 
   .plans > * + * {
@@ -196,11 +200,4 @@
   .plan__button {
     align-self: stretch;
   }
-}
-
-/* O título da seção na mesma fonte arredondada dos preços. */
-#preco .landing-heading__title {
-  font-family: var(--font-landing-price);
-  font-weight: 700;
-  letter-spacing: -0.03em;
 }

@@ -14,20 +14,6 @@
   --how-red-hi: #f4524b;
 }
 
-.how-intro {
-  max-width: 44rem;
-  margin-inline: auto;
-  text-align: center;
-}
-
-.how-intro__eyebrow {
-  margin-bottom: 0.875rem;
-  color: var(--muted);
-  font-family: var(--font-landing-steps);
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
 /* ---------- Cartões ---------- */
 
 .how-grid {
@@ -275,11 +261,4 @@
   .how-card:hover .how-bell {
     animation: none;
   }
-}
-
-/* O título da seção na mesma fonte arredondada dos cartões. */
-#como-funciona .landing-heading__title {
-  font-family: var(--font-landing-steps);
-  font-weight: 700;
-  letter-spacing: -0.025em;
 }

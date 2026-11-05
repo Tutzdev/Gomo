@@ -33,6 +33,7 @@ export function PricingSection({ signUpPath }: { signUpPath: string }) {
       <div className="landing-wide">
         <div className="plans">
           <div className="plans__intro">
+            <p className="landing-eyebrow">Planos</p>
             <h2 id="pricing-title" className="landing-heading__title">Comece grátis. Assine se valer a pena.</h2>
             <p className="plans__intro-text">
               O plano grátis já compara de verdade. O Premium mostra a cidade inteira e o caminho mais barato.
