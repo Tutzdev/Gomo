@@ -1,0 +1,172 @@
+/*
+ * Faixa de mercados logo abaixo do hero: as logos dos mercados da cidade passando em cinza, como quem assina
+ * embaixo. A cor só volta na logo sob o cursor. Logos brancas (feitas para cabeçalho escuro) viram silhueta.
+ */
+
+.markets {
+  width: 100%;
+  max-width: var(--landing-wide);
+  margin-inline: auto;
+  padding: clamp(1.5rem, 4vw, 2.75rem) 0 clamp(3rem, 7vw, 5rem);
+}
+
+.markets--loading {
+  min-height: 10rem;
+}
+
+.markets__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem 0.75rem;
+  margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+  padding-inline: clamp(1rem, 4vw, 3rem);
+  text-align: center;
+}
+
+.markets__title {
+  margin: 0;
+  color: var(--landing-ink-soft);
+  font-family: var(--font-landing-body);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.markets__city {
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+.markets__cities {
+  display: inline-flex;
+  gap: 0.25rem;
+  border-radius: 999px;
+  background: #f5efee;
+  padding: 0.25rem;
+}
+
+.markets__city-button {
+  min-height: 2.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0 0.95rem;
+  color: var(--landing-ink-soft);
+  cursor: pointer;
+  font-family: var(--font-landing-body);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
+}
+
+.markets__city-button[aria-pressed="true"] {
+  background: white;
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(60 30 30 / 0.08), 0 0 0 1px var(--landing-guide);
+}
+
+.markets__city-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.markets__viewport {
+  overflow: hidden;
+  /* As pontas somem aos poucos: a fileira parece continuar além da tela. */
+  mask-image: linear-gradient(90deg, transparent, black 14%, black 86%, transparent);
+}
+
+.markets__track {
+  display: flex;
+  width: max-content;
+}
+
+/* O espaço depois do último item fica dentro do grupo, para as duas cópias medirem exatamente o mesmo. */
+.markets__group {
+  --markets-gap: clamp(2.25rem, 5vw, 4.5rem);
+  display: flex;
+  align-items: center;
+  gap: var(--markets-gap);
+  margin: 0;
+  padding: 0 var(--markets-gap) 0 0;
+  list-style: none;
+}
+
+.markets__static {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem clamp(2rem, 5vw, 3.5rem);
+  margin: 0;
+  padding: 0 clamp(1rem, 4vw, 3rem);
+  list-style: none;
+}
+
+.market-logo {
+  --logo-height: 2.25rem;
+  display: inline-flex;
+  height: 3.25rem;
+  align-items: center;
+  gap: 0.55rem;
+  /* Um cinza só para todas: logos claras (o laranja do Ville) escurecem, as escuras ficam iguais. */
+  filter: grayscale(1) contrast(1.2) brightness(0.7);
+  opacity: 0.62;
+  transition: filter 320ms ease, opacity 320ms ease;
+}
+
+.market-logo__wordmark {
+  display: block;
+  width: auto;
+  max-width: 10rem;
+  height: calc(var(--logo-height) * var(--logo-scale, 1));
+  object-fit: contain;
+}
+
+.market-logo--light .market-logo__wordmark {
+  filter: brightness(0);
+}
+
+.market-logo--light {
+  opacity: 0.5;
+}
+
+.market-logo__mark {
+  display: block;
+  width: auto;
+  height: calc(var(--logo-height) * 0.86 * var(--logo-scale, 1));
+}
+
+.market-logo__name,
+.market-logo--name {
+  color: #2f2729;
+  font-family: var(--font-landing-hero);
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .market-logo:hover {
+    filter: none;
+    opacity: 1;
+  }
+
+  .market-logo--light:hover {
+    opacity: 0.85;
+  }
+}
+
+@media (max-width: 40rem) {
+  .market-logo {
+    --logo-height: 1.75rem;
+    height: 2.75rem;
+  }
+
+  .market-logo__name,
+  .market-logo--name {
+    font-size: 1.125rem;
+  }
+}

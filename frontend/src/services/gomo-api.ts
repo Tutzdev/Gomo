@@ -1,5 +1,6 @@
 import { apiRequest, queryString } from "@/lib/api";
 import type {
+  SupermarketChain,
   AdminAudit,
   AlertNotification,
   AuthResponse,
@@ -176,6 +177,8 @@ export const catalogApi = {
       `/products/offers?${queryString({ ids: ids.join(","), cityId, storeIds: storeIds.join(",") })}`,
       { anonymous: true, signal },
     ),
+  chains: (page = 0, size = 100) =>
+    apiRequest<PageResponse<SupermarketChain>>(`/chains?${queryString({ page, size })}`, { anonymous: true }),
   stores: (cityId?: string, page = 0, size = 100) =>
     apiRequest<PageResponse<Store>>(
       `/stores?${queryString({ cityId, page, size })}`,

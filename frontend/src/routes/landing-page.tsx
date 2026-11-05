@@ -6,8 +6,8 @@ import { FaqSection } from "@/features/landing/faq-section";
 import { FeaturesSection } from "@/features/landing/features-section";
 import { HeroSection } from "@/features/landing/hero-section";
 import { LandingFooter } from "@/features/landing/landing-footer";
+import { MarketsSection } from "@/features/landing/markets-section";
 import { PricingSection } from "@/features/landing/pricing-section";
-import { TestimonialsSection } from "@/features/landing/testimonials-section";
 import { useScrollReveal } from "@/features/landing/use-scroll-reveal";
 import "@/features/landing/landing.css";
 import "@/features/landing/scroll-reveal.css";
@@ -25,8 +25,8 @@ export function LandingPage() {
 
       <main id="conteudo-principal">
         <HeroSection signUpPath={signUpPath} />
+        <MarketsSection />
         <FeaturesSection />
-        <TestimonialsSection />
         <PricingSection signUpPath={signUpPath} />
         <FaqSection />
         <ClosingSection signUpPath={signUpPath} />

@@ -183,6 +183,12 @@ export interface ProductSuggestion {
   rejectionReason: string | null;
 }
 
+/** A supermarket brand; each Store belongs to one. */
+export interface SupermarketChain {
+  id: string;
+  name: string;
+}
+
 export interface Store {
   id: string;
   supermarketChainId: string;
