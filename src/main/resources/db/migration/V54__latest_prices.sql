@@ -67,9 +67,28 @@ CREATE TRIGGER trg_price_records_forget_latest
     AFTER DELETE ON price_records
     FOR EACH ROW EXECUTE FUNCTION forget_latest_price();
 
+-- Backfill. A DISTINCT ON over price_records sorts the whole history, which grows four times a day, and Flyway
+-- runs at boot inside the deploy's 90-second health check (the first release of this file was rolled back,
+-- most likely for that reason). This walks
+-- idx_price_latest instead, one index probe per (store, product) pair, so it costs the number of pairs and not
+-- the number of observations.
 INSERT INTO latest_prices (store_id, product_id, price_record_id, collected_at, recorded_at, valid_until,
                            availability, origin_type)
-SELECT DISTINCT ON (store_id, product_id)
-       store_id, product_id, id, collected_at, recorded_at, valid_until, availability, origin_type
-FROM price_records
-ORDER BY store_id, product_id, collected_at DESC, recorded_at DESC, id DESC;
+WITH RECURSIVE newest AS (
+    (SELECT store_id, product_id, id, collected_at, recorded_at, valid_until, availability, origin_type
+     FROM price_records
+     ORDER BY store_id, product_id, collected_at DESC, recorded_at DESC, id DESC
+     LIMIT 1)
+    UNION ALL
+    SELECT next_pair.*
+    FROM newest current_pair
+    CROSS JOIN LATERAL (
+        SELECT p.store_id, p.product_id, p.id, p.collected_at, p.recorded_at, p.valid_until, p.availability,
+               p.origin_type
+        FROM price_records p
+        WHERE (p.store_id, p.product_id) > (current_pair.store_id, current_pair.product_id)
+        ORDER BY p.store_id, p.product_id, p.collected_at DESC, p.recorded_at DESC, p.id DESC
+        LIMIT 1) next_pair
+)
+SELECT store_id, product_id, id, collected_at, recorded_at, valid_until, availability, origin_type
+FROM newest;
