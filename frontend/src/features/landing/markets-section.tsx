@@ -40,13 +40,8 @@ function MarketsContent({ chains }: { chains: CityMarkets["chains"] }) {
     <section ref={sectionRef} className="markets" aria-labelledby="markets-title">
       <div className="markets__head">
         <h2 id="markets-title" className="markets__title">
-          {chains.length === 1 ? (
-            <>O mercado que já está no Gomo</>
-          ) : (
-            <>
-              Os <strong className="markets__count">{chains.length} mercados</strong> que já estão no Gomo
-            </>
-          )}
+          {/* Sem o número de mercados: uma conta pequena faria o Gomo parecer menor do que é para quem chega. */}
+          Os <strong className="markets__count">mercados</strong> que já estão no Gomo
         </h2>
         <p className="markets__text">Do atacado ao mercado do bairro, com o preço de cada um lado a lado.</p>
       </div>
