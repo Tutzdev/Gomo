@@ -119,7 +119,7 @@ export function HeroShowcase({ comparison }: { comparison: HeroComparison }) {
                     <span className="hero-board__rank">{index + 1}</span>
                     <span className="hero-board__store">
                       <Store />
-                      <span className="truncate">{offer.store}</span>
+                      <span className="hero-board__store-name">{offer.store}</span>
                     </span>
                     <span className="hero-board__price">
                       <strong>{formatCurrency(offer.price)}</strong>

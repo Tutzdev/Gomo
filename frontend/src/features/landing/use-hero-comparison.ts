@@ -1,15 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/features/auth/auth-context";
-import { useDefaultCityId } from "@/lib/use-default-city";
 import { catalogApi } from "@/services/gomo-api";
 import type { CatalogItem, CatalogItemDetail } from "@/types/api";
+import { useLandingCatalog } from "./use-landing-catalog";
 
-/** One page of the catalog (the products sold in the most stores come first) is enough to find real gaps. */
-const CANDIDATE_ITEMS = 60;
 /** Only products priced in several stores, so the example reflects the city and not one odd listing. */
 const MIN_PRICED_STORES = 5;
 /** How many products the visitor can pick in the hero. */
 const PRODUCT_OPTIONS = 5;
+/** The name has to fit the headline whole: a longer catalog name would need "…" in the biggest text of the page. */
+const MAX_NAME_LENGTH = 26;
+/**
+ * Above this the gap stops looking real to a visitor (and is often two sizes matched as one product), so the
+ * hero shows believable everyday savings instead of the single most extreme one.
+ */
+const MAX_GAP_RATIO = 2;
+
+/*
+ * O que todo mundo põe no carrinho: o exemplo do topo fala de produto do dia a dia, não de um item que o
+ * visitante nunca comprou. Comparado com o começo de uma palavra do nome, sem acento.
+ */
+const EVERYDAY_WORDS = [
+  "arroz", "feijao", "cafe", "acucar", "oleo", "leite", "manteiga", "margarina", "macarrao", "farinha",
+  "coca-cola", "guarana", "refrigerante", "cerveja", "sabao", "detergente", "amaciante", "papel higienico",
+  "creme dental", "achocolatado", "maionese", "biscoito", "queijo", "presunto", "ovos", "frango",
+];
 
 export interface HeroOffer {
   store: string;
@@ -70,27 +84,19 @@ const fallback: HeroComparison = {
 };
 
 /**
- * The hero's example: the products whose price changes the most between markets of the same city, and the
+ * The hero's example: everyday products whose price changes the most between markets of the same city, and the
  * current price of the chosen one in each market. Public endpoints only, so it never spends an account's
  * daily comparisons. Falls back to the built-in example while loading or without data.
  */
 export function useHeroComparison(selectedId: string | null): HeroComparison {
-  const { user } = useAuth();
-  const cityId = useDefaultCityId({ signedIn: Boolean(user) });
-
+  const { cityId, catalog } = useLandingCatalog();
   const cities = useQuery({
     queryKey: ["cities", "public"],
     queryFn: () => catalogApi.cities(undefined, 0, 100),
     staleTime: 10 * 60 * 1000,
   });
-  const candidates = useQuery({
-    queryKey: ["landing-price-gaps", cityId],
-    queryFn: () => catalogApi.catalogItems({ cityId, size: CANDIDATE_ITEMS }),
-    enabled: Boolean(cityId),
-    staleTime: 10 * 60 * 1000,
-  });
 
-  const products = biggestGaps(candidates.data?.content ?? []);
+  const products = heroProducts(catalog.data?.content ?? []);
   const selected = products.find((item) => item.id === selectedId) ?? products[0];
 
   const detail = useQuery({
@@ -108,8 +114,8 @@ export function useHeroComparison(selectedId: string | null): HeroComparison {
 
   const collectedAt = product.pricesCollectedAt;
   return {
-    products: products.map(({ id, name }) => ({ id, name })),
-    product: { id: product.id, name: product.name },
+    products: products.map(({ id, name }) => ({ id, name: displayName(name) })),
+    product: { id: product.id, name: displayName(product.name) },
     cityName: cities.data?.content.find((city) => city.id === cityId)?.name ?? fallback.cityName,
     lowest: product.lowestPrice!,
     highest: product.highestPrice!,
@@ -122,17 +128,35 @@ export function useHeroComparison(selectedId: string | null): HeroComparison {
   };
 }
 
-function biggestGaps(items: CatalogItem[]) {
-  return items
+/** Everyday products with a believable gap first; other short names fill the list when the city has few of them. */
+function heroProducts(items: CatalogItem[]) {
+  const candidates = items
     .filter(
       (item) =>
         item.lowestPrice !== null &&
         item.highestPrice !== null &&
         item.highestPrice > item.lowestPrice &&
-        item.pricedStores >= MIN_PRICED_STORES,
+        item.highestPrice / item.lowestPrice <= MAX_GAP_RATIO &&
+        item.pricedStores >= MIN_PRICED_STORES &&
+        item.name.length <= MAX_NAME_LENGTH,
     )
-    .sort((a, b) => b.highestPrice! / b.lowestPrice! - a.highestPrice! / a.lowestPrice!)
-    .slice(0, PRODUCT_OPTIONS);
+    .sort((a, b) => b.highestPrice! / b.lowestPrice! - a.highestPrice! / a.lowestPrice!);
+  const everyday = candidates.filter(isEveryday);
+  return [...everyday, ...candidates.filter((item) => !isEveryday(item))].slice(0, PRODUCT_OPTIONS);
+}
+
+function isEveryday(item: CatalogItem) {
+  const name = ` ${normalize(item.name)}`;
+  return EVERYDAY_WORDS.some((word) => name.includes(` ${word}`));
+}
+
+/** Some markets type the apostrophe as a backtick or an acute accent ("Hellmann`s"); the headline shows a real one. */
+function displayName(name: string) {
+  return name.replace(/[`´']/g, "’");
+}
+
+function normalize(text: string) {
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
 function toOffers(detail: CatalogItemDetail): HeroOffer[] {

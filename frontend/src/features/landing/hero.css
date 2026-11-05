@@ -52,11 +52,12 @@
   white-space: nowrap;
 }
 
-/* O produto numa pílula colorida, para chamar atenção como um campo que o visitante preenche. */
+/* O produto num campo colorido, que o visitante troca. Cantos de campo de formulário (e não de pílula),
+   para continuar bonito quando um nome maior quebra em duas linhas no celular. */
 .hero__pill--product {
-  border-radius: 999px;
+  border-radius: 0.45em;
   background: #fff1c9;
-  padding: 0.02em 0.38em 0.06em;
+  padding: 0.04em 0.34em 0.08em;
   color: #6b4a00;
 }
 
@@ -110,11 +111,11 @@
   outline-offset: 3px;
 }
 
-/* Nomes longos do catálogo não quebram a frase: a pílula corta com reticências. */
+/* O nome aparece inteiro: se não couber numa linha, quebra dentro do campo em vez de virar reticências. */
 .hero__pill-label {
-  overflow: hidden;
-  max-width: min(11em, 72vw);
-  text-overflow: ellipsis;
+  min-width: 0;
+  white-space: normal;
+  text-wrap: balance;
 }
 
 .hero__pill-chevron {
@@ -512,8 +513,11 @@
   font-weight: 600;
 }
 
-.hero-board__store > span {
+/* O nome do mercado inteiro: no celular ele desce para a segunda linha em vez de virar "Atacadão São Ge…". */
+.hero-board__store-name {
   min-width: 0;
+  line-height: 1.25;
+  text-wrap: pretty;
 }
 
 /* O ícone de loja só entra quando sobra largura; no celular o nome do mercado precisa do espaço. */
