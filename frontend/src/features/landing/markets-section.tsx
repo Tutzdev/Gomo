@@ -19,20 +19,20 @@ const PIXELS_PER_SECOND = 38;
 const MIN_ITEMS_PER_COPY = 12;
 
 /**
- * Right below the hero: the markets the Gomo compares in the visitor's city, as a moving row of their logos in
- * gray. Seeing the stores they already shop at is the first proof that the comparison is real.
+ * Right below the hero: every market the Gomo already compares, as a moving row of their logos in gray. Seeing
+ * the stores they already shop at is the first proof that the comparison is real. The visitor's city comes
+ * first, then the other cities' markets.
  */
 export function MarketsSection() {
   const cities = useCityMarkets();
   const defaultCityId = useDefaultCityId();
-  const [pickedCityId, setPickedCityId] = useState<string | null>(null);
-  const city = cities.find((item) => item.id === pickedCityId) ?? cities.find((item) => item.id === defaultCityId) ?? cities[0];
+  const chains = allChains(cities, defaultCityId);
 
-  if (!city) return <section className="markets markets--loading" aria-hidden />;
-  return <MarketsContent cities={cities} city={city} onPickCity={setPickedCityId} />;
+  if (!chains.length) return <section className="markets markets--loading" aria-hidden />;
+  return <MarketsContent chains={chains} />;
 }
 
-function MarketsContent({ cities, city, onPickCity }: { cities: CityMarkets[]; city: CityMarkets; onPickCity: (id: string) => void }) {
+function MarketsContent({ chains }: { chains: CityMarkets["chains"] }) {
   const sectionRef = useRef<HTMLElement>(null);
   useScrollReveal(sectionRef, REVEALS);
 
@@ -40,27 +40,31 @@ function MarketsContent({ cities, city, onPickCity }: { cities: CityMarkets[]; c
     <section ref={sectionRef} className="markets" aria-labelledby="markets-title">
       <div className="markets__head">
         <h2 id="markets-title" className="markets__title">
-          Mercados comparados em{" "}
-          {cities.length > 1 ? <span className="sr-only">{city.name}</span> : <span className="markets__city">{city.name}</span>}
+          {chains.length === 1 ? (
+            <>O mercado que já está no Gomo</>
+          ) : (
+            <>
+              Os <strong className="markets__count">{chains.length} mercados</strong> que já estão no Gomo
+            </>
+          )}
         </h2>
-        {cities.length > 1 ? (
-          <div className="markets__cities" role="group" aria-label="Cidade">
-            {cities.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="markets__city-button"
-                aria-pressed={item.id === city.id}
-                onClick={() => onPickCity(item.id)}
-              >
-                {item.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
+        <p className="markets__text">Do atacado ao mercado do bairro, com o preço de cada um lado a lado.</p>
       </div>
-      <MarketRow key={city.id} chains={city.chains} />
+      <MarketRow chains={chains} />
     </section>
+  );
+}
+
+/** Each chain once across every city (Bramil in two cities shows one Bramil), the visitor's city first. */
+function allChains(cities: CityMarkets[], firstCityId: string) {
+  const ordered = [...cities].sort((a, b) => Number(b.id === firstCityId) - Number(a.id === firstCityId));
+  const seen = new Set<string>();
+  return ordered.flatMap((city) =>
+    city.chains.filter((chain) => {
+      if (seen.has(chain.id)) return false;
+      seen.add(chain.id);
+      return true;
+    }),
   );
 }
 
