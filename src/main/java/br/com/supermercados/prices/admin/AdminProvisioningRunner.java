@@ -32,17 +32,19 @@ public class AdminProvisioningRunner implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments arguments) {
         if (bootstrapEmail.isBlank() || users.existsByRole(UserRole.ADMIN)) {
+
             return;
         }
 
         User user = users.findByEmail(User.normalizeEmail(bootstrapEmail))
-                .orElseThrow(() -> new IllegalStateException(
-                        "The configured bootstrap administrator must be an existing account"));
+                .orElseThrow(() -> new IllegalStateException("The configured bootstrap administrator must be an existing account"));
+
         if (!user.isEmailVerified()) {
             throw new IllegalStateException("The configured bootstrap administrator must have a verified email");
         }
 
         user.promoteToAdmin(clock.instant());
+        
         log.info("First administrator provisioned for user {}", user.getId());
     }
 }

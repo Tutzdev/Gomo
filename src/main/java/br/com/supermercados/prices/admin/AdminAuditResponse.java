@@ -12,7 +12,12 @@ public record AdminAuditResponse(
         Instant occurredAt) {
 
     static AdminAuditResponse from(AdminAuditEntry entry) {
-        return new AdminAuditResponse(entry.getId(), entry.getActorUserId(), entry.getAction(),
-                entry.getResourceType(), entry.getResourceId(), entry.getOccurredAt());
+        return new AdminAuditResponse(
+            entry.getId(), 
+            entry.getActorUserId(), 
+            entry.getAction(),
+            entry.getResourceType(), 
+            entry.getResourceId(), 
+            entry.getOccurredAt());
     }
 }
