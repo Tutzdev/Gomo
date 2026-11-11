@@ -23,8 +23,12 @@ public class PriceAlertService {
     private final LocationService locations;
     private final Clock clock;
 
-    public PriceAlertService(PriceAlertRepository alerts, ProductService products,
-            LocationService locations, Clock clock) {
+    public PriceAlertService(
+        PriceAlertRepository alerts, 
+        ProductService products,
+        LocationService locations, 
+        Clock clock) {
+            
         this.alerts = alerts;
         this.products = products;
         this.locations = locations;
@@ -35,10 +39,12 @@ public class PriceAlertService {
     public PriceAlertResponse create(AuthenticatedUser user, CreatePriceAlertRequest request) {
         if (!user.emailVerified()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Confirme o e-mail antes de criar alertas.");}
+
         if (!user.premium() && request.kind() == PriceAlertKind.BELOW_AVERAGE) {
             throw new PlanLimitException(PlanLimit.BELOW_AVERAGE_ALERTS,
                     "O alerta abaixo da média faz parte do Premium. No plano grátis, escolha o preço que você quer.");
         }
+
         if (!user.premium() && alerts.countByUserIdAndActiveTrue(user.id()) >= FreePlan.MAX_ACTIVE_ALERTS) {
             throw new PlanLimitException(PlanLimit.ACTIVE_ALERTS,
                     "No plano grátis você mantém até 2 alertas ativos. Desative um ou assine o Premium.");

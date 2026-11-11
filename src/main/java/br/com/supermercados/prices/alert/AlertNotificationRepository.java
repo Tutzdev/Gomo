@@ -38,11 +38,24 @@ interface AlertNotificationRepository extends JpaRepository<AlertNotification, U
     @Modifying
     @Query(value = """
             INSERT INTO alert_notifications (
-                id, user_id, alert_id, price_record_id, store_id, unit_price, created_at
+                id, 
+                user_id, 
+                alert_id, 
+                price_record_id, 
+                store_id, 
+                unit_price, 
+                created_at
             ) VALUES (
-                :id, :userId, :alertId, :priceRecordId, :storeId, :unitPrice, :createdAt
+                :id, 
+                :userId, 
+                :alertId, 
+                :priceRecordId, 
+                :storeId, 
+                :unitPrice, 
+                :createdAt
             ) ON CONFLICT (alert_id, price_record_id) DO NOTHING
             """, nativeQuery = true)
+
     int insertIfAbsent(
             @Param("id") UUID id,
             @Param("userId") UUID userId,

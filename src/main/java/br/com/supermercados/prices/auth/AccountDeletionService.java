@@ -16,11 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import br.com.supermercados.prices.common.ApiException;
 
-/**
- * Deletes an account at its owner's request (LGPD art. 18). Lists, alerts, preferences, sessions and usage go
- * with it. Price contributions and admin audit entries are public records other people relied on, so an
- * account that has them is anonymised instead: no name, no e-mail, no way to sign in.
- */
+
 @Service
 public class AccountDeletionService {
 
@@ -62,10 +58,6 @@ public class AccountDeletionService {
         checkPassword(userId, password, "SELECT password_hash FROM app_users WHERE id = ?");
     }
 
-    /**
-     * An account {@code u} never confirmed, created and last signed in before the two {@code ?} instants, with no
-     * public records and no payment: nobody relies on it, so it can simply go.
-     */
     static final String ABANDONED_ACCOUNT = """
             u.email_verified_at IS NULL AND u.role = 'USER' AND NOT u.subscriber AND u.premium_paid_until IS NULL
                 AND u.created_at < ? AND coalesce(u.last_login_at, u.created_at) < ?
@@ -74,10 +66,6 @@ public class AccountDeletionService {
                 AND NOT EXISTS (SELECT 1 FROM billing_subscriptions b WHERE b.user_id = u.id)
             """;
 
-    /**
-     * Removes an {@link #ABANDONED_ACCOUNT abandoned account}, checked again under a row lock so a confirmation or
-     * sign-in that happens meanwhile keeps it. Returns whether the account was removed.
-     */
     @Transactional
     public boolean deleteAbandonedAccount(UUID userId, Instant inactiveSince) {
         List<UUID> locked = jdbc.queryForList("SELECT u.id FROM app_users u WHERE u.id = ? AND " + ABANDONED_ACCOUNT
@@ -103,13 +91,18 @@ public class AccountDeletionService {
         byte[] unusable = new byte[32];
         RANDOM.nextBytes(unusable);
         jdbc.update("""
-                UPDATE app_users SET name = 'Conta excluída', email = ?, password_hash = ?, role = 'USER',
-                    email_verified_at = NULL, subscriber = FALSE, preferred_billing_cycle = NULL,
-                    premium_paid_until = NULL,
-                    updated_at = ?, version = version + 1
+                UPDATE app_users SET name = 'Conta excluída', 
+                email = ?, password_hash = ?, 
+                role = 'USER',
+                email_verified_at = NULL, 
+                subscriber = FALSE, 
+                preferred_billing_cycle = NULL,
+                premium_paid_until = NULL,
+                updated_at = ?, 
+                version = version + 1
                 WHERE id = ?
                 """, "conta-excluida-" + userId + "@gomo.invalid",
-                // Not a BCrypt hash, so no password can ever match it.
+
                 "excluida:" + HexFormat.of().formatHex(unusable), Timestamp.from(clock.instant()), userId);
     }
 
