@@ -1,5 +1,8 @@
 package br.com.supermercados.prices.collection;
 
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +17,8 @@ public class CollectionScheduler {
     private final CollectionCoordinator coordinator;
     private final boolean enabled;
     private final boolean existingOnly;
+    /** Markets whose collection failed in the last round; each gets one more try (see {@link #retryFailed()}). */
+    private final Set<String> failedInLastRound = ConcurrentHashMap.newKeySet();
 
     public CollectionScheduler(
             CollectionCoordinator coordinator,
@@ -32,13 +37,42 @@ public class CollectionScheduler {
             return;
         }
         try {
-            if (existingOnly) {
-                coordinator.refreshExisting(null);
-            } else {
-                coordinator.collectAll();
+            List<CollectionRunResponse> runs = existingOnly ? coordinator.refreshExisting(null) : coordinator.collectAll();
+            failedInLastRound.clear();
+            if (runs != null) {
+                runs.stream().filter(run -> run.status() == CollectionStatus.FAILED)
+                        .map(CollectionRunResponse::collectorCode).forEach(failedInLastRound::add);
             }
         } catch (RuntimeException exception) {
             LOGGER.error("Não foi possível iniciar a coleta agendada: {}", exception.getMessage(), exception);
+        }
+    }
+
+    /**
+     * 45 minutes after each round, a market whose collection failed gets one more try instead of waiting five
+     * hours for the next round. In 11/2026 two markets hosted on the same platform refused connections from the
+     * server for a few hours, and three rounds in a row missed them; a short block now costs one round at most.
+     */
+    @Scheduled(
+            cron = "${app.collection.retry-cron:0 45 6,11,16,21 * * *}",
+            zone = "${app.collection.zone:America/Sao_Paulo}")
+    public void retryFailed() {
+        if (!enabled || coordinator.isRunning() || failedInLastRound.isEmpty()) {
+            return;
+        }
+        List<String> due = List.copyOf(failedInLastRound);
+        failedInLastRound.clear();
+        for (String code : due) {
+            try {
+                LOGGER.info("Nova tentativa de coleta para {}", code);
+                if (existingOnly) {
+                    coordinator.refreshExisting(code);
+                } else {
+                    coordinator.collectSelected(code);
+                }
+            } catch (RuntimeException exception) {
+                LOGGER.error("Nova tentativa de coleta para {} não iniciou: {}", code, exception.getMessage(), exception);
+            }
         }
     }
 
