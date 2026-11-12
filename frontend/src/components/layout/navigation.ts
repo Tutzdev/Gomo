@@ -1,4 +1,5 @@
 import {
+  Bell,
   CircleDollarSign,
   House,
   ListChecks,
@@ -14,6 +15,8 @@ import type { UserRole } from "@/types/api";
 
 export type NavigationItem = {
   label: string;
+  /** Fits a tab of the installed app's bottom bar. */
+  shortLabel?: string;
   to: string;
   icon: LucideIcon;
   /** Other pages that belong to this item, so it stays highlighted on them. */
@@ -29,15 +32,18 @@ export type NavigationItem = {
  */
 export const navigation: NavigationItem[] = [
   { label: "Início", to: "/app", icon: House },
-  { label: "Buscar preços", to: "/app/produtos", icon: Search, alsoActiveOn: ["/app/comparar"], open: true },
-  { label: "Ofertas da semana", to: "/app/ofertas", icon: Tag, open: true },
-  { label: "Minhas listas", to: "/app/listas", icon: ListChecks },
+  { label: "Buscar preços", shortLabel: "Buscar", to: "/app/produtos", icon: Search, alsoActiveOn: ["/app/comparar"], open: true },
+  { label: "Ofertas da semana", shortLabel: "Ofertas", to: "/app/ofertas", icon: Tag, open: true },
+  { label: "Minhas listas", shortLabel: "Listas", to: "/app/listas", icon: ListChecks },
   { label: "Minha economia", to: "/app/economia", icon: PiggyBank },
   { label: "Alertas de preço", to: "/app/alertas", icon: CircleDollarSign },
-  { label: "Supermercados", to: "/app/supermercados", icon: Store, open: true },
+  { label: "Supermercados", shortLabel: "Mercados", to: "/app/supermercados", icon: Store, open: true },
   { label: "Perfil", to: "/app/perfil", icon: Settings },
   { label: "Administração", to: "/app/admin", icon: ShieldCheck, admin: true },
 ];
+
+/** In the installed app the bell's page sits in the "Mais" drawer, with the same unread count. */
+export const notificationsItem: NavigationItem = { label: "Notificações", to: "/app/notificacoes", icon: Bell };
 
 /** The pages a visitor (`null`) or an account with this role can open. */
 export function visibleNavigation(role: UserRole | null) {

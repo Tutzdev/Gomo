@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { BrandLogo } from "@/components/brand-logo";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { initial } from "@/components/layout/navigation";
 import { NativeButton } from "@/components/ui/native-button";
 import { useAuth } from "@/features/auth/auth-context";
@@ -42,6 +43,8 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(() => readCollapsed());
   const [menuOpen, setMenuOpen] = useState(false);
   const account = user ? { name: user.name, plan: planLabel(user) } : null;
+  // "No mercado" has its own bar at the bottom; the app's tabs step aside there.
+  const showTabBar = !/^\/app\/listas\/[^/]+\/mercado\//.test(location.pathname);
 
   // The drawer closes whenever the page changes: a link inside the page, the back button or the menu itself.
   useEffect(() => {
@@ -80,7 +83,7 @@ export function AppShell() {
 
   // Tablet and phone: the logo takes the corner and the menu sits at the opposite end, after the account.
   const menuButton = (
-    <div className="-mr-2 lg:hidden">
+    <div className="app-menu-button -mr-2 lg:hidden">
       <button
         type="button"
         className="icon-button"
@@ -207,12 +210,23 @@ export function AppShell() {
 
           <main
             id="conteudo-principal"
-            className="mx-auto w-full max-w-[96rem] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8"
+            className={cn(
+              "mx-auto w-full max-w-[96rem] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8",
+              showTabBar && "app-main-with-tabs",
+            )}
             tabIndex={-1}
           >
             <Outlet />
           </main>
         </div>
+        {showTabBar ? (
+          <MobileTabBar
+            user={user}
+            planLabel={user ? planLabel(user) : null}
+            returnPath={returnPath}
+            onLogout={() => void handleLogout()}
+          />
+        ) : null}
       </div>
     </UpsellProvider>
   );
