@@ -54,6 +54,7 @@ trap rollback ERR
 
 log "deploy ${PREV_SHA:0:7} → ${SHA:0:7}"
 git reset --quiet --hard "$SHA"
+chmod +x mvnw  # commits feitos no Windows perdem o bit de execução
 
 log "backend: build Maven"
 ./mvnw -q -B -ntp -DskipTests clean package
