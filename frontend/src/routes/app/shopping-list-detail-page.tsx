@@ -124,7 +124,7 @@ export function ShoppingListDetailPage() {
       </Link>
       <PageHeading
         title={list.data.name}
-        description={`${list.data.items.length} produtos · Atualizada em ${formatDate(list.data.updatedAt)}`}
+        description={`${list.data.items.length} ${list.data.items.length === 1 ? "produto" : "produtos"} · Atualizada em ${formatDate(list.data.updatedAt)}`}
         action={
           list.data.owned ? (
             <div className="flex flex-wrap gap-2">
@@ -382,7 +382,7 @@ function ListItemRow({
           update.mutate();
         }}
       >
-        <div className="w-28">
+        <div className="w-24 sm:w-28">
           <TextField
             id={`quantity-${item.id}`}
             label="Quantidade"
@@ -403,7 +403,8 @@ function ListItemRow({
           loading={update.isPending}
           disabled={Number(quantity) === item.quantity || remove.isPending}
         >
-          Salvar quantidade
+          {/* No celular a lixeira cabe na mesma linha; o leitor de tela ouve sempre "Salvar quantidade". */}
+          Salvar<span className="sr-only sm:not-sr-only">&nbsp;quantidade</span>
         </NativeButton>
         <NativeButton
           variant="ghost"
