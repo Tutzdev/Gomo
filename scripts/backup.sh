@@ -8,8 +8,6 @@ set -Eeuo pipefail
 
 ENV_FILE="${GOMO_ENV_FILE:-/etc/gomo/gomo.env}"
 BACKUP_DIR="${GOMO_BACKUP_DIR:-/opt/gomo/backups}"
-# Cada cópia tem o banco inteiro; 7 cabem no disco da VPS com folga.
-KEEP="${GOMO_BACKUP_KEEP:-7}"
 
 log() { printf '[%(%F %T)T] backup: %s\n' -1 "$*"; }
 die() { log "ERRO: $*" >&2; exit 1; }
@@ -17,6 +15,11 @@ die() { log "ERRO: $*" >&2; exit 1; }
 [[ -r "$ENV_FILE" ]] || die "arquivo de ambiente $ENV_FILE ilegível (defina GOMO_ENV_FILE)"
 # Lê só as variáveis do banco, sem executar o arquivo.
 value() { sed -n "s/^[[:space:]]*\(export[[:space:]]\+\)\?$1=//p" "$ENV_FILE" | tail -1 | sed "s/^['\"]//; s/['\"]$//"; }
+# Quantas cópias manter: GOMO_BACKUP_KEEP no ambiente ou no arquivo de ambiente (o sudo não repassa o
+# ambiente). Cada cópia tem o banco inteiro; 7 cabem no disco da VPS com folga.
+KEEP="${GOMO_BACKUP_KEEP:-$(value GOMO_BACKUP_KEEP)}"
+KEEP="${KEEP:-7}"
+[[ "$KEEP" =~ ^[1-9][0-9]*$ ]] || die "GOMO_BACKUP_KEEP precisa ser um número a partir de 1"
 URL="$(value DATABASE_URL)"
 USER_NAME="$(value DATABASE_USERNAME)"
 PASSWORD="$(value DATABASE_PASSWORD)"

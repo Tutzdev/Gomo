@@ -51,7 +51,7 @@ Vale rever se a API passar a rodar em mais de uma instância: aí o limite preci
 
 ## 2. Backup do banco
 
-`scripts/backup.sh` gera um `pg_dump` (formato custom) e mantém os 7 mais recentes (`GOMO_BACKUP_KEEP`). O `deploy.sh` o executa antes de publicar cada versão. Se o backup falhar, o deploy para antes das migrations, que não são desfeitas no rollback.
+`scripts/backup.sh` gera um `pg_dump` (formato custom) e mantém os 7 mais recentes (`GOMO_BACKUP_KEEP`, no ambiente ou no próprio `/etc/gomo/gomo.env`). O `deploy.sh` o executa antes de publicar cada versão. Se o backup falhar, o deploy para antes das migrations, que não são desfeitas no rollback.
 
 ```bash
 # Como root, a partir do clone em /var/www/gomo
