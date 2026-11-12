@@ -83,9 +83,11 @@ public class ProductSearchRepository {
             Object[] columns = (Object[]) row;
             return new ProductSearchFacets.Measurement((String) columns[0], (BigDecimal) columns[1]);
         }).toList();
+        // latest_prices has one row per store and product that ever had a price: the same markets as the whole
+        // history, without reading every observation of every matching product.
         List<?> markets = bind(entityManager.createNativeQuery(
-                "SELECT DISTINCT s.id, s.name FROM stores s JOIN price_records r ON r.store_id = s.id "
-                        + "JOIN products p ON p.id = r.product_id WHERE s.active AND " + sql.where()
+                "SELECT DISTINCT s.id, s.name FROM stores s JOIN latest_prices l ON l.store_id = s.id "
+                        + "JOIN products p ON p.id = l.product_id WHERE s.active AND " + sql.where()
                         + " ORDER BY s.name, s.id LIMIT 40"), sql.parameters()).getResultList();
         List<ProductSearchFacets.Market> stores = markets.stream().map(row -> {
             Object[] columns = (Object[]) row;
@@ -177,7 +179,11 @@ public class ProductSearchRepository {
         String key = "token" + index;
         String pattern = "pattern" + index;
         parameters.put(pattern, "%" + token + "%");
-        String match = "(p.search_text LIKE :" + pattern + " OR p.gtin LIKE :" + pattern + ")";
+        // A GTIN has only digits, so a word can never match it; leaving it out keeps the condition on the
+        // trigram index of search_text, which an OR with the GTIN would turn into a scan of every product.
+        String match = token.matches(".*[0-9].*")
+                ? "(p.search_text LIKE :" + pattern + " OR p.gtin LIKE :" + pattern + ")"
+                : "p.search_text LIKE :" + pattern;
         if (categoryHint) {
             // Retailers sometimes omit the generic product type from an otherwise precise name.
             conditions.add("(:" + pattern + " IS NOT NULL)");
