@@ -77,6 +77,16 @@ public class AccountDataExportService {
                 FROM price_contributions c JOIN products p ON p.id = c.product_id JOIN stores s ON s.id = c.store_id
                 WHERE c.contributor_id = ? ORDER BY c.submitted_at
                 """, userId));
+        export.put("produtosSugeridos", rows("""
+                SELECT g.name AS "produto", g.brand AS "marca", g.package_size AS "embalagem",
+                    g.barcode AS "codigoDeBarras", s.name AS "mercado", g.price AS "preco", g.note AS "observacao",
+                    g.submitted_at AS "enviadoEm",
+                    CASE g.status WHEN 'APPROVED' THEN 'aceita' WHEN 'REJECTED' THEN 'recusada' ELSE 'em análise' END
+                        AS "situacao",
+                    g.decided_at AS "analisadaEm", g.rejection_reason AS "motivoDaRecusa"
+                FROM product_suggestions g LEFT JOIN stores s ON s.id = g.store_id
+                WHERE g.contributor_id = ? ORDER BY g.submitted_at
+                """, userId));
         export.put("listasCompartilhadasComigo", rows("""
                 SELECT l.name AS "lista", u.name AS "dona", m.joined_at AS "entreiEm"
                 FROM shopping_list_members m JOIN shopping_lists l ON l.id = m.shopping_list_id

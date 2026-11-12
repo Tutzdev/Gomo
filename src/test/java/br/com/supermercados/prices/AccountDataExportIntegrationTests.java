@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -33,6 +34,7 @@ class AccountDataExportIntegrationTests {
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper json;
+    @Autowired private JdbcTemplate jdbc;
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -46,6 +48,11 @@ class AccountDataExportIntegrationTests {
         mvc.perform(post("/api/v1/shopping-lists").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Lista sintética\",\"shoppingType\":\"CUSTOM\"}"))
                 .andExpect(status().isCreated());
+        // Suggesting needs a confirmed e-mail; the row is what matters here.
+        jdbc.update("""
+                INSERT INTO product_suggestions (id, contributor_id, name, brand, submitted_at)
+                SELECT ?, id, 'Café sintético 500 g', 'Marca X', now() FROM app_users WHERE email = ?
+                """, UUID.randomUUID(), email);
 
         var response = mvc.perform(get("/api/v1/users/me/export").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
@@ -62,6 +69,8 @@ class AccountDataExportIntegrationTests {
         assertThat(export.path("listasDeCompras").get(0).path("itens").isArray()).isTrue();
         assertThat(export.path("sessoesAbertas").size()).isPositive();
         assertThat(export.path("alertasDePreco").isArray()).isTrue();
+        assertThat(export.path("produtosSugeridos").get(0).path("produto").asString()).isEqualTo("Café sintético 500 g");
+        assertThat(export.path("produtosSugeridos").get(0).path("situacao").asString()).isEqualTo("em análise");
         assertThat(body).doesNotContain("password", "hash", "$2a$", token);
     }
 
