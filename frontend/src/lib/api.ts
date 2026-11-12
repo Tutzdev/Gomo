@@ -7,6 +7,11 @@ import type { ApiProblem } from "@/types/api";
  */
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
+/** Endereço completo de um caminho da API, para o que o navegador busca sozinho (uma foto em <img>). */
+export function apiUrl(path: string) {
+  return `${API_BASE_URL}${path}`;
+}
+
 function resolveApiBaseUrl(configured: string | undefined) {
   const sameOrigin = "/api/v1";
   const url = configured?.trim().replace(/\/$/, "");

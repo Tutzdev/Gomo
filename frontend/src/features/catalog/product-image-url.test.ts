@@ -14,8 +14,13 @@ describe("productImageUrl", () => {
     );
   });
 
-  it("keeps the original when the host has no resizer", () => {
+  it("asks the Gomo API for a small copy of a Mercafacil original", () => {
     const url = "https://phygital-files.mercafacil.com/catalogo/uploads/produto/gatorade.jpg";
+    expect(productImageUrl(url, 48).endsWith(`/images/products?src=${encodeURIComponent(url)}&w=96`)).toBe(true);
+  });
+
+  it("keeps the original when the host already sends small photos", () => {
+    const url = "https://produto-assets-vipcommerce-com-br.br-se1.magaluobjects.com/250x250/abc.jpg";
     expect(productImageUrl(url, 48)).toBe(url);
   });
 });

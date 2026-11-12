@@ -1,16 +1,35 @@
 import { useEffect, useState } from "react";
 
+import { apiUrl } from "@/lib/api";
+
 /**
  * VTEX stores (Hortifruti, Atacadão…) resize on their own CDN: `/arquivos/ids/{id}-{w}-{h}/`. The catalog shows
  * photos at 40–112 px, and the originals reach 1200 px and 200 KB, so asking for the size on screen turns a
- * search page of ~1 MB of photos into a few dozen KB. Other hosts have no resizer and keep the original.
+ * search page of ~1 MB of photos into a few dozen KB. Mercafacil publishes only originals (PNGs of up to 220 KB),
+ * so the Gomo API scales those and keeps the copy (ProductImageService). Other hosts already send small files.
  */
 const VTEX_IMAGE = /^(https:\/\/[^/]+\.(?:vtexassets\.com|vteximg\.com\.br)\/arquivos\/ids\/)(\d+)(?:-\d+-\d+)?\//;
+
+const RESIZED_BY_THE_API = new Set(["phygital-files.mercafacil.com"]);
 
 export function productImageUrl(url: string, displayPixels: number) {
   // Twice the CSS size keeps the photo sharp on phone screens.
   const pixels = Math.ceil(displayPixels * 2);
-  return url.replace(VTEX_IMAGE, (_, prefix: string, id: string) => `${prefix}${id}-${pixels}-${pixels}/`);
+  if (VTEX_IMAGE.test(url)) {
+    return url.replace(VTEX_IMAGE, (_, prefix: string, id: string) => `${prefix}${id}-${pixels}-${pixels}/`);
+  }
+  if (RESIZED_BY_THE_API.has(hostOf(url))) {
+    return apiUrl(`/images/products?src=${encodeURIComponent(url)}&w=${pixels}`);
+  }
+  return url;
+}
+
+function hostOf(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
 }
 
 /**
