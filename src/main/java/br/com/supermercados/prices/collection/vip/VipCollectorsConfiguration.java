@@ -37,6 +37,14 @@ public class VipCollectorsConfiguration {
                 67, 108, 1, 6, "05868574001171", ServedCity.VOLTA_REDONDA), mapper, clock, parser);
     }
 
+    /** Same storefront as Volta Redonda; distribution center 7 is the Paraíso unit (confirmed in 11/2026). */
+    @Bean
+    SupermarketCollector spaniResende(ObjectMapper mapper, Clock clock, VipProductParser parser) {
+        return collector(new VipStoreDefinition("spani_resende", "Spani", "Spani Resende",
+                URI.create("https://www.spanionline.com.br"), "/chunk-CA3SU4MX.js",
+                67, 108, 1, 7, "05868574001252", ServedCity.RESENDE), mapper, clock, parser);
+    }
+
     @Bean
     SupermarketCollector bramilBarraMansa(ObjectMapper mapper, Clock clock, VipProductParser parser) {
         return collector(new VipStoreDefinition("bramil_barra_mansa_centro", "Bramil", "Bramil Centro",

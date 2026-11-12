@@ -28,6 +28,16 @@ class VipCollectorsConfigurationTest {
     }
 
     @Test
+    void spaniResendeIsStoredInResendeAsAnotherStoreOfTheSameChain() {
+        CollectorMetadata resende = configuration.spaniResende(mapper, clock, null).metadata();
+        CollectorMetadata voltaRedonda = configuration.spaniVoltaRedonda(mapper, clock, null).metadata();
+
+        assertThat(resende.cityId()).isEqualTo(ServedCity.RESENDE.id());
+        assertThat(resende.sourceCode()).isEqualTo(voltaRedonda.sourceCode());
+        assertThat(resende.storeSourceReference()).isEqualTo("vip:67:store:7");
+    }
+
+    @Test
     void unitsOfTheSameChainShareTheSourceButNotTheStore() {
         CollectorMetadata voltaRedonda = configuration.bramilVoltaRedonda(mapper, clock, null).metadata();
         CollectorMetadata barraMansa = configuration.bramilBarraMansa(mapper, clock, null).metadata();

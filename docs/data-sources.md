@@ -69,6 +69,8 @@ Mesma regra de entrada. A cidade já estava no banco desde a `V3`. Nas redes Vip
 | Pérola Ano Bom, Av. Presidente Kennedy, 833 | VipCommerce, organização 329 / filial 1 / CD 2, CNPJ 07954309000321 | **Coletado** (`perola_ano_bom`) | Ativo e com retirada na loja online. |
 | Royal Barra Mansa, Av. Vereador Hamilton Reis Alves, 1391, Jardim Boa Vista | VipCommerce, organização 255 / CD 6, CNPJ 17659742000207 | Fora | O centro existe na loja online, mas está desativado (`ativo = false`). Pode entrar quando for ativado; o Royal tem coletor próprio (`RoyalClient`), que hoje só conhece o Retiro. |
 | Spani | VipCommerce | Fora | Nenhum dos 43 centros da rede é de Barra Mansa. A unidade mais próxima fora de Volta Redonda é Resende (CD 7). |
+
+**Resende (11/2026):** o Spani Resende (CD 7, Av. Dorival Marcondes Godoy, 594 - Paraíso, CNPJ 05868574001252) entra com o mesmo coletor VipCommerce de Volta Redonda (`spani_resende`), conferindo CNPJ e cidade da unidade a cada coleta. É o primeiro mercado da cidade; a cidade aparece no site quando a primeira coleta grava preços.
 | Atacadão | VTEX | Fora | O CEP do Centro de Barra Mansa (27310-060) é atendido pelo vendedor `atacadaobr815`, o São Geraldo de Volta Redonda, já ativo. Não há vendedor de Barra Mansa. |
 | Supermarket (Av. Domingos Mariano, 149), Assaí e mercados de bairro | iFood, encartes | Fora | Sem loja online própria com preço. |
 
