@@ -104,11 +104,11 @@ public class CatalogBuilder {
     public synchronized Summary rebuild() {
         Instant startedAt = clock.instant();
         // Each store's latest description of the SKU: older ones may describe a product the code no longer sells.
+        // latest_prices points at that observation (V54), so the history is not sorted on every rebuild.
         List<Offer> offers = jdbc.query("""
                 SELECT p.id, p.name, p.brand, p.category, p.image_url, latest.store_id, latest.source_product_name
-                FROM (SELECT DISTINCT ON (r.product_id, r.store_id) r.product_id, r.store_id, r.source_product_name
-                      FROM price_records r
-                      ORDER BY r.product_id, r.store_id, r.collected_at DESC, r.recorded_at DESC, r.id DESC) latest
+                FROM (SELECT l.product_id, l.store_id, r.source_product_name
+                      FROM latest_prices l JOIN price_records r ON r.id = l.price_record_id) latest
                 JOIN products p ON p.id = latest.product_id
                 JOIN stores s ON s.id = latest.store_id AND s.active
                 """, (row, index) -> new Offer(row.getObject(1, UUID.class), row.getString(2), row.getString(3),
