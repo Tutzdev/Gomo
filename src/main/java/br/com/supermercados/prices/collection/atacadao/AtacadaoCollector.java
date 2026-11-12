@@ -67,16 +67,26 @@ public class AtacadaoCollector implements SupermarketCollector {
                 if (SELLER.equals(seller.path("id").asString())) regionId = region.path("id").asString();
             }
         }
-        if (regionId == null) throw new IllegalStateException("Região não confirmou vendedor São Geraldo");
         var document = Jsoup.parse(http.get(WEBSITE.resolve("/limpeza")));
         var script = document.selectFirst("script#__NEXT_DATA__");
         if (script == null) throw new IllegalStateException("Menu público Atacadão indisponível");
         JsonNode menu = mapper.readTree(script.data()).path("props").path("pageProps")
                 .path("cmsMenuCategory").path("menu").path("menuCategories").path("menuItems");
         if (!menu.isArray() || menu.isEmpty()) throw new IllegalStateException("Departamentos Atacadão ausentes");
-        var facets = List.of(Map.of("key", "region-id", "value", regionId),
-                Map.of("key", "channel", "value", mapper.writeValueAsString(Map.of("salesChannel", "1", "seller", SELLER, "regionId", regionId))),
-                Map.of("key", "locale", "value", "pt-BR"));
+        List<Map<String, String>> facets;
+        if (regionId != null) {
+            facets = List.of(Map.of("key", "region-id", "value", regionId),
+                    Map.of("key", "channel", "value", mapper.writeValueAsString(Map.of("salesChannel", "1", "seller", SELLER, "regionId", regionId))),
+                    Map.of("key", "locale", "value", "pt-BR"));
+        } else {
+            // Since 11/2026 the regions API no longer lists the São Geraldo seller for its own CEP (it answers with
+            // sellers from other cities). The search still answers per seller through the channel facet, and the
+            // parser keeps only this seller's offers, so the prices are still the store's own.
+            LOGGER.info("Atacadão São Geraldo: região do CEP sem o vendedor; consulta pelo vendedor");
+            facets = List.of(
+                    Map.of("key", "channel", "value", mapper.writeValueAsString(Map.of("salesChannel", "1", "seller", SELLER))),
+                    Map.of("key", "locale", "value", "pt-BR"));
+        }
         CatalogCheckpoint checkpoint = new CatalogCheckpoint(metadata().code(), clock, mapper);
         Map<String, CollectedProduct> products = new LinkedHashMap<>();
         List<String> warnings = new ArrayList<>();
