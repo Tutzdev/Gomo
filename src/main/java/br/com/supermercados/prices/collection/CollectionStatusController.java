@@ -26,7 +26,9 @@ public class CollectionStatusController {
     public ResponseEntity<CollectionStatusResponse> status() {
         var report = health.report();
         var markets = report.markets().stream()
-                .filter(market -> market.status() != CollectionHealthService.MarketStatus.NO_SOURCE)
+                // For the uptime monitor: only markets a collector feeds. Store visits are an admin chore.
+                .filter(market -> market.status() != CollectionHealthService.MarketStatus.NO_SOURCE
+                        && !market.status().inStore())
                 .map(market -> new MarketStatusResponse(market.storeName(), market.status(), market.lastPriceAt()))
                 .toList();
         return ResponseEntity.status(report.healthy() ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE)

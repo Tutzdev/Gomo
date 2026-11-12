@@ -503,7 +503,7 @@ export interface PriceContribution {
   priceRecordId: string | null;
 }
 
-export type MarketStatus = "OK" | "STALE" | "DOWN" | "NO_SOURCE";
+export type MarketStatus = "OK" | "STALE" | "DOWN" | "NO_SOURCE" | "VISITED" | "VISIT_DUE" | "VISIT_OVERDUE";
 export type CollectionRunStatus = "RUNNING" | "SUCCESS" | "PARTIAL" | "FAILED";
 
 export interface CollectorHealth {
@@ -520,6 +520,8 @@ export interface MarketHealth {
   storeName: string;
   status: MarketStatus;
   lastPriceAt: string | null;
+  /** Quando o preço mais recente deixa de valer (null sem preço). */
+  priceExpiresAt: string | null;
   currentProducts: number;
   collectors: CollectorHealth[];
 }

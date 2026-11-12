@@ -41,7 +41,12 @@ const MARKET_STATUS: Record<MarketStatus, { label: string; tone: "success" | "wa
   STALE: { label: "Atrasado", tone: "warning", help: "As últimas coletas falharam; os preços ainda valem, mas vão vencer." },
   DOWN: { label: "Fora do ar", tone: "danger", help: "Sem preço atual: o mercado saiu das buscas e comparações." },
   NO_SOURCE: { label: "Sem fonte", tone: "neutral", help: "Não há fonte pública de preços para esta unidade." },
+  VISITED: { label: "Visita em dia", tone: "success", help: "Preços anotados na loja; valem 7 dias." },
+  VISIT_DUE: { label: "Visitar logo", tone: "warning", help: "Os preços anotados na loja vencem em até 2 dias." },
+  VISIT_OVERDUE: { label: "Visita vencida", tone: "danger", help: "Sem preço anotado válido: o mercado saiu das buscas e comparações." },
 };
+
+const IN_STORE_STATUSES: MarketStatus[] = ["VISITED", "VISIT_DUE", "VISIT_OVERDUE"];
 
 function CollectionsPanel() {
   const queryClient = useQueryClient();
@@ -54,11 +59,13 @@ function CollectionsPanel() {
   if (health.isError || !health.data) return <section className="surface p-5"><ErrorState retry={() => void health.refetch()} /></section>;
   const report = health.data;
   const attention = report.markets.filter((market) => market.status === "STALE" || market.status === "DOWN").length;
+  const visits = report.markets.filter((market) => market.status === "VISIT_DUE" || market.status === "VISIT_OVERDUE").length;
+  const visitNote = visits ? ` ${visits} mercado(s) sem loja online precisam de visita.` : "";
   return (
     <section className="surface overflow-hidden">
       <SurfaceTitle
         title="Coletas por mercado"
-        description={attention ? `${attention} mercado(s) precisam de atenção. Verificado em ${formatDate(report.checkedAt)}.` : `Todos os mercados com fonte estão em dia. Verificado em ${formatDate(report.checkedAt)}.`}
+        description={(attention ? `${attention} mercado(s) precisam de atenção.` : "Todos os mercados com fonte estão em dia.") + visitNote + ` Verificado em ${formatDate(report.checkedAt)}.`}
       />
       <InlineError>{collect.isError ? (collect.error instanceof ApiError ? collect.error.message : "Não foi possível iniciar a coleta.") : null}</InlineError>
       <div className="overflow-x-auto">
@@ -75,15 +82,16 @@ function CollectionsPanel() {
 function MarketRow({ market, collecting, onCollect }: { market: MarketHealth; collecting: boolean; onCollect: (code: string) => void }) {
   const status = MARKET_STATUS[market.status];
   const collector = market.collectors.find((item) => item.scheduled) ?? market.collectors[0];
+  const inStore = IN_STORE_STATUSES.includes(market.status);
   return (
     <tr>
       <td className="font-semibold">{market.storeName}</td>
       <td><StatusBadge tone={status.tone}>{status.label}</StatusBadge><p className="mt-1 max-w-56 text-xs text-muted">{status.help}</p></td>
-      <td>{market.lastPriceAt ? formatDate(market.lastPriceAt) : "Nunca"}</td>
+      <td>{market.lastPriceAt ? formatDate(market.lastPriceAt) : "Nunca"}{inStore && market.priceExpiresAt ? <p className="mt-1 text-xs text-muted">vale até {formatDate(market.priceExpiresAt)}</p> : null}</td>
       <td>{market.currentProducts.toLocaleString("pt-BR")}</td>
       <td>
         {collector ? <>{collector.lastRunAt ? formatDate(collector.lastRunAt) : "Nunca"}{collector.lastStatus ? <span className="ml-2 font-mono text-xs text-muted">{collector.lastStatus}</span> : null}
-          {collector.lastStatus === "FAILED" && collector.lastError ? <p className="mt-1 max-w-72 text-xs text-danger">{collector.lastError}</p> : null}</> : <span className="text-muted">—</span>}
+          {collector.lastStatus === "FAILED" && collector.lastError ? <p className="mt-1 max-w-72 text-xs text-danger">{collector.lastError}</p> : null}</> : <span className="text-muted">{inStore ? "Preço anotado na loja (aba Preço na loja)" : "—"}</span>}
       </td>
       <td>{collector?.scheduled ? <NativeButton size="sm" variant="secondary" loading={collecting} onClick={() => onCollect(collector.code)}><RefreshCw className="size-4" aria-hidden />Coletar agora</NativeButton> : null}</td>
     </tr>

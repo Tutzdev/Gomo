@@ -25,6 +25,9 @@ import br.com.supermercados.prices.price.PricePolicy;
 @Service
 public class CollectionHealthService {
 
+    /** A market with prices written down at the shelf needs a visit when they expire within this window. */
+    static final Duration VISIT_DUE_BEFORE = Duration.ofDays(2);
+
     private final CollectionCoordinator coordinator;
     private final JdbcTemplate jdbc;
     private final PricePolicy pricePolicy;
@@ -64,13 +67,18 @@ public class CollectionHealthService {
                 collectorsByStore.computeIfAbsent(storeId, ignored -> new ArrayList<>()).add(collector);
             } else if (scheduled && (run == null || run.status() != CollectionStatus.RUNNING)) {
                 // Its store was never registered (every run failed before reaching it): a market that is down.
-                neverRegistered.add(new MarketHealth(null, metadata.storeName(), MarketStatus.DOWN, null, 0, List.of(collector)));
+                neverRegistered.add(new MarketHealth(null, metadata.storeName(), MarketStatus.DOWN, null, null, 0,
+                        List.of(collector)));
             }
         }
 
         List<MarketHealth> markets = new ArrayList<>();
         for (var store : activeStores()) {
             List<CollectorHealth> collectors = collectorsByStore.getOrDefault(store.id(), List.of());
+            if (store.inStore()) {
+                markets.add(inStoreMarket(store, collectors, now));
+                continue;
+            }
             boolean hasSource = collectors.stream().anyMatch(CollectorHealth::scheduled);
             Instant lastPrice = store.lastPriceAt();
             MarketStatus status;
@@ -79,11 +87,29 @@ public class CollectionHealthService {
             else if (!lastPrice.isAfter(now.minus(staleAfter))) status = MarketStatus.STALE;
             else status = MarketStatus.OK;
             long currentProducts = lastPrice == null || !lastPrice.isAfter(oldestCurrent) ? 0 : currentProducts(store.id(), oldestCurrent);
-            markets.add(new MarketHealth(store.id(), store.name(), status, lastPrice, currentProducts, collectors));
+            Instant expiresAt = lastPrice == null ? null : lastPrice.plus(pricePolicy.maxAge());
+            markets.add(new MarketHealth(store.id(), store.name(), status, lastPrice, expiresAt, currentProducts, collectors));
         }
         markets.addAll(neverRegistered);
         boolean healthy = markets.stream().noneMatch(market -> market.status() == MarketStatus.DOWN || market.status() == MarketStatus.STALE);
         return new CollectionHealthReport(now, healthy, staleAfter, pricePolicy.maxAge(), markets);
+    }
+
+    /**
+     * A market without an online store: the Gomo team writes its prices down at the shelf and they stay current
+     * for {@code app.prices.in-store-max-age}. Nothing collects it, so instead of NO_SOURCE it reports when the
+     * next visit is due. It never makes the report unhealthy: a visit that is late is a chore, not an outage.
+     */
+    private MarketHealth inStoreMarket(StoreFreshness store, List<CollectorHealth> collectors, Instant now) {
+        Instant lastVisit = store.lastPriceAt();
+        Instant expiresAt = lastVisit == null ? null : lastVisit.plus(pricePolicy.inStoreMaxAge());
+        MarketStatus status;
+        if (expiresAt == null || !expiresAt.isAfter(now)) status = MarketStatus.VISIT_OVERDUE;
+        else if (!expiresAt.isAfter(now.plus(VISIT_DUE_BEFORE))) status = MarketStatus.VISIT_DUE;
+        else status = MarketStatus.VISITED;
+        long currentProducts = status == MarketStatus.VISIT_OVERDUE ? 0
+                : currentProducts(store.id(), now.minus(pricePolicy.inStoreMaxAge()));
+        return new MarketHealth(store.id(), store.name(), status, lastVisit, expiresAt, currentProducts, collectors);
     }
 
     private Map<String, LastRun> lastRuns() {
@@ -122,12 +148,13 @@ public class CollectionHealthService {
 
     private List<StoreFreshness> activeStores() {
         return jdbc.query("""
-                SELECT s.id, s.name, (SELECT max(p.collected_at) FROM price_records p WHERE p.store_id = s.id) AS last_price
+                SELECT s.id, s.name, s.price_channel = 'IN_STORE' AS in_store,
+                    (SELECT max(p.collected_at) FROM price_records p WHERE p.store_id = s.id) AS last_price
                 FROM stores s WHERE s.active ORDER BY s.name, s.id
                 """, (row, index) -> {
             Timestamp lastPrice = row.getTimestamp("last_price");
             return new StoreFreshness(row.getObject("id", UUID.class), row.getString("name"),
-                    lastPrice == null ? null : lastPrice.toInstant());
+                    row.getBoolean("in_store"), lastPrice == null ? null : lastPrice.toInstant());
         });
     }
 
@@ -147,15 +174,27 @@ public class CollectionHealthService {
         /** No current price: the market is hidden from searches and comparisons. */
         DOWN,
         /** No public price source; the market is hidden and nothing is expected to collect it. */
-        NO_SOURCE
+        NO_SOURCE,
+        /** No online store; the prices written down at the last visit are current. */
+        VISITED,
+        /** No online store; the prices from the last visit expire within {@link #VISIT_DUE_BEFORE}. */
+        VISIT_DUE,
+        /** No online store and no current price (never visited, or the visit expired): the market is hidden. */
+        VISIT_OVERDUE;
+
+        /** Statuses of markets whose prices come from store visits, not from a collector. */
+        public boolean inStore() {
+            return this == VISITED || this == VISIT_DUE || this == VISIT_OVERDUE;
+        }
     }
 
     public record CollectionHealthReport(Instant checkedAt, boolean healthy, Duration staleAfter, Duration priceMaxAge,
             List<MarketHealth> markets) {
     }
 
+    /** {@code priceExpiresAt}: when the newest price stops counting as current (null without a price). */
     public record MarketHealth(UUID storeId, String storeName, MarketStatus status, Instant lastPriceAt,
-            long currentProducts, List<CollectorHealth> collectors) {
+            Instant priceExpiresAt, long currentProducts, List<CollectorHealth> collectors) {
     }
 
     public record CollectorHealth(String code, boolean scheduled, CollectionStatus lastStatus, Instant lastRunAt,
@@ -165,6 +204,6 @@ public class CollectionHealthService {
     private record LastRun(CollectionStatus status, Instant startedAt, String errorMessage) {
     }
 
-    private record StoreFreshness(UUID id, String name, Instant lastPriceAt) {
+    private record StoreFreshness(UUID id, String name, boolean inStore, Instant lastPriceAt) {
     }
 }
