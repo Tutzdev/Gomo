@@ -51,18 +51,21 @@ Vale rever se a API passar a rodar em mais de uma instância: aí o limite preci
 
 ## 2. Backup do banco
 
-`scripts/backup.sh` gera um `pg_dump` (formato custom) e mantém os 14 mais recentes. O `deploy.sh` o executa antes de publicar cada versão. Se o backup falhar, o deploy para antes das migrations, que não são desfeitas no rollback.
+`scripts/backup.sh` gera um `pg_dump` (formato custom) e mantém os 7 mais recentes (`GOMO_BACKUP_KEEP`). O `deploy.sh` o executa antes de publicar cada versão. Se o backup falhar, o deploy para antes das migrations, que não são desfeitas no rollback.
 
 ```bash
 # Como root, a partir do clone em /var/www/gomo
 install -o root -g root -m 755 scripts/backup.sh /opt/gomo/bin/backup.sh
 install -o root -g root -m 755 scripts/deploy.sh /opt/gomo/bin/deploy.sh
-install -d -o deploy -g deploy -m 700 /opt/gomo/backups
+install -d -o root -g root -m 700 /opt/gomo/backups
+# O deploy (usuário deploy) chama o backup com sudo, sem senha e só esse comando:
+echo "deploy ALL=(root) NOPASSWD: /opt/gomo/bin/backup.sh" > /etc/sudoers.d/gomo-backup
+chmod 440 /etc/sudoers.d/gomo-backup && visudo -c
 ```
 
-O script lê `DATABASE_URL`, `DATABASE_USERNAME` e `DATABASE_PASSWORD` de `/etc/gomo/gomo.env`, o mesmo arquivo de ambiente do serviço. Se o arquivo estiver em outro lugar, defina `GOMO_ENV_FILE`. O usuário `deploy` precisa conseguir ler esse arquivo e ter o `pg_dump` instalado (pacote `postgresql-client`).
+O script roda como root e lê `DATABASE_URL`, `DATABASE_USERNAME` e `DATABASE_PASSWORD` de `/etc/gomo/gomo.env`, o mesmo arquivo de ambiente do serviço (que só o root lê). Se o arquivo estiver em outro lugar, crie um link (`ln -s /etc/gomo.env /etc/gomo/gomo.env`): o sudo não repassa `GOMO_ENV_FILE`. O `pg_dump` vem do pacote `postgresql-client`.
 
-Backup diário às 3h30 (`crontab -u deploy -e`):
+Backup diário às 3h30 (`crontab -e` como root):
 
 ```cron
 30 3 * * * /opt/gomo/bin/backup.sh >> /opt/gomo/backups/backup.log 2>&1
@@ -101,6 +104,8 @@ A importação ao iniciar existe porque um deploy pode ensinar um coletor a ler 
 Fora as coletas, uma limpeza diária às 04h30 (`ACCOUNT_CLEANUP_CRON`, `-` desliga) apaga sessões e links de confirmação/redefinição vencidos, o contador do plano grátis com mais de 7 dias (`COMPARISON_USAGE_RETENTION`, padrão `P7D`) e as contas que nunca confirmaram o e-mail e não entram há 30 dias (`UNVERIFIED_ACCOUNT_RETENTION`, padrão `P30D`). Conta com contribuição, registro de auditoria ou pagamento nunca é apagada por essa rotina. O resultado vai para o log (`Account cleanup: ...`).
 
 O menor preço de cada produto em cada mercado por dia fica em `daily_lowest_prices`, mantida por um trigger em `price_records` (nenhum caminho que grava preço esquece de atualizar). É dela que saem o histórico, o "preço de sempre" (média dos 30 dias antes de hoje, com pelo menos 7 dias de preço) usado pelo veredito, pelo alerta "abaixo da média", pela página de ofertas e pela "Hora de estocar". A migração V48 preenche a tabela com todo o histórico existente: o primeiro deploy com ela demora um pouco mais na etapa das migrations (o `deploy.sh` faz o backup antes). A página pública `/ofertas` é calculada uma vez por cidade e fica em memória por 30 minutos (`DEALS_CACHE_TTL`).
+
+As coletas gravam todos os produtos de todos os mercados 4 vezes por dia, e quase sempre o preço é o mesmo da vez anterior: em 11/2026 `price_records` crescia ~480 MB por dia, 92% disso repetido, e enchia o disco da VPS em semanas. Toda noite às 2h (`PRICE_HISTORY_COMPACTION_CRON`, `-` desliga) saem as observações com mais de 3 dias (`PRICE_HISTORY_DETAIL_RETENTION`, padrão `P3D`) que repetem a anterior. Ficam a primeira de cada preço (o momento em que ele mudou, incluindo começo e fim de promoção e falta de estoque), a mais recente de cada mercado e produto, as anotadas na loja, as contribuições e as que um alerta cita. Nada do que o site mostra muda: o histórico guarda cada mudança e o "preço de sempre" vem de `daily_lowest_prices`, que o trigger preenche na gravação. Apagar linhas não devolve espaço ao disco, só o libera para as próximas gravações; para devolver de uma vez depois de uma limpeza grande, `VACUUM FULL price_records` (trava a tabela por alguns minutos, faça de madrugada).
 
 Uma coleta manual de um mercado, pela API de admin: `POST /api/v1/admin/collections?collectorCode=royal_retiro` (com `existingOnly=true` para só atualizar preços).
 
