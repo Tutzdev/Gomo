@@ -21,13 +21,14 @@ public record StoreResponse(
         Instant lastPriceCollectedAt,
         String priceSourceNote,
         StorePriceStatus priceStatus,
-        StorePriceChannel priceChannel) {
+        StorePriceChannel priceChannel,
+        Integer inStorePriceValidDays) {
 
     public StoreResponse(UUID id, UUID supermarketChainId, UUID cityId, String name, String address,
             BigDecimal latitude, BigDecimal longitude, boolean active, UUID sourceId, String sourceReference,
             Instant collectedAt, Instant updatedAt, Instant lastPriceCollectedAt) {
         this(id, supermarketChainId, cityId, name, address, latitude, longitude, active, sourceId,
-                sourceReference, collectedAt, updatedAt, lastPriceCollectedAt, null, null, StorePriceChannel.ONLINE);
+                sourceReference, collectedAt, updatedAt, lastPriceCollectedAt, null, null, StorePriceChannel.ONLINE, null);
     }
 
     public static StoreResponse from(Store store) {
@@ -42,6 +43,7 @@ public record StoreResponse(
         return new StoreResponse(store.getId(), store.getSupermarketChainId(), store.getCityId(), store.getName(),
                 store.getAddress(), store.getLatitude(), store.getLongitude(), store.isActive(),
                 store.getSourceId(), store.getSourceReference(), store.getCollectedAt(), store.getUpdatedAt(),
-                lastPriceCollectedAt, store.getPriceSourceNote(), priceStatus, store.getPriceChannel());
+                lastPriceCollectedAt, store.getPriceSourceNote(), priceStatus, store.getPriceChannel(),
+                store.getInStorePriceValidDays());
     }
 }

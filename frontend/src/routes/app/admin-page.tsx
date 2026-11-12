@@ -41,7 +41,7 @@ const MARKET_STATUS: Record<MarketStatus, { label: string; tone: "success" | "wa
   STALE: { label: "Atrasado", tone: "warning", help: "As últimas coletas falharam; os preços ainda valem, mas vão vencer." },
   DOWN: { label: "Fora do ar", tone: "danger", help: "Sem preço atual: o mercado saiu das buscas e comparações." },
   NO_SOURCE: { label: "Sem fonte", tone: "neutral", help: "Não há fonte pública de preços para esta unidade." },
-  VISITED: { label: "Visita em dia", tone: "success", help: "Preços anotados na loja; valem 7 dias." },
+  VISITED: { label: "Visita em dia", tone: "success", help: "Preços anotados na loja, dentro da validade." },
   VISIT_DUE: { label: "Visitar logo", tone: "warning", help: "Os preços anotados na loja vencem em até 2 dias." },
   VISIT_OVERDUE: { label: "Visita vencida", tone: "danger", help: "Sem preço anotado válido: o mercado saiu das buscas e comparações." },
 };
@@ -114,5 +114,5 @@ function IngestionForm() {
 }
 
 function translateAction(action: string) {
-  return ({ SOURCE_REGISTERED: "Fonte registrada", SOURCE_STATUS_CHANGED: "Fonte atualizada", CHAIN_INGESTED: "Rede ingerida", STORE_INGESTED: "Loja ingerida", PRODUCT_INGESTED: "Produto ingerido", PRICE_RECORDED: "Preço registrado", CONTRIBUTION_APPROVED: "Contribuição aprovada", CONTRIBUTION_REJECTED: "Contribuição rejeitada", STORE_VISIT_RECORDED: "Visita à loja gravada", PRODUCT_SUGGESTION_APPROVED: "Sugestão de produto aceita", PRODUCT_SUGGESTION_REJECTED: "Sugestão de produto recusada" } as Record<string, string>)[action] ?? action;
+  return ({ SOURCE_REGISTERED: "Fonte registrada", SOURCE_STATUS_CHANGED: "Fonte atualizada", CHAIN_INGESTED: "Rede ingerida", STORE_INGESTED: "Loja ingerida", PRODUCT_INGESTED: "Produto ingerido", PRICE_RECORDED: "Preço registrado", CONTRIBUTION_APPROVED: "Contribuição aprovada", CONTRIBUTION_REJECTED: "Contribuição rejeitada", STORE_VISIT_RECORDED: "Visita à loja gravada", STORE_VISIT_VALIDITY_CHANGED: "Validade do preço na loja alterada", PRODUCT_SUGGESTION_APPROVED: "Sugestão de produto aceita", PRODUCT_SUGGESTION_REJECTED: "Sugestão de produto recusada" } as Record<string, string>)[action] ?? action;
 }

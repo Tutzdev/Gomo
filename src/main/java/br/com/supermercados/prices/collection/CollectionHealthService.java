@@ -102,7 +102,9 @@ public class CollectionHealthService {
      */
     private MarketHealth inStoreMarket(StoreFreshness store, List<CollectorHealth> collectors, Instant now) {
         Instant lastVisit = store.lastPriceAt();
-        Instant expiresAt = lastVisit == null ? null : lastVisit.plus(pricePolicy.inStoreMaxAge());
+        Duration validity = store.inStoreValidDays() == null ? pricePolicy.inStoreMaxAge()
+                : Duration.ofDays(store.inStoreValidDays());
+        Instant expiresAt = lastVisit == null ? null : lastVisit.plus(validity);
         MarketStatus status;
         if (expiresAt == null || !expiresAt.isAfter(now)) status = MarketStatus.VISIT_OVERDUE;
         else if (!expiresAt.isAfter(now.plus(VISIT_DUE_BEFORE))) status = MarketStatus.VISIT_DUE;
@@ -148,13 +150,14 @@ public class CollectionHealthService {
 
     private List<StoreFreshness> activeStores() {
         return jdbc.query("""
-                SELECT s.id, s.name, s.price_channel = 'IN_STORE' AS in_store,
+                SELECT s.id, s.name, s.price_channel = 'IN_STORE' AS in_store, s.in_store_price_valid_days,
                     (SELECT max(p.collected_at) FROM price_records p WHERE p.store_id = s.id) AS last_price
                 FROM stores s WHERE s.active ORDER BY s.name, s.id
                 """, (row, index) -> {
             Timestamp lastPrice = row.getTimestamp("last_price");
             return new StoreFreshness(row.getObject("id", UUID.class), row.getString("name"),
-                    row.getBoolean("in_store"), lastPrice == null ? null : lastPrice.toInstant());
+                    row.getBoolean("in_store"), row.getObject("in_store_price_valid_days", Integer.class),
+                    lastPrice == null ? null : lastPrice.toInstant());
         });
     }
 
@@ -204,6 +207,6 @@ public class CollectionHealthService {
     private record LastRun(CollectionStatus status, Instant startedAt, String errorMessage) {
     }
 
-    private record StoreFreshness(UUID id, String name, boolean inStore, Instant lastPriceAt) {
+    private record StoreFreshness(UUID id, String name, boolean inStore, Integer inStoreValidDays, Instant lastPriceAt) {
     }
 }

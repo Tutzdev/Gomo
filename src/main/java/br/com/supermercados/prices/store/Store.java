@@ -52,6 +52,10 @@ public class Store {
     @Column(nullable = false, length = 16)
     private StorePriceChannel priceChannel = StorePriceChannel.ONLINE;
 
+    /** Days the shelf prices of an IN_STORE market stay current; null uses app.prices.in-store-max-age. */
+    @Column(name = "in_store_price_valid_days")
+    private Integer inStorePriceValidDays;
+
     @Column(nullable = false)
     private UUID sourceId;
 
@@ -72,6 +76,12 @@ public class Store {
         sourceId = observation.source().sourceId();
         sourceReference = observation.source().sourceReference();
         update(observation, now);
+    }
+
+    /** Null goes back to the default validity. */
+    public void changeInStorePriceValidDays(Integer days, Instant now) {
+        this.inStorePriceValidDays = days;
+        this.updatedAt = now;
     }
 
     void update(StoreObservation observation, Instant now) {

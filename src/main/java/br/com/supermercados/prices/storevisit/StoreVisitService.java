@@ -11,8 +11,10 @@ import br.com.supermercados.prices.price.PriceService;
 import br.com.supermercados.prices.price.StockAvailability;
 import br.com.supermercados.prices.store.Store;
 import br.com.supermercados.prices.store.StorePriceChannel;
+import br.com.supermercados.prices.store.StoreResponse;
 import br.com.supermercados.prices.store.StoreRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
@@ -56,7 +58,8 @@ public class StoreVisitService {
                     "Só mercados sem loja online recebem preço conferido na loja.");
         }
         Instant now = clock.instant();
-        Instant currentUntil = visit.observedAt().plus(policy.inStoreMaxAge());
+        Duration validity = validity(store);
+        Instant currentUntil = visit.observedAt().plus(validity);
         if (!currentUntil.isAfter(now)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Essa visita é antiga demais: os preços já estariam vencidos.");
         }
@@ -71,10 +74,37 @@ public class StoreVisitService {
         for (StoreVisitRequest.Item item : visit.items()) {
             prices.appendStoreVisit(new PriceObservation(item.productId(), storeId, source.getId(),
                     reference(storeId, item.productId(), visit.observedAt()), item.price(), null, "BRL",
-                    visit.observedAt(), null, null, null, StockAvailability.AVAILABLE));
+                    // A validity shorter than the default goes on the price itself; queries already honor it.
+                    visit.observedAt(), validity.equals(policy.inStoreMaxAge()) ? null : currentUntil, null, null,
+                    StockAvailability.AVAILABLE));
         }
         audit.record(actorUserId, AdminAction.STORE_VISIT_RECORDED, "STORE", storeId);
         return new StoreVisitResponse(storeId, visit.observedAt(), visit.items().size(), currentUntil);
+    }
+
+    /**
+     * How long this market's shelf prices last: its own days, or the default. Never longer than the default,
+     * which every price query uses as the outer bound for store visits.
+     */
+    Duration validity(Store store) {
+        Integer days = store.getInStorePriceValidDays();
+        return days == null ? policy.inStoreMaxAge() : Duration.ofDays(days);
+    }
+
+    @Transactional
+    public StoreResponse changeValidity(UUID actorUserId, UUID storeId, Integer days) {
+        Store store = stores.findById(storeId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Loja não encontrada."));
+        if (store.getPriceChannel() != StorePriceChannel.IN_STORE) {
+            throw new ApiException(HttpStatus.CONFLICT, "Só mercados sem loja online têm validade de preço anotado.");
+        }
+        long maximum = policy.inStoreMaxAge().toDays();
+        if (days != null && (days < 1 || days > maximum)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A validade vai de 1 a " + maximum + " dias.");
+        }
+        store.changeInStorePriceValidDays(days, clock.instant());
+        audit.record(actorUserId, AdminAction.STORE_VISIT_VALIDITY_CHANGED, "STORE", storeId);
+        return StoreResponse.from(store);
     }
 
     /** One shelf reading per product and visit time: resending the same visit records nothing new. */

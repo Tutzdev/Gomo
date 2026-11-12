@@ -208,6 +208,8 @@ export interface Store {
   priceStatus?: StorePriceStatus | null;
   /** IN_STORE: no online store; prices are written down at the shelf by the Gomo team. */
   priceChannel?: StorePriceChannel;
+  /** IN_STORE: dias que o preço anotado vale neste mercado; null usa o padrão (7). */
+  inStorePriceValidDays?: number | null;
 }
 
 export interface PriceRecord {

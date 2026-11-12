@@ -416,6 +416,8 @@ export const adminApi = {
   recordPrice: (input: unknown) =>
     apiRequest("/admin/prices", { method: "POST", body: input }),
   collectionHealth: () => apiRequest<CollectionHealth>("/admin/collections/health"),
+  setStoreVisitValidity: (storeId: string, days: number | null) =>
+    apiRequest<Store>(`/admin/stores/${storeId}/visit-validity`, { method: "PUT", body: { days } }),
   recordStoreVisit: (storeId: string, input: { observedAt: string; items: { productId: string; price: number }[] }) =>
     apiRequest<StoreVisitResult>(`/admin/stores/${storeId}/visits`, { method: "POST", body: input }),
   collect: (collectorCode: string, existingOnly: boolean) =>

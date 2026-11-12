@@ -56,6 +56,9 @@ function saveDraft(storeId: string, draft: Draft | null) {
   }
 }
 
+/** The default validity of a shelf price (PRICE_IN_STORE_MAX_AGE); a market can only shorten it. */
+const DEFAULT_VALID_DAYS = 7;
+
 /** Shelf prices of a market without an online store, written down item by item during a visit. */
 export function StoreVisitPanel() {
   const queryClient = useQueryClient();
@@ -79,6 +82,15 @@ export function StoreVisitPanel() {
   const filled = Object.values(draft.readings).filter((reading) => reading.productId && Number(reading.price) > 0);
   const duplicated = filled.length !== new Set(filled.map((reading) => reading.productId)).size;
   const store = inStore.find((candidate) => candidate.id === storeId);
+
+  const validity = useMutation({
+    mutationFn: (days: number | null) => adminApi.setStoreVisitValidity(storeId, days),
+    onSuccess: async (updated) => {
+      setMessage(`Os preços de ${updated.name} agora valem ${updated.inStorePriceValidDays ?? DEFAULT_VALID_DAYS} dias a partir da visita.`);
+      await queryClient.invalidateQueries({ queryKey: ["stores"] });
+    },
+    onError: (error) => setMessage(error instanceof ApiError ? error.message : "Não foi possível mudar a validade."),
+  });
 
   const submit = useMutation({
     mutationFn: () =>
@@ -135,7 +147,8 @@ export function StoreVisitPanel() {
         <div>
           <h2 className="font-bold">Preço na loja</h2>
           <p className="text-sm text-muted">
-            Para mercados sem loja online. Anote o preço da etiqueta de cada item; os preços valem por 7 dias.
+            Para mercados sem loja online. Anote o preço da etiqueta de cada item; os preços valem 7 dias, ou menos
+            se o mercado muda preço com frequência (ajuste abaixo).
           </p>
         </div>
       </div>
@@ -155,6 +168,19 @@ export function StoreVisitPanel() {
           <StoreIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>{store.address ?? store.name}{store.lastPriceCollectedAt ? ` · última visita em ${formatDate(store.lastPriceCollectedAt)}` : " · ainda sem visita"}</span>
         </p>
+      ) : null}
+      {store ? (
+        <div className="mt-4 max-w-xs">
+          <SelectField id="visit-validity" label="Os preços deste mercado valem"
+            value={store.inStorePriceValidDays ? String(store.inStorePriceValidDays) : ""}
+            disabled={validity.isPending}
+            onChange={(event) => validity.mutate(event.target.value ? Number(event.target.value) : null)}>
+            <option value="">{DEFAULT_VALID_DAYS} dias (padrão)</option>
+            {Array.from({ length: DEFAULT_VALID_DAYS - 1 }, (_, index) => index + 1).map((days) => (
+              <option key={days} value={days}>{days === 1 ? "1 dia" : `${days} dias`}</option>
+            ))}
+          </SelectField>
+        </div>
       ) : null}
 
       {storeId ? (

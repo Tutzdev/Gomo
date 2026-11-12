@@ -54,6 +54,7 @@ class StoreVisitIntegrationTests {
     @Autowired private StoreVisitService visits;
     @Autowired private PriceService prices;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private jakarta.persistence.EntityManager entityManager;
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -96,6 +97,36 @@ class StoreVisitIntegrationTests {
                         .param("storeId", SUPERMARKET_BARRA_MANSA.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(BETA.toString()));
+    }
+
+    @Test
+    void aMarketCanHaveShorterShelfPriceValidityThanTheDefault() throws Exception {
+        UUID admin = admin();
+        visits.changeValidity(admin, SUPERMARKET_BARRA_MANSA, 3);
+        Instant fourDaysAgo = Instant.now().minus(Duration.ofDays(4)).truncatedTo(ChronoUnit.SECONDS);
+        Instant twoDaysAgo = Instant.now().minus(Duration.ofDays(2)).truncatedTo(ChronoUnit.SECONDS);
+
+        assertThatThrownBy(() -> visits.record(admin, SUPERMARKET_BARRA_MANSA, new StoreVisitRequest(fourDaysAgo,
+                List.of(new StoreVisitRequest.Item(BETA, new BigDecimal("7.49"))))))
+                .isInstanceOf(ApiException.class).hasMessageContaining("antiga demais");
+        var recorded = visits.record(admin, SUPERMARKET_BARRA_MANSA, new StoreVisitRequest(twoDaysAgo,
+                List.of(new StoreVisitRequest.Item(BETA, new BigDecimal("7.49")))));
+
+        assertThat(recorded.currentUntil()).isEqualTo(twoDaysAgo.plus(Duration.ofDays(3)));
+        assertThat(jdbc.queryForObject("SELECT valid_until FROM price_records WHERE store_id = ?",
+                java.sql.Timestamp.class, SUPERMARKET_BARRA_MANSA).toInstant()).isEqualTo(recorded.currentUntil());
+        mvc.perform(get("/api/v1/stores/{id}", SUPERMARKET_BARRA_MANSA))
+                .andExpect(jsonPath("$.inStorePriceValidDays").value(3))
+                .andExpect(jsonPath("$.priceStatus").value("CURRENT"));
+
+        assertThatThrownBy(() -> visits.changeValidity(admin, SUPERMARKET_BARRA_MANSA, 8))
+                .isInstanceOf(ApiException.class).hasMessageContaining("1 a 7 dias");
+        assertThatThrownBy(() -> visits.changeValidity(admin, ONLINE_STORE, 3))
+                .isInstanceOf(ApiException.class).hasMessageContaining("sem loja online");
+        visits.changeValidity(admin, SUPERMARKET_BARRA_MANSA, null);
+        entityManager.flush();
+        assertThat(jdbc.queryForObject("SELECT in_store_price_valid_days FROM stores WHERE id = ?", Integer.class,
+                SUPERMARKET_BARRA_MANSA)).isNull();
     }
 
     @Test
