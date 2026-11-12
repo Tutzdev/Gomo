@@ -69,7 +69,8 @@ VITE_API_BASE_URL="${VITE_API_BASE_URL:-/api/v1}" npm run build --silent
 
 # As migrations não são desfeitas no rollback: com o backup instalado, nenhuma versão sobe sem uma cópia do banco.
 if [[ -x "$JAR_DIR/bin/backup.sh" ]]; then
-  "$JAR_DIR/bin/backup.sh" || die "backup do banco falhou; deploy interrompido antes das migrations"
+  # Roda como root (sudoers): o arquivo de ambiente com a senha do banco só o root lê.
+  sudo -n "$JAR_DIR/bin/backup.sh" || die "backup do banco falhou; deploy interrompido antes das migrations"
 else
   log "AVISO: $JAR_DIR/bin/backup.sh não instalado; publicando sem backup do banco"
 fi

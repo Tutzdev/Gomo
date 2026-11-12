@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Backup do banco do Gomo (pg_dump em formato custom), com rotação.
 # Instalado em /opt/gomo/bin/backup.sh. O deploy.sh o executa antes de publicar uma versão nova
-# (as migrations do Flyway não são desfeitas no rollback) e o cron o executa uma vez por dia.
+# (as migrations do Flyway não são desfeitas no rollback; ele chama via sudo) e o cron do root o executa uma
+# vez por dia.
 #   Restaurar: pg_restore --clean --if-exists -d <banco> /opt/gomo/backups/<arquivo>.dump
 set -Eeuo pipefail
 
 ENV_FILE="${GOMO_ENV_FILE:-/etc/gomo/gomo.env}"
 BACKUP_DIR="${GOMO_BACKUP_DIR:-/opt/gomo/backups}"
-KEEP="${GOMO_BACKUP_KEEP:-14}"
+# Cada cópia tem o banco inteiro; 7 cabem no disco da VPS com folga.
+KEEP="${GOMO_BACKUP_KEEP:-7}"
 
 log() { printf '[%(%F %T)T] backup: %s\n' -1 "$*"; }
 die() { log "ERRO: $*" >&2; exit 1; }
