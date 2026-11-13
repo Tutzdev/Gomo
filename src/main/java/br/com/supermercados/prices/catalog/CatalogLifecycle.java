@@ -10,6 +10,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +28,8 @@ import br.com.supermercados.prices.collection.CollectionCoordinator;
  * release may read offers the previous one skipped) is imported in full instead of refreshed.
  */
 @Component
+// First after a collection: the other listeners (the deals page) read the rebuilt catalog.
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class CatalogLifecycle implements CollectionCompletedListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogLifecycle.class);

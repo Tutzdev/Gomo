@@ -3,6 +3,7 @@ package br.com.supermercados.prices.deal;
 import br.com.supermercados.prices.auth.AuthenticatedUser;
 import br.com.supermercados.prices.catalog.CatalogItem;
 import br.com.supermercados.prices.catalog.CatalogItemRepository;
+import br.com.supermercados.prices.collection.CollectionCompletedListener;
 import br.com.supermercados.prices.common.PageResponse;
 import br.com.supermercados.prices.location.LocationService;
 import br.com.supermercados.prices.shoppinglist.ShoppingListService;
@@ -21,9 +22,15 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,11 +40,19 @@ import org.springframework.transaction.annotation.Transactional;
  * The deals page: what is cheaper than usual in the city right now. Public, so it is computed once per city and
  * kept for half an hour ({@code app.deals.cache-ttl}); prices change four times a day, a page a few minutes old says the same thing.
  * Premium can narrow it to the products of their own lists.
+ * <p>
+ * The computation reads the whole city's price history (about a second on a warm database, several on a cold one),
+ * so nobody should wait for it: the cities with stores are computed when the application starts and again after
+ * every collection, and a page past its half hour is still served at once while a fresh one is computed in the
+ * background. Only a page older than {@link #STALE_FACTOR} half hours (or a cache turned off) is computed in the request.
  */
 @Service
-public class DealService {
+public class DealService implements CollectionCompletedListener {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(DealService.class);
     private static final int MAXIMUM_STORES = 500;
+    /** How many cache lifetimes an expired page may still be served while it is recomputed. */
+    static final int STALE_FACTOR = 4;
 
     private final DealFinder finder;
     private final StoreService stores;
@@ -46,10 +61,21 @@ public class DealService {
     private final ShoppingListService lists;
     private final Clock clock;
     private final Duration cacheTtl;
+    private final boolean warmUp;
+    private final Executor background;
     private final Map<UUID, CityDeals> cache = new ConcurrentHashMap<>();
+    private final Set<UUID> refreshing = ConcurrentHashMap.newKeySet();
 
+    @Autowired
     public DealService(DealFinder finder, StoreService stores, LocationService locations, CatalogItemRepository items,
-            ShoppingListService lists, Clock clock, @Value("${app.deals.cache-ttl:PT30M}") Duration cacheTtl) {
+            ShoppingListService lists, Clock clock, @Value("${app.deals.cache-ttl:PT30M}") Duration cacheTtl,
+            @Value("${app.deals.warm-up:true}") boolean warmUp) {
+        this(finder, stores, locations, items, lists, clock, cacheTtl, warmUp,
+                task -> Thread.ofVirtual().name("deals-refresh").start(task));
+    }
+
+    DealService(DealFinder finder, StoreService stores, LocationService locations, CatalogItemRepository items,
+            ShoppingListService lists, Clock clock, Duration cacheTtl, boolean warmUp, Executor background) {
         this.finder = finder;
         this.stores = stores;
         this.locations = locations;
@@ -57,6 +83,34 @@ public class DealService {
         this.lists = lists;
         this.clock = clock;
         this.cacheTtl = cacheTtl;
+        this.warmUp = warmUp;
+        this.background = background;
+    }
+
+    /** Computes every city with stores ahead of the first visitor. */
+    @EventListener(ApplicationReadyEvent.class)
+    public void onStart() {
+        if (warmUp && !cacheTtl.isZero()) {
+            background.execute(this::refreshAll);
+        }
+    }
+
+    /** New prices: the deals of every city are computed again, in the collection's own background thread. */
+    @Override
+    public void collectionCompleted() {
+        if (!cacheTtl.isZero()) {
+            refreshAll();
+        }
+    }
+
+    private void refreshAll() {
+        for (UUID cityId : finder.citiesWithStores()) {
+            try {
+                cache.put(cityId, compute(cityId, clock.instant()));
+            } catch (RuntimeException exception) {
+                LOGGER.error("Cálculo das ofertas da cidade {} falhou: {}", cityId, exception.getMessage(), exception);
+            }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -100,16 +154,41 @@ public class DealService {
                 PageResponse.from(page), storeCounts, categories, onlyMyLists);
     }
 
-    /** The deals of the city, computed at most once per {@code cacheTtl}. */
+    /** The deals of the city, computed at most once per {@code cacheTtl}; an expired page is refreshed behind the visitor. */
     private CityDeals cityDeals(UUID cityId) {
         Instant now = clock.instant();
         CityDeals cached = cache.get(cityId);
         if (cached != null && cached.computedAt().isAfter(now.minus(cacheTtl))) {
             return cached;
         }
+        if (cached != null && cached.computedAt().isAfter(now.minus(cacheTtl.multipliedBy(STALE_FACTOR)))) {
+            refreshInBackground(cityId);
+            return cached;
+        }
         CityDeals computed = compute(cityId, now);
         cache.put(cityId, computed);
         return computed;
+    }
+
+    /** One refresh per city at a time: the visitors who arrive meanwhile keep getting the previous page. */
+    private void refreshInBackground(UUID cityId) {
+        if (!refreshing.add(cityId)) {
+            return;
+        }
+        try {
+            background.execute(() -> {
+                try {
+                    cache.put(cityId, compute(cityId, clock.instant()));
+                } catch (RuntimeException exception) {
+                    LOGGER.error("Cálculo das ofertas da cidade {} falhou: {}", cityId, exception.getMessage(), exception);
+                } finally {
+                    refreshing.remove(cityId);
+                }
+            });
+        } catch (RuntimeException exception) {
+            refreshing.remove(cityId);
+            throw exception;
+        }
     }
 
     private CityDeals compute(UUID cityId, Instant now) {

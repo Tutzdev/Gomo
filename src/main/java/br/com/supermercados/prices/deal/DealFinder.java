@@ -55,6 +55,11 @@ class DealFinder {
         }
     }
 
+    /** The cities with at least one active store: the ones whose deals page is worth computing ahead. */
+    List<UUID> citiesWithStores() {
+        return jdbc.getJdbcTemplate().queryForList("SELECT DISTINCT city_id FROM stores WHERE active", UUID.class);
+    }
+
     List<Offer> find(Collection<UUID> storeIds, Instant now) {
         if (storeIds.isEmpty()) {
             return List.of();
