@@ -49,6 +49,21 @@ Além do Nginx, a API limita cadastros, logins, e-mails de conta e contribuiçõ
 
 Vale rever se a API passar a rodar em mais de uma instância: aí o limite precisa ficar num lugar comum (uma tabela no Postgres ou Redis).
 
+### Ajuste do PostgreSQL
+
+Os valores de fábrica do Postgres (128 MB de cache, JIT ligado, consulta paralela) foram feitos para qualquer máquina, não para uma VPS de 1 vCPU com um banco de ~15 GB. Na VPS atual (1 vCPU, 3,8 GB de RAM) eles ficam em `/etc/postgresql/16/main/conf.d/90-desempenho.conf`:
+
+```
+shared_buffers = 512MB                 # exige reiniciar o PostgreSQL
+effective_cache_size = 2GB
+work_mem = 16MB                        # a consulta de ofertas derramava em disco com 4MB
+maintenance_work_mem = 256MB           # VACUUM depois da compactação do histórico
+jit = off                              # compilar o plano custava mais que executá-lo
+max_parallel_workers_per_gather = 0    # 1 vCPU: consulta paralela só disputa o mesmo processador
+```
+
+`random_page_cost` fica no padrão (4): com 1.1 o planejador trocou a leitura sequencial de `daily_lowest_prices` por milhares de buscas no índice e a consulta de ofertas foi de 0,7 s para 4 s nesse disco. Com o ajuste, ela leva ~0,5 s; de qualquer forma o visitante não espera por ela: as ofertas de cada cidade são calculadas quando a API sobe e depois de cada coleta, e uma página vencida é servida na hora enquanto a nova é calculada (`DealService`).
+
 ## 2. Backup do banco
 
 `scripts/backup.sh` gera um `pg_dump` (formato custom) e mantém os 7 mais recentes (`GOMO_BACKUP_KEEP`, no ambiente ou no próprio `/etc/gomo/gomo.env`). O `deploy.sh` o executa antes de publicar cada versão. Se o backup falhar, o deploy para antes das migrations, que não são desfeitas no rollback.
