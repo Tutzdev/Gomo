@@ -18,16 +18,11 @@ import org.springframework.stereotype.Service;
 
 import br.com.supermercados.prices.subscription.FreePlan;
 
-/**
- * Daily removal of what nobody can use any more: expired sessions and account tokens of people who never came
- * back, accounts never confirmed that went unused for {@code app.cleanup.unverified-account-retention}, and
- * free-plan usage older than {@code app.cleanup.comparison-usage-retention} (only today's counts matter).
- */
 @Service
 public class AccountCleanupService {
 
     private static final Logger log = LoggerFactory.getLogger(AccountCleanupService.class);
-    /** One run removes at most this many accounts; the rest go on the next day. */
+
     static final int ACCOUNTS_PER_RUN = 500;
 
     private final JdbcTemplate jdbc;
@@ -39,7 +34,7 @@ public class AccountCleanupService {
     public AccountCleanupService(JdbcTemplate jdbc, AccountDeletionService deletion, Clock clock,
             @Value("${app.cleanup.unverified-account-retention:P30D}") Duration unverifiedAccountRetention,
             @Value("${app.cleanup.comparison-usage-retention:P7D}") Duration comparisonUsageRetention) {
-        // The free-plan limit reads today's usage, so at least one full day has to stay.
+
         if (unverifiedAccountRetention.compareTo(Duration.ofDays(1)) < 0
                 || comparisonUsageRetention.compareTo(Duration.ofDays(1)) < 0) {
             throw new IllegalArgumentException("app.cleanup retentions must be at least one day");
@@ -62,7 +57,6 @@ public class AccountCleanupService {
         }
     }
 
-    /** Each step commits on its own, so a failure halfway keeps what was already cleaned. */
     public Result cleanUp() {
         Instant now = clock.instant();
         Timestamp nowTimestamp = Timestamp.from(now);
