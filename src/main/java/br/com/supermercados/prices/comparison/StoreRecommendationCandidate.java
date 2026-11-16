@@ -26,11 +26,20 @@ public record StoreRecommendationCandidate(
                 .filter(item -> item.lineTotal() == null)
                 .map(ComparisonItemResponse::productId)
                 .toList();
+
         boolean stockUncertain = comparison.items().stream()
                 .filter(item -> item.lineTotal() != null)
                 .anyMatch(item -> item.price().availability() == StockAvailability.UNKNOWN);
-        return new StoreRecommendationCandidate(comparison.storeId(), comparison.storeName(),
-                comparison.subtotalKnown(), comparison.requestedItems(), comparison.pricedItems(),
-                comparison.missingItems(), missingProductIds, comparison.completeShoppingList(), stockUncertain);
+
+        return new StoreRecommendationCandidate(
+            comparison.storeId(),
+            comparison.storeName(),
+            comparison.subtotalKnown(),
+            comparison.requestedItems(),
+            comparison.pricedItems(),
+            comparison.missingItems(),
+            missingProductIds,
+            comparison.completeShoppingList(),
+            stockUncertain);
     }
 }

@@ -12,5 +12,4 @@ public record ShoppingListComparisonResponse(
         String currency,
         Instant comparedAt,
         PageResponse<ShoppingStoreComparison> stores,
-        ComparisonAccess access) {
-}
+        ComparisonAccess access) {}

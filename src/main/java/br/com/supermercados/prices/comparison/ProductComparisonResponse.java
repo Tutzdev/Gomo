@@ -16,5 +16,4 @@ public record ProductComparisonResponse(
         Instant comparedAt,
         PageResponse<ProductStoreComparison> stores,
         List<ProductResponse> possibleMatches,
-        ComparisonAccess access) {
-}
+        ComparisonAccess access) {}

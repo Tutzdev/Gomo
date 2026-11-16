@@ -24,8 +24,12 @@ public class ComparisonController {
     private final ListGoodPricesService goodPrices;
     private final ListSubstitutesService substitutes;
 
-    public ComparisonController(ShoppingComparisonService comparisons, ComparisonUsageService usage,
-            ListGoodPricesService goodPrices, ListSubstitutesService substitutes) {
+    public ComparisonController(
+        ShoppingComparisonService comparisons,
+        ComparisonUsageService usage,
+        ListGoodPricesService goodPrices,
+        ListSubstitutesService substitutes) {
+
         this.comparisons = comparisons;
         this.usage = usage;
         this.goodPrices = goodPrices;
@@ -34,50 +38,69 @@ public class ComparisonController {
 
     @GetMapping("/products")
     public ProductComparisonResponse product(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam UUID productId,
-            @RequestParam UUID cityId,
-            @RequestParam(required = false) List<UUID> storeIds,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return comparisons.compareProduct(productId, cityId,
-                PageRequests.create(page, size, Sort.by("name", "id")), storeIds, usage.startComparison(user, productId));
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @RequestParam UUID productId,
+        @RequestParam UUID cityId,
+        @RequestParam(required = false) List<UUID> storeIds,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
+        return comparisons.compareProduct(
+            productId,
+            cityId,
+            PageRequests.create(page, size, Sort.by("name", "id")),
+            storeIds,
+            usage.startComparison(user, productId));
     }
 
     @GetMapping("/shopping-lists/{id}")
     public ShoppingListComparisonResponse shoppingList(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id,
-            @RequestParam UUID cityId,
-            @RequestParam(required = false) List<UUID> storeIds,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return comparisons.compareShoppingList(user.id(), id, cityId,
-                PageRequests.create(page, size, Sort.by("name", "id")), storeIds, user.premium());
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id,
+        @RequestParam UUID cityId,
+        @RequestParam(required = false) List<UUID> storeIds,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
+        return comparisons.compareShoppingList(
+            user.id(),
+            id,
+            cityId,
+            PageRequests.create(page, size, Sort.by("name", "id")),
+            storeIds,
+            user.premium());
     }
 
     @GetMapping("/shopping-lists/{id}/good-prices")
     public ListGoodPricesResponse goodPrices(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id,
-            @RequestParam UUID cityId) {
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id,
+        @RequestParam UUID cityId) {
+
         return goodPrices.find(user.id(), id, cityId, user.premium());
     }
 
     @GetMapping("/shopping-lists/{id}/substitutes")
     public ListSubstitutesResponse substitutes(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id,
-            @RequestParam UUID cityId) {
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id,
+        @RequestParam UUID cityId) {
+
         return substitutes.find(user.id(), id, cityId, user.premium());
     }
 
     @GetMapping("/shopping-lists/{id}/recommendation")
     public ShoppingRecommendationResponse recommendation(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id,
-            @RequestParam UUID cityId,
-            @RequestParam(required = false) List<UUID> storeIds) {
-        return comparisons.recommendShoppingList(user.id(), id, cityId, storeIds, user.premium());
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id,
+        @RequestParam UUID cityId,
+        @RequestParam(required = false) List<UUID> storeIds) {
+
+        return comparisons.recommendShoppingList(
+            user.id(),
+            id,
+            cityId,
+            storeIds,
+            user.premium());
     }
 }

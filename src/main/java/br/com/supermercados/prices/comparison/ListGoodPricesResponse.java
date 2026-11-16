@@ -5,11 +5,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * The items of a list that are a good buy today: under the usual price, or the lowest in the history.
- * {@code stockUp} marks the pantry items at the lowest price of the period, the ones worth buying for the next
- * weeks too ("Hora de estocar"). On the free plan only the counts come, {@code locked}.
- */
 public record ListGoodPricesResponse(
         UUID listId,
         UUID cityId,
@@ -22,10 +17,6 @@ public record ListGoodPricesResponse(
         items = List.copyOf(items);
     }
 
-    /**
-     * @param differencePercent against the usual price; negative is cheaper
-     * @param periodDays calendar days of history behind "the lowest of the period"
-     */
     public record GoodPrice(
             UUID itemId,
             UUID productId,
@@ -40,6 +31,5 @@ public record ListGoodPricesResponse(
             int differencePercent,
             BigDecimal lowestPrice,
             int periodDays,
-            boolean stockUp) {
-    }
+            boolean stockUp) {}
 }

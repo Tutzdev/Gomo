@@ -15,8 +15,20 @@ public record ComparisonItemResponse(
         ProductResponse matchedProduct,
         boolean hasPossibleMatches) {
 
-    public ComparisonItemResponse(UUID productId, String productName, BigDecimal quantity,
-            PriceQuote price, BigDecimal lineTotal) {
-        this(productId, productName, quantity, price, lineTotal, null, false);
+    public ComparisonItemResponse(
+        UUID productId,
+        String productName,
+        BigDecimal quantity,
+        PriceQuote price,
+        BigDecimal lineTotal) {
+
+        this(
+            productId,
+            productName,
+            quantity,
+            price,
+            lineTotal,
+            null,
+            false);
     }
 }

@@ -47,15 +47,16 @@ public class ShoppingComparisonService {
     private final int maximumRecommendationStores;
 
     public ShoppingComparisonService(
-            LocationService locations,
-            StoreService stores,
-            ProductService products,
-            ShoppingListService shoppingLists,
-            EquivalentPriceService prices,
-            PricePolicy pricePolicy,
-            ShoppingPriceCalculator calculator,
-            Clock clock,
-            @Value("${app.recommendations.max-stores:500}") int maximumRecommendationStores) {
+        LocationService locations,
+        StoreService stores,
+        ProductService products,
+        ShoppingListService shoppingLists,
+        EquivalentPriceService prices,
+        PricePolicy pricePolicy,
+        ShoppingPriceCalculator calculator,
+        Clock clock,
+        @Value("${app.recommendations.max-stores:500}") int maximumRecommendationStores) {
+
         if (maximumRecommendationStores < 1
                 || maximumRecommendationStores > MAXIMUM_ALLOWED_RECOMMENDATION_STORES) {
             throw new IllegalArgumentException("app.recommendations.max-stores must be between 1 and 5000");
@@ -73,81 +74,141 @@ public class ShoppingComparisonService {
     }
 
     public ProductComparisonResponse compareProduct(UUID productId, UUID cityId, Pageable pageable) {
-        return compareProduct(productId, cityId, pageable, null, ComparisonAccess.premiumAccess());
+        return compareProduct(
+            productId,
+            cityId,
+            pageable,
+            null,
+            ComparisonAccess.premiumAccess());
     }
 
-    /**
-     * Every store of the city, priced or not, page by page. A free plan instead gets one page with only the
-     * cheapest priced stores of the whole city; a store filter narrows that view but never widens it.
-     */
-    public ProductComparisonResponse compareProduct(UUID productId, UUID cityId, Pageable pageable,
-            List<UUID> storeIds, ComparisonAccess access) {
+    public ProductComparisonResponse compareProduct(
+        UUID productId,
+        UUID cityId,
+        Pageable pageable,
+        List<UUID> storeIds,
+        ComparisonAccess access) {
+
         var product = products.requireProduct(productId);
         locations.requireCity(cityId);
         Instant comparedAt = clock.instant();
+
         Page<StoreResponse> availableStores = access.premium()
                 ? comparisonStores(cityId, pageable, storeIds)
                 : new PageImpl<>(stores.selectComparisonStores(cityId, null, maximumRecommendationStores));
-        var offers = prices.find(List.of(productId), availableStores.stream().map(StoreResponse::id).toList(), comparedAt);
+
+        var offers = prices.find(
+            List.of(productId),
+            availableStores.stream().map(StoreResponse::id).toList(),
+            comparedAt);
+
         var latestPricesByStore = offers.byStore();
+
         Page<ProductStoreComparison> comparisons = availableStores.map(store -> {
             var record = latestPricesByStore.getOrDefault(store.id(), Map.of()).get(productId);
             var quote = pricePolicy.quote(record, comparedAt);
             var matched = offers.matchedProduct(productId, record);
-            return new ProductStoreComparison(store.id(), store.name(), quote,
-                    offers.measurementPrice(productId, record, quote.unitPrice()),
-                    matched == null ? null : ProductResponse.from(matched), store.priceSourceNote());
+
+            return new ProductStoreComparison(
+                store.id(),
+                store.name(),
+                quote,
+                offers.measurementPrice(productId, record, quote.unitPrice()),
+                matched == null ? null : ProductResponse.from(matched),
+                store.priceSourceNote());
         });
+
         List<ProductResponse> possibleMatches = offers.possible(productId).stream().map(ProductResponse::from).toList();
+
         if (access.premium()) {
-            return new ProductComparisonResponse(productId, products.comparisonName(product), cityId, CURRENCY,
-                    comparedAt, PageResponse.from(comparisons), possibleMatches, access);
+            return new ProductComparisonResponse(
+                productId,
+                products.comparisonName(product),
+                cityId,
+                CURRENCY,
+                comparedAt,
+                PageResponse.from(comparisons),
+                possibleMatches,
+                access);
         }
 
         Set<UUID> selectedIds = selectedStoreIds(cityId, storeIds);
+
         List<ProductStoreComparison> priced = comparisons.stream()
                 .filter(comparison -> comparison.price().unitPrice() != null)
                 .sorted(Comparator.comparing((ProductStoreComparison comparison) -> comparison.price().unitPrice())
                         .thenComparing(ProductStoreComparison::storeName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
+
         List<ProductStoreComparison> selectedPriced = priced.stream()
                 .filter(comparison -> selectedIds.contains(comparison.storeId())).toList();
+
         List<ProductStoreComparison> visible = access.visibleOf(priced).stream()
                 .filter(comparison -> selectedIds.contains(comparison.storeId())).toList();
-        return new ProductComparisonResponse(productId, products.comparisonName(product), cityId, CURRENCY, comparedAt,
-                PageResponse.from(new PageImpl<>(visible)), possibleMatches,
-                access.withLockedStores(selectedPriced.size() - visible.size()));
+
+        return new ProductComparisonResponse(
+            productId,
+            products.comparisonName(product),
+            cityId,
+            CURRENCY,
+            comparedAt,
+            PageResponse.from(new PageImpl<>(visible)),
+            possibleMatches,
+            access.withLockedStores(selectedPriced.size() - visible.size()));
     }
 
     public ShoppingListComparisonResponse compareShoppingList(
-            UUID userId, UUID listId, UUID cityId, Pageable pageable) {
-        return compareShoppingList(userId, listId, cityId, pageable, null, true);
+        UUID userId,
+        UUID listId,
+        UUID cityId,
+        Pageable pageable) {
+
+        return compareShoppingList(
+            userId,
+            listId,
+            cityId,
+            pageable,
+            null,
+            true);
     }
 
-    /**
-     * The list priced in every store, page by page. A free plan gets one page with the three stores that cover
-     * the most items for the lowest total in the whole city; the other priced stores are only counted.
-     */
     public ShoppingListComparisonResponse compareShoppingList(
-            UUID userId, UUID listId, UUID cityId, Pageable pageable, List<UUID> storeIds, boolean premium) {
+        UUID userId,
+        UUID listId,
+        UUID cityId,
+        Pageable pageable,
+        List<UUID> storeIds,
+        boolean premium) {
+
         var shoppingList = shoppingLists.getList(userId, listId);
         locations.requireCity(cityId);
         Instant comparedAt = clock.instant();
         ComparisonAccess access = ComparisonAccess.forPlan(premium);
+
         Page<StoreResponse> availableStores = premium
                 ? comparisonStores(cityId, pageable, storeIds)
                 : new PageImpl<>(stores.selectComparisonStores(cityId, null, maximumRecommendationStores));
+
         List<UUID> productIds = shoppingList.items().stream()
                 .map(ShoppingListItemResponse::productId).toList();
+
         var offers = prices.find(productIds, availableStores.stream().map(StoreResponse::id).toList(), comparedAt);
+
         Page<ShoppingStoreComparison> comparisons = availableStores.map(store ->
                 calculateStore(store, shoppingList.items(), offers, comparedAt));
+
         if (premium) {
-            return new ShoppingListComparisonResponse(listId, cityId, CURRENCY, comparedAt,
-                    PageResponse.from(comparisons), access);
+            return new ShoppingListComparisonResponse(
+                listId,
+                cityId,
+                CURRENCY,
+                comparedAt,
+                PageResponse.from(comparisons),
+                access);
         }
 
         Set<UUID> selectedIds = selectedStoreIds(cityId, storeIds);
+
         List<ShoppingStoreComparison> ranked = comparisons.stream()
                 .filter(store -> store.pricedItems() > 0)
                 .sorted(Comparator.comparing(ShoppingStoreComparison::pricedItems, Comparator.reverseOrder())
@@ -155,106 +216,160 @@ public class ShoppingComparisonService {
                                 Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(ShoppingStoreComparison::storeName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
+
         List<ShoppingStoreComparison> selectedRanked = ranked.stream()
                 .filter(store -> selectedIds.contains(store.storeId())).toList();
+
         List<ShoppingStoreComparison> visible = access.visibleOf(ranked).stream()
                 .filter(store -> selectedIds.contains(store.storeId())).toList();
-        return new ShoppingListComparisonResponse(listId, cityId, CURRENCY, comparedAt,
-                PageResponse.from(new PageImpl<>(visible)),
-                access.withLockedStores(selectedRanked.size() - visible.size()));
+
+        return new ShoppingListComparisonResponse(
+            listId,
+            cityId,
+            CURRENCY,
+            comparedAt,
+            PageResponse.from(new PageImpl<>(visible)),
+            access.withLockedStores(selectedRanked.size() - visible.size()));
     }
 
     public ShoppingRecommendationResponse recommendShoppingList(UUID userId, UUID listId, UUID cityId) {
-        return recommendShoppingList(userId, listId, cityId, null, true);
+        return recommendShoppingList(
+            userId,
+            listId,
+            cityId,
+            null,
+            true);
     }
 
-    /**
-     * On the free plan the split between stores is a Premium feature: only its total and savings are shown, for
-     * the split in every store and for the one in two stores.
-     */
     public ShoppingRecommendationResponse recommendShoppingList(
-            UUID userId, UUID listId, UUID cityId, List<UUID> storeIds, boolean premium) {
+        UUID userId,
+        UUID listId,
+        UUID cityId,
+        List<UUID> storeIds,
+        boolean premium) {
+
         var shoppingList = shoppingLists.getList(userId, listId);
         Instant comparedAt = clock.instant();
-        List<StoreResponse> availableStores = stores.selectComparisonStores(cityId, storeIds, maximumRecommendationStores);
+
+        List<StoreResponse> availableStores = stores.selectComparisonStores(
+            cityId,
+            storeIds,
+            maximumRecommendationStores);
+
         List<UUID> productIds = shoppingList.items().stream()
                 .map(ShoppingListItemResponse::productId).toList();
+
         var offers = prices.find(productIds, availableStores.stream().map(StoreResponse::id).toList(), comparedAt);
+
         List<ShoppingStoreComparison> comparisons = availableStores.stream()
                 .map(store -> calculateStore(store, shoppingList.items(), offers, comparedAt)).toList();
+
         List<StoreRecommendationCandidate> candidates = comparisons.stream()
                 .map(StoreRecommendationCandidate::from).toList();
 
         StoreRecommendationCandidate recommendation = findCompleteRecommendation(candidates);
+
         ShoppingCombinationResponse fullCombination = calculator.combine(
-                shoppingList.items(), comparisons, recommendation);
+            shoppingList.items(),
+            comparisons,
+            recommendation);
+
         ShoppingCombinationResponse combination = premium ? fullCombination : fullCombination.lockedPreview();
+
         ShoppingCombinationResponse fullPair = calculator.combineInTwoStores(
-                shoppingList.items(), comparisons, recommendation);
+            shoppingList.items(),
+            comparisons,
+            recommendation);
+
         ShoppingCombinationResponse twoStores = premium ? fullPair : fullPair.lockedPreview();
+
         if (recommendation != null) {
-            return new ShoppingRecommendationResponse(listId, cityId, CURRENCY, comparedAt, candidates.size(),
-                    RecommendationStatus.COMPLETE_STORE_FOUND, recommendation, List.of(), combination,
-                    splitSavings(recommendation, comparisons, fullCombination), twoStores,
-                    splitSavings(recommendation, comparisons, fullPair));
+            return new ShoppingRecommendationResponse(
+                listId,
+                cityId,
+                CURRENCY,
+                comparedAt,
+                candidates.size(),
+                RecommendationStatus.COMPLETE_STORE_FOUND,
+                recommendation,
+                List.of(),
+                combination,
+                splitSavings(recommendation, comparisons, fullCombination),
+                twoStores,
+                splitSavings(recommendation, comparisons, fullPair));
         }
 
         List<StoreRecommendationCandidate> closestMatches = findClosestMatches(candidates);
         StoreRecommendationCandidate bestCoverage = closestMatches.isEmpty() ? null : closestMatches.getFirst();
-        return new ShoppingRecommendationResponse(listId, cityId, CURRENCY, comparedAt, candidates.size(),
-                RecommendationStatus.NO_COMPLETE_STORE, null, closestMatches, combination,
-                splitSavings(bestCoverage, comparisons, fullCombination), twoStores,
-                splitSavings(bestCoverage, comparisons, fullPair));
+
+        return new ShoppingRecommendationResponse(
+            listId,
+            cityId,
+            CURRENCY,
+            comparedAt,
+            candidates.size(),
+            RecommendationStatus.NO_COMPLETE_STORE,
+            null,
+            closestMatches,
+            combination,
+            splitSavings(bestCoverage, comparisons, fullCombination),
+            twoStores,
+            splitSavings(bestCoverage, comparisons, fullPair));
     }
 
-    /** Compares the items the reference store prices with what each one costs in {@code combination}. */
-    private SplitSavings splitSavings(StoreRecommendationCandidate reference,
-            List<ShoppingStoreComparison> comparisons, ShoppingCombinationResponse combination) {
-        if (reference == null) {
-            return null;
-        }
+    private SplitSavings splitSavings(
+        StoreRecommendationCandidate reference,
+        List<ShoppingStoreComparison> comparisons,
+        ShoppingCombinationResponse combination) {
+
+        if (reference == null) {return null;}
+
         Map<UUID, BigDecimal> cheapestLineTotals = combination.stores().stream()
                 .flatMap(store -> store.items().stream())
                 .collect(Collectors.toMap(ComparisonItemResponse::productId, ComparisonItemResponse::lineTotal));
+
         ShoppingStoreComparison referenceStore = comparisons.stream()
                 .filter(store -> store.storeId().equals(reference.storeId()))
                 .findFirst().orElseThrow();
 
         BigDecimal savings = BigDecimal.ZERO.setScale(2);
         int comparedItems = 0;
+
         for (ComparisonItemResponse item : referenceStore.items()) {
             BigDecimal cheapest = cheapestLineTotals.get(item.productId());
+
             if (item.lineTotal() != null && cheapest != null) {
                 savings = savings.add(item.lineTotal().subtract(cheapest));
                 comparedItems++;
             }
         }
+
         return new SplitSavings(reference.storeId(), reference.storeName(), comparedItems, savings);
     }
 
-    private StoreRecommendationCandidate findCompleteRecommendation(
-            List<StoreRecommendationCandidate> candidates) {
+    private StoreRecommendationCandidate findCompleteRecommendation(List<StoreRecommendationCandidate> candidates) {
         Comparator<StoreRecommendationCandidate> completeOrder = Comparator
                 .comparing(StoreRecommendationCandidate::total)
                 .thenComparing(StoreRecommendationCandidate::storeName, String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(StoreRecommendationCandidate::storeId);
+
         return candidates.stream()
                 .filter(StoreRecommendationCandidate::completeShoppingList)
                 .min(completeOrder)
                 .orElse(null);
     }
 
-    private List<StoreRecommendationCandidate> findClosestMatches(
-            List<StoreRecommendationCandidate> candidates) {
+    private List<StoreRecommendationCandidate> findClosestMatches(List<StoreRecommendationCandidate> candidates) {
         int bestCoverage = candidates.stream().mapToInt(StoreRecommendationCandidate::pricedItems).max().orElse(0);
-        if (bestCoverage == 0) {
-            return List.of();
-        }
+
+        if (bestCoverage == 0) {return List.of();}
+
         Comparator<StoreRecommendationCandidate> coverageOrder = Comparator
                 .comparing(StoreRecommendationCandidate::total,
                         Comparator.nullsLast(BigDecimal::compareTo))
                 .thenComparing(StoreRecommendationCandidate::storeName, String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(StoreRecommendationCandidate::storeId);
+
         return candidates.stream()
                 .filter(candidate -> candidate.pricedItems() == bestCoverage)
                 .sorted(coverageOrder)
@@ -262,19 +377,43 @@ public class ShoppingComparisonService {
                 .toList();
     }
 
-    private ShoppingStoreComparison calculateStore(StoreResponse store, List<ShoppingListItemResponse> items,
-            EquivalentPriceService.Result offers, Instant comparedAt) {
+    private ShoppingStoreComparison calculateStore(
+        StoreResponse store,
+        List<ShoppingListItemResponse> items,
+        EquivalentPriceService.Result offers,
+        Instant comparedAt) {
+
         var storePrices = offers.byStore().getOrDefault(store.id(), Map.of());
-        var calculation = calculator.calculate(store.id(), store.name(), items, storePrices, comparedAt);
+
+        var calculation = calculator.calculate(
+            store.id(),
+            store.name(),
+            items,
+            storePrices,
+            comparedAt);
+
         var detailedItems = calculation.items().stream().map(item -> {
             var matched = offers.matchedProduct(item.productId(), storePrices.get(item.productId()));
-            return new ComparisonItemResponse(item.productId(), item.productName(), item.quantity(),
-                    item.price(), item.lineTotal(), matched == null ? null : ProductResponse.from(matched),
-                    !offers.possible(item.productId()).isEmpty());
+            return new ComparisonItemResponse(
+                item.productId(),
+                item.productName(),
+                item.quantity(),
+                item.price(),
+                item.lineTotal(),
+                matched == null ? null : ProductResponse.from(matched),
+                !offers.possible(item.productId()).isEmpty());
         }).toList();
-        return new ShoppingStoreComparison(store.id(), store.name(), calculation.requestedItems(),
-                calculation.pricedItems(), calculation.missingItems(), calculation.subtotalKnown(),
-                calculation.completeShoppingList(), detailedItems, store.priceSourceNote());
+
+        return new ShoppingStoreComparison(
+            store.id(),
+            store.name(),
+            calculation.requestedItems(),
+            calculation.pricedItems(),
+            calculation.missingItems(),
+            calculation.subtotalKnown(),
+            calculation.completeShoppingList(),
+            detailedItems,
+            store.priceSourceNote());
     }
 
     private Set<UUID> selectedStoreIds(UUID cityId, List<UUID> storeIds) {
@@ -283,14 +422,17 @@ public class ShoppingComparisonService {
     }
 
     private Page<StoreResponse> comparisonStores(UUID cityId, Pageable pageable, List<UUID> storeIds) {
-        if (storeIds == null || storeIds.isEmpty()) return stores.findActiveStores(cityId, pageable);
+        if (storeIds == null || storeIds.isEmpty()) {return stores.findActiveStores(cityId, pageable);}
+
         List<StoreResponse> selected = stores.selectComparisonStores(cityId, storeIds, maximumRecommendationStores);
-        // Nothing usable was selected: answer exactly as if no market had been selected.
+
         if (selected.stream().noneMatch(store -> storeIds.contains(store.id()))) {
             return stores.findActiveStores(cityId, pageable);
         }
+
         int from = (int) Math.min(pageable.getOffset(), selected.size());
         int to = Math.min(from + pageable.getPageSize(), selected.size());
+
         return new PageImpl<>(selected.subList(from, to), pageable, selected.size());
     }
 }

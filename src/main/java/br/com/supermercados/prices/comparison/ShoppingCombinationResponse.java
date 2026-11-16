@@ -4,10 +4,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * The cheapest store for each item. When {@code locked}, the plan hides which store sells each item: only the
- * totals, the savings and {@code storeCount} remain.
- */
 public record ShoppingCombinationResponse(
         int requestedItems,
         int pricedItems,
@@ -24,19 +20,44 @@ public record ShoppingCombinationResponse(
         stores = List.copyOf(stores);
     }
 
-    public ShoppingCombinationResponse(int requestedItems, int pricedItems, List<UUID> missingProductIds,
-            BigDecimal subtotalKnown, boolean completeShoppingList, BigDecimal savingsAgainstCompleteStore,
-            List<StorePurchase> stores) {
-        this(requestedItems, pricedItems, missingProductIds, subtotalKnown, completeShoppingList,
-                savingsAgainstCompleteStore, stores, false, stores.size());
+    public ShoppingCombinationResponse(
+        int requestedItems,
+        int pricedItems,
+        List<UUID> missingProductIds,
+        BigDecimal subtotalKnown,
+        boolean completeShoppingList,
+        BigDecimal savingsAgainstCompleteStore,
+        List<StorePurchase> stores) {
+
+        this(
+            requestedItems,
+            pricedItems,
+            missingProductIds,
+            subtotalKnown,
+            completeShoppingList,
+            savingsAgainstCompleteStore,
+            stores,
+            false,
+            stores.size());
     }
 
     public ShoppingCombinationResponse lockedPreview() {
-        return new ShoppingCombinationResponse(requestedItems, pricedItems, missingProductIds, subtotalKnown,
-                completeShoppingList, savingsAgainstCompleteStore, List.of(), true, stores.size());
+        return new ShoppingCombinationResponse(
+            requestedItems,
+            pricedItems,
+            missingProductIds,
+            subtotalKnown,
+            completeShoppingList,
+            savingsAgainstCompleteStore,
+            List.of(),
+            true,
+            stores.size());
     }
 
-    public record StorePurchase(UUID storeId, String storeName, BigDecimal subtotal,
+    public record StorePurchase(
+            UUID storeId,
+            String storeName,
+            BigDecimal subtotal,
             List<ComparisonItemResponse> items) {
 
         public StorePurchase {
