@@ -25,58 +25,66 @@ public class PriceContributionController {
     private final PriceContributionService contributions;
     private final AbuseProtectionService abuseProtection;
 
-    public PriceContributionController(
-            PriceContributionService contributions, AbuseProtectionService abuseProtection) {
+    public PriceContributionController(PriceContributionService contributions, AbuseProtectionService abuseProtection) {
         this.contributions = contributions;
         this.abuseProtection = abuseProtection;
     }
 
     @PostMapping("/contributions")
     public ResponseEntity<PriceContributionResponse> submit(
-            @AuthenticationPrincipal AuthenticatedUser contributor,
-            @Valid @RequestBody SubmitPriceContributionRequest request) {
+        @AuthenticationPrincipal AuthenticatedUser contributor,
+        @Valid @RequestBody SubmitPriceContributionRequest request) {
+
         abuseProtection.checkContribution(contributor.id());
         PriceContributionResponse response = contributions.submit(contributor, request);
+
         return ResponseEntity.created(URI.create("/api/v1/contributions/" + response.id())).body(response);
     }
 
     @GetMapping("/contributions")
     public PageResponse<PriceContributionResponse> findMine(
-            @AuthenticationPrincipal AuthenticatedUser contributor,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @AuthenticationPrincipal AuthenticatedUser contributor,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         Sort sort = Sort.by(Sort.Direction.DESC, "submittedAt", "id");
+
         return contributions.findMine(contributor.id(), PageRequests.create(page, size, sort));
     }
 
     @GetMapping("/contributions/{id}")
     public PriceContributionResponse findMine(
-            @AuthenticationPrincipal AuthenticatedUser contributor,
-            @PathVariable UUID id) {
+        @AuthenticationPrincipal AuthenticatedUser contributor,
+        @PathVariable UUID id) {
+
         return contributions.findMine(contributor.id(), id);
     }
 
     @GetMapping("/admin/contributions")
     public PageResponse<PriceContributionResponse> moderationQueue(
-            @RequestParam(defaultValue = "PENDING") ContributionStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(defaultValue = "PENDING") ContributionStatus status,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         Sort sort = Sort.by("submittedAt", "id");
+
         return contributions.findForModeration(status, PageRequests.create(page, size, sort));
     }
 
     @PostMapping("/admin/contributions/{id}/approval")
     public PriceContributionResponse approve(
-            @AuthenticationPrincipal AuthenticatedUser moderator,
-            @PathVariable UUID id) {
+        @AuthenticationPrincipal AuthenticatedUser moderator,
+        @PathVariable UUID id) {
+
         return contributions.approve(moderator.id(), id);
     }
 
     @PostMapping("/admin/contributions/{id}/rejection")
     public PriceContributionResponse reject(
-            @AuthenticationPrincipal AuthenticatedUser moderator,
-            @PathVariable UUID id,
-            @Valid @RequestBody RejectContributionRequest request) {
+        @AuthenticationPrincipal AuthenticatedUser moderator,
+        @PathVariable UUID id,
+        @Valid @RequestBody RejectContributionRequest request) {
+
         return contributions.reject(moderator.id(), id, request);
     }
 }

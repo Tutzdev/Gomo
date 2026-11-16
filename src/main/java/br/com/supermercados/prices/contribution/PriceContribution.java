@@ -69,8 +69,7 @@ class PriceContribution {
     @Version
     private long version;
 
-    protected PriceContribution() {
-    }
+    protected PriceContribution() {}
 
     PriceContribution(UUID contributorId, SubmitPriceContributionRequest request, Instant submittedAt) {
         this.id = UUID.randomUUID();
@@ -78,8 +77,10 @@ class PriceContribution {
         this.productId = request.productId();
         this.storeId = request.storeId();
         this.regularPrice = request.regularPrice().setScale(2, RoundingMode.UNNECESSARY);
+
         this.promotionalPrice = request.promotionalPrice() == null ? null
                 : request.promotionalPrice().setScale(2, RoundingMode.UNNECESSARY);
+
         this.currency = request.currency();
         this.observedAt = databasePrecision(request.observedAt());
         this.submittedAt = databasePrecision(submittedAt);

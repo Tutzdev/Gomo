@@ -14,17 +14,18 @@ class ContributionSource {
     private final DataSourceService sources;
     private final String configuredSourceId;
 
-    ContributionSource(DataSourceService sources,
-            @Value("${app.contributions.source-id:}") String configuredSourceId) {
+    ContributionSource(DataSourceService sources, @Value("${app.contributions.source-id:}") String configuredSourceId) {
         this.sources = sources;
         this.configuredSourceId = configuredSourceId;
     }
 
     DataSource requireEnabledSource() {
         if (configuredSourceId.isBlank()) {
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "A fonte interna de contribuições ainda não foi configurada.");
+            throw new ApiException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "A fonte interna de contribuições ainda não foi configurada.");
         }
+
         try {
             return sources.requireEnabledSource(UUID.fromString(configuredSourceId));
         } catch (IllegalArgumentException exception) {

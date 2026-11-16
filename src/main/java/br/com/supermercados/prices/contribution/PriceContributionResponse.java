@@ -25,11 +25,23 @@ public record PriceContributionResponse(
         UUID priceRecordId) {
 
     static PriceContributionResponse from(PriceContribution contribution) {
-        return new PriceContributionResponse(contribution.getId(), contribution.getContributorId(),
-                contribution.getProductId(), contribution.getStoreId(), contribution.getRegularPrice(),
-                contribution.getPromotionalPrice(), contribution.getCurrency(), contribution.getObservedAt(),
-                contribution.getSubmittedAt(), contribution.getValidUntil(), contribution.getPromotionValidUntil(),
-                contribution.getAvailability(), contribution.getStatus(), contribution.getModeratorId(),
-                contribution.getDecidedAt(), contribution.getRejectionReason(), contribution.getPriceRecordId());
+        return new PriceContributionResponse(
+            contribution.getId(),
+            contribution.getContributorId(),
+            contribution.getProductId(),
+            contribution.getStoreId(),
+            contribution.getRegularPrice(),
+            contribution.getPromotionalPrice(),
+            contribution.getCurrency(),
+            contribution.getObservedAt(),
+            contribution.getSubmittedAt(),
+            contribution.getValidUntil(),
+            contribution.getPromotionValidUntil(),
+            contribution.getAvailability(),
+            contribution.getStatus(),
+            contribution.getModeratorId(),
+            contribution.getDecidedAt(),
+            contribution.getRejectionReason(),
+            contribution.getPriceRecordId());
     }
 }

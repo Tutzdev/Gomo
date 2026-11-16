@@ -18,5 +18,4 @@ public record SubmitPriceContributionRequest(
         @NotNull Instant observedAt,
         Instant validUntil,
         Instant promotionValidUntil,
-        @NotNull StockAvailability availability) {
-}
+        @NotNull StockAvailability availability) {}
