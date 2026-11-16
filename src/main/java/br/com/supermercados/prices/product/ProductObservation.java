@@ -22,8 +22,26 @@ public record ProductObservation(
         @Size(max = 2048) String imageUrl,
         @Size(max = 2048) String originUrl) {
 
-    public ProductObservation(String gtin, String name, String brand, String description, String unit,
-            BigDecimal quantity, String category, SourceObservation source) {
-        this(gtin, name, brand, description, unit, quantity, category, source, null, null);
+    public ProductObservation(
+        String gtin,
+        String name,
+        String brand,
+        String description,
+        String unit,
+        BigDecimal quantity,
+        String category,
+        SourceObservation source) {
+
+        this(
+            gtin,
+            name,
+            brand,
+            description,
+            unit,
+            quantity,
+            category,
+            source,
+            null,
+            null);
     }
 }

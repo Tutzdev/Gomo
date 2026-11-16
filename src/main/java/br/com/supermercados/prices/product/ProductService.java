@@ -33,10 +33,10 @@ public class ProductService {
 
     public ProductResponse findProduct(UUID productId) {
         Product product = requireProduct(productId);
+
         return ProductResponse.from(product, comparisonName(product));
     }
 
-    /** The generic catalog name ("Coca-Cola 2 L") when the SKU belongs to one, else a cleaned retailer name. */
     public String comparisonName(Product product) {
         return catalog.findActiveByProductId(product.getId()).map(CatalogItem::getDisplayName)
                 .orElseGet(() -> evidence.displayName(product));

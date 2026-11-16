@@ -1,6 +1,7 @@
 package br.com.supermercados.prices.product;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -104,8 +105,11 @@ public class Product {
         packageDescription = normalized.packageDescription();
         comparisonFamily = ProductComparisonIdentity.searchFamily(name);
         comparisonIdentityVersion = 4;
-        if (observation.imageUrl() != null) imageUrl = publicUrl(observation.imageUrl());
-        if (observation.originUrl() != null) originUrl = publicUrl(observation.originUrl());
+
+        if (observation.imageUrl() != null) {imageUrl = publicUrl(observation.imageUrl());}
+
+        if (observation.originUrl() != null) {originUrl = publicUrl(observation.originUrl());}
+
         sourceId = observation.source().sourceId();
         sourceReference = observation.source().sourceReference();
         collectedAt = observation.source().collectedAt();
@@ -124,11 +128,14 @@ public class Product {
     }
 
     private String publicUrl(String value) {
-        if (value == null || value.isBlank()) return null;
-        java.net.URI uri = java.net.URI.create(value.replaceAll("[\\s\\p{Zs}]+", "%20"));
+        if (value == null || value.isBlank()) {return null;}
+
+        URI uri = URI.create(value.replaceAll("[\\s\\p{Zs}]+", "%20"));
+
         if (!"https".equals(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null) {
             throw new IllegalArgumentException("A origem do produto deve ser uma URL HTTPS pública");
         }
+
         return uri.toString();
     }
 }

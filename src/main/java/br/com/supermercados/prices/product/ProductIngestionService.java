@@ -31,18 +31,25 @@ public class ProductIngestionService {
         validator.validate(observation);
         dataSourceService.verifyObservation(observation.source());
         String gtin = Gtin.normalize(observation.gtin());
+
         var reference = referenceRepository.findBySourceIdAndSourceReference(
-                observation.source().sourceId(), observation.source().sourceReference());
+            observation.source().sourceId(),
+            observation.source().sourceReference());
+
         if (reference.isPresent()) {
             return Optional.of(updateReferencedProduct(reference.orElseThrow(), observation, gtin));
         }
+
         var matched = existingMatcher.find(observation, gtin);
-        if (matched.isEmpty()) return Optional.empty();
+
+        if (matched.isEmpty()) {return Optional.empty();}
+
         Product product = matched.orElseThrow();
         validateIdentity(product, gtin);
         product.assignGtin(gtin);
         product.enrichMedia(observation);
         referenceRepository.save(new ProductSourceReference(product.getId(), observation.source()));
+
         return Optional.of(new ProductIngestionResult(ProductResponse.from(product), ProductIngestionOutcome.LINKED));
     }
 
@@ -58,37 +65,48 @@ public class ProductIngestionService {
 
         String gtin = Gtin.normalize(observation.gtin());
         Optional<Product> verifiedProduct = verifiedMappings.findVerifiedProduct(observation);
+
         Optional<ProductSourceReference> existingReference = referenceRepository.findBySourceIdAndSourceReference(
-                observation.source().sourceId(),
-                observation.source().sourceReference());
+            observation.source().sourceId(),
+            observation.source().sourceReference());
 
         if (existingReference.isPresent()) {
             if (verifiedProduct.isPresent() && !verifiedProduct.orElseThrow().getId()
                     .equals(existingReference.orElseThrow().getProductId())) {
-                throw new ApiException(HttpStatus.CONFLICT,
-                        "Produtos já cadastrados separadamente exigem revisão antes de vincular históricos");
+                throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Produtos já cadastrados separadamente exigem revisão antes de vincular históricos");
             }
+
             return updateReferencedProduct(existingReference.orElseThrow(), observation, gtin);
         }
 
         Optional<Product> identifiedProduct = verifiedProduct.or(() -> findByGtin(gtin))
                 .or(() -> exactMatcher.find(observation, gtin));
+
         identifiedProduct.ifPresent(product -> validateIdentity(product, gtin));
+
         Product product = identifiedProduct.orElseGet(
                 () -> productRepository.save(new Product(observation, gtin, clock.instant())));
+
         product.assignGtin(gtin);
         product.enrichMedia(observation);
         referenceRepository.save(new ProductSourceReference(product.getId(), observation.source()));
 
         ProductIngestionOutcome outcome = identifiedProduct.isPresent()
                 ? ProductIngestionOutcome.LINKED : ProductIngestionOutcome.CREATED;
+
         return new ProductIngestionResult(ProductResponse.from(product), outcome);
     }
 
     private ProductIngestionResult updateReferencedProduct(
-            ProductSourceReference reference, ProductObservation observation, String gtin) {
+        ProductSourceReference reference,
+        ProductObservation observation,
+        String gtin) {
+
         Product product = productRepository.findById(reference.getProductId())
                 .orElseThrow(() -> new IllegalStateException("Product source reference has no product"));
+
         validateIdentity(product, gtin);
 
         if (!observation.source().collectedAt().isAfter(reference.getCollectedAt())) {
@@ -98,28 +116,30 @@ public class ProductIngestionService {
         product.assignGtin(gtin);
 
         product.enrichMedia(observation);
+
         if (product.getSourceId().equals(observation.source().sourceId())
                 && product.getSourceReference().equals(observation.source().sourceReference())) {
             product.updateDetails(observation, clock.instant());
         }
+
         reference.recordCollection(observation.source().collectedAt());
 
         return new ProductIngestionResult(ProductResponse.from(product), ProductIngestionOutcome.UPDATED);
     }
 
     private void validateIdentity(Product product, String gtin) {
-        if (gtin == null) {
-            return;
-        }
+        if (gtin == null) {return;}
 
         boolean changedGtin = product.getGtin() != null && !Objects.equals(product.getGtin(), gtin);
+
         boolean anotherProductOwnsGtin = findByGtin(gtin)
                 .filter(existing -> !existing.getId().equals(product.getId()))
                 .isPresent();
 
         if (changedGtin || anotherProductOwnsGtin) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Identidade de produto conflitante; associação exige revisão da fonte");
+            throw new ApiException(
+                HttpStatus.CONFLICT,
+                "Identidade de produto conflitante; associação exige revisão da fonte");
         }
     }
 

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 
-/** Associates a new retailer reference without expanding or merging the product catalog. */
 @Component
 @RequiredArgsConstructor
 class ExistingProductMatcher {
@@ -20,10 +19,15 @@ class ExistingProductMatcher {
     Optional<Product> find(ProductObservation observation, String gtin) {
         Product incoming = new Product(observation, gtin, observation.source().collectedAt());
         var identity = evidence.complete(incoming, ProductComparisonIdentity.from(incoming));
+
         if (gtin != null) {
             var identified = products.findByGtin(gtin);
+
             if (identified.isPresent()) {
-                var candidate = evidence.complete(identified.orElseThrow(), ProductComparisonIdentity.from(identified.orElseThrow()));
+                var candidate = evidence.complete(
+                    identified.orElseThrow(),
+                    ProductComparisonIdentity.from(identified.orElseThrow()));
+
                 return compatibleAttributes(identity, candidate) ? identified : Optional.empty();
             }
         }
@@ -31,13 +35,16 @@ class ExistingProductMatcher {
         List<Product> family = products.findByComparisonFamilyIn(List.of(incoming.getComparisonFamily()));
         List<String> brands = family.stream().map(Product::getBrand).filter(Objects::nonNull).distinct().toList();
         var incomingIdentity = evidence.complete(incoming, ProductComparisonIdentity.from(incoming, brands));
-        if (!incomingIdentity.confirmed()) return Optional.empty();
-        // Missing variants or packaging cannot bridge known incompatible presentations.
+
+        if (!incomingIdentity.confirmed()) {return Optional.empty();}
+
         var identities = family.stream().map(product -> evidence.complete(product,
                 ProductComparisonIdentity.from(product, brands))).toList();
+
         if (incomingIdentity.variant() == null && identities.stream().anyMatch(candidate -> candidate.variant() != null)) {
             return Optional.empty();
         }
+
         return family.stream()
                 .filter(product -> gtin == null || product.getGtin() == null || gtin.equals(product.getGtin()))
                 .filter(product -> {

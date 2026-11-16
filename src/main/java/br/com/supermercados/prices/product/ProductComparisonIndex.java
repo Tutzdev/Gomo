@@ -26,8 +26,10 @@ public class ProductComparisonIndex implements SmartInitializingSingleton {
                     WHERE comparison_identity_version < 4 ORDER BY id LIMIT 500
                     """, (row, index) -> new Entry(row.getObject("id", UUID.class),
                     ProductComparisonIdentity.searchFamily(row.getString("name")), row.getLong("version")));
-            if (batch.isEmpty()) return;
-            // Do not overwrite a collector's concurrent update or alter observation timestamps.
+
+            if (batch.isEmpty()) {return;}
+
+            // A condição de versão não sobrescreve um produto que o coletor alterou ao mesmo tempo.
             jdbc.batchUpdate("""
                     UPDATE products SET comparison_family = ?, comparison_identity_version = 4
                     WHERE id = ? AND version = ? AND comparison_identity_version < 4
@@ -39,6 +41,5 @@ public class ProductComparisonIndex implements SmartInitializingSingleton {
         }
     }
 
-    private record Entry(UUID id, String family, long version) {
-    }
+    private record Entry(UUID id, String family, long version) {}
 }

@@ -23,15 +23,27 @@ import jakarta.persistence.Query;
 @Repository
 public class ProductSearchRepository {
 
-    private static final Set<String> STOP_WORDS = Set.of("de", "do", "da", "dos", "das", "e", "com", "para");
+    private static final Set<String> STOP_WORDS = Set.of(
+        "de",
+        "do",
+        "da",
+        "dos",
+        "das",
+        "e",
+        "com",
+        "para");
+
     private final EntityManager entityManager;
     private final Clock clock;
     private final Duration maxPriceAge;
     private final Duration inStoreMaxPriceAge;
 
-    public ProductSearchRepository(EntityManager entityManager, Clock clock,
-            @Value("${app.prices.max-age:P2D}") Duration maxPriceAge,
-            @Value("${app.prices.in-store-max-age:P7D}") Duration inStoreMaxPriceAge) {
+    public ProductSearchRepository(
+        EntityManager entityManager,
+        Clock clock,
+        @Value("${app.prices.max-age:P2D}") Duration maxPriceAge,
+        @Value("${app.prices.in-store-max-age:P7D}") Duration inStoreMaxPriceAge) {
+
         this.inStoreMaxPriceAge = inStoreMaxPriceAge;
         this.entityManager = entityManager;
         this.clock = clock;
@@ -40,34 +52,45 @@ public class ProductSearchRepository {
 
     public Page<ProductResponse> search(ProductSearch search, Pageable pageable) {
         SearchSql sql = prepare(search);
+
         long total = ((Number) bind(entityManager.createNativeQuery(
                 "SELECT count(*) FROM products p WHERE " + sql.where()), sql.parameters()).getSingleResult()).longValue();
+
         String order = order(search, sql);
+
         Query query = entityManager.createNativeQuery("SELECT p.* FROM products p WHERE " + sql.where()
                 + " ORDER BY " + order + ", p.search_name, p.name, p.id", Product.class);
+
         bind(query, sql.parameters());
+
         if (order.equals(sql.relevance())) {
             bind(query, sql.relevanceParameters());
         }
+
         if (search.sort().startsWith("price_")) {
             query.setParameter("now", clock.instant());
             query.setParameter("freshAfter", clock.instant().minus(maxPriceAge));
             query.setParameter("visitFreshAfter", clock.instant().minus(inStoreMaxPriceAge));
         }
+
         query.setFirstResult(Math.toIntExact(pageable.getOffset()));
         query.setMaxResults(pageable.getPageSize());
         List<?> rows = query.getResultList();
+
         List<ProductResponse> products = rows.stream()
                 .map(product -> ProductResponse.from((Product) product)).toList();
+
         return new PageImpl<>(products, pageable, total);
     }
 
-    /** Pagination belongs after equivalence grouping, not before it. */
     public List<Product> findCandidates(ProductSearch search) {
         SearchSql sql = prepare(search);
+
         Query query = bind(entityManager.createNativeQuery("SELECT p.* FROM products p WHERE " + sql.where()
                 + " ORDER BY " + sql.relevance() + ", p.search_name, p.name, p.id", Product.class), sql.parameters());
+
         bind(query, sql.relevanceParameters());
+
         return query.getResultList().stream().map(Product.class::cast).toList();
     }
 
@@ -75,24 +98,27 @@ public class ProductSearchRepository {
         SearchSql sql = prepare(search);
         List<String> brands = distinctText(sql, "brand");
         List<String> categories = distinctText(sql, "category");
+
         List<?> measurements = bind(entityManager.createNativeQuery(
                 "SELECT DISTINCT p.unit, p.quantity FROM products p WHERE " + sql.where()
                         + " AND p.unit IS NOT NULL AND p.quantity IS NOT NULL ORDER BY p.unit, p.quantity LIMIT 40"),
                 sql.parameters()).getResultList();
+
         List<ProductSearchFacets.Measurement> sizes = measurements.stream().map(row -> {
             Object[] columns = (Object[]) row;
             return new ProductSearchFacets.Measurement((String) columns[0], (BigDecimal) columns[1]);
         }).toList();
-        // latest_prices has one row per store and product that ever had a price: the same markets as the whole
-        // history, without reading every observation of every matching product.
+
         List<?> markets = bind(entityManager.createNativeQuery(
                 "SELECT DISTINCT s.id, s.name FROM stores s JOIN latest_prices l ON l.store_id = s.id "
                         + "JOIN products p ON p.id = l.product_id WHERE s.active AND " + sql.where()
                         + " ORDER BY s.name, s.id LIMIT 40"), sql.parameters()).getResultList();
+
         List<ProductSearchFacets.Market> stores = markets.stream().map(row -> {
             Object[] columns = (Object[]) row;
             return new ProductSearchFacets.Market((UUID) columns[0], (String) columns[1]);
         }).toList();
+
         return new ProductSearchFacets(brands, categories, sizes, stores);
     }
 
@@ -101,18 +127,23 @@ public class ProductSearchRepository {
                 + " FROM products p WHERE " + sql.where() + " AND p." + column
                 + " IS NOT NULL ORDER BY p." + column + " LIMIT 40"), sql.parameters())
                 .getResultList();
+
         return rows.stream().map(String.class::cast).toList();
     }
 
     private SearchSql prepare(ProductSearch search) {
-        // Transaction-local: pooled connections must not retain a relaxed fuzzy threshold.
+        // O terceiro argumento (true) vale só para esta transação: a conexão volta ao pool sem o limite relaxado.
         entityManager.createNativeQuery("SELECT set_config('pg_trgm.word_similarity_threshold', '0.3', true)")
                 .getSingleResult();
+
         ProductSearchTerms terms = ProductSearchTerms.parse(search.query());
+
         String normalized = (String) entityManager.createNativeQuery("SELECT gomo_search_text(:text)")
                 .setParameter("text", terms.text()).getSingleResult();
+
         List<String> tokens = Arrays.stream(normalized.split(" "))
                 .filter(token -> !token.isBlank() && !STOP_WORDS.contains(token)).distinct().toList();
+
         Map<String, Object> parameters = new LinkedHashMap<>();
         List<String> conditions = new ArrayList<>();
         List<String> scores = new ArrayList<>();
@@ -120,75 +151,134 @@ public class ProductSearchRepository {
 
         if (search.query() != null && search.query().matches(".*[%_!].*")) {
             conditions.add("lower(p.name) LIKE :literal ESCAPE '!'");
-            parameters.put("literal", "%" + search.query().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%");
+
+            parameters.put(
+                "literal",
+                "%" + search.query().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%");
         } else {
             for (int index = 0; index < tokens.size(); index++) {
                 String token = tokens.get(index);
                 boolean categoryHint = tokens.size() > 1 && Set.of("refrigerante", "carne").contains(token);
-                addToken(token, index, conditions, scores, exact, parameters, categoryHint);
+
+                addToken(
+                    token,
+                    index,
+                    conditions,
+                    scores,
+                    exact,
+                    parameters,
+                    categoryHint);
             }
+
             if (exact.size() > 1) {
                 conditions.add("(" + String.join(" + ", exact) + ") >= " + (exact.size() - 1));
             }
         }
-        addFilter("lower(p.brand)", "brand", search.brand(), conditions, parameters);
-        addFilter("lower(p.category)", "category", search.category(), conditions, parameters);
-        addFilter("p.gtin", "gtin", search.gtin(), conditions, parameters);
-        addFilter("lower(p.unit)", "unit", search.unit(), conditions, parameters);
-        addFilter("p.quantity", "quantity", search.quantity(), conditions, parameters);
+
+        addFilter(
+            "lower(p.brand)",
+            "brand",
+            search.brand(),
+            conditions,
+            parameters);
+
+        addFilter(
+            "lower(p.category)",
+            "category",
+            search.category(),
+            conditions,
+            parameters);
+
+        addFilter(
+            "p.gtin",
+            "gtin",
+            search.gtin(),
+            conditions,
+            parameters);
+
+        addFilter(
+            "lower(p.unit)",
+            "unit",
+            search.unit(),
+            conditions,
+            parameters);
+
+        addFilter(
+            "p.quantity",
+            "quantity",
+            search.quantity(),
+            conditions,
+            parameters);
+
         if (search.storeId() != null) {
             conditions.add("EXISTS (SELECT 1 FROM latest_prices l WHERE l.product_id = p.id AND l.store_id = :storeId)");
             parameters.put("storeId", search.storeId());
         }
-        // Parameters used only in the ranking: count and facet queries leave them out, since binding a
-        // parameter that the statement does not contain is an error.
+
         Map<String, Object> relevanceParameters = new LinkedHashMap<>();
-        // Size is a strong ranking signal, not a reason to hide other sizes.
         String measurementScore = "0";
+
         if (terms.quantity() != null) {
             String size = "p.unit = :sizeUnit AND p.quantity = :sizeQuantity";
             Map<String, Object> sizeParameters = tokens.isEmpty() ? parameters : relevanceParameters;
             sizeParameters.put("sizeUnit", terms.unit());
             sizeParameters.put("sizeQuantity", terms.quantity());
             measurementScore = "CASE WHEN " + size + " THEN 500 ELSE 0 END";
+
             if (tokens.isEmpty()) {
                 conditions.add(size);
             }
         }
+
         if (!tokens.isEmpty() && (search.query() == null || !search.query().matches(".*[%_!].*"))) {
             String phrase = String.join(" ", tokens);
-            // gomo_search_text keeps only [a-z0-9 ], so the phrase has no LIKE wildcards to escape.
             relevanceParameters.put("phrase", phrase);
             relevanceParameters.put("phrasePrefix", phrase + " %");
+
             scores.add("CASE WHEN p.search_name = :phrase THEN 2000 "
                     + "WHEN p.search_name LIKE :phrasePrefix THEN 100 ELSE 0 END");
         }
+
         String score = String.join(" + ", scores);
+
         if (score.isEmpty()) {
             score = "0";
         }
+
         String kitOrder = tokens.isEmpty() || tokens.contains("kit") || tokens.contains("pack") ? ""
                 : "CASE WHEN p.search_name ~ '\\m(kit|pack|combo|mista|alcoolica)\\M' THEN 1 ELSE 0 END, ";
+
         String exactOrder = exact.isEmpty() ? "" : "(" + String.join(" + ", exact) + ") DESC, ";
-        return new SearchSql(conditions.isEmpty() ? "TRUE" : String.join(" AND ", conditions), parameters,
-                kitOrder + exactOrder + "(" + measurementScore + " + " + score + ") DESC", relevanceParameters);
+
+        return new SearchSql(
+            conditions.isEmpty() ? "TRUE" : String.join(" AND ", conditions),
+            parameters,
+            kitOrder + exactOrder + "(" + measurementScore + " + " + score + ") DESC",
+            relevanceParameters);
     }
 
-    private void addToken(String token, int index, List<String> conditions, List<String> scores,
-            List<String> exact, Map<String, Object> parameters, boolean categoryHint) {
+    private void addToken(
+        String token,
+        int index,
+        List<String> conditions,
+        List<String> scores,
+        List<String> exact,
+        Map<String, Object> parameters,
+        boolean categoryHint) {
+
         String key = "token" + index;
         String pattern = "pattern" + index;
         parameters.put(pattern, "%" + token + "%");
-        // A GTIN has only digits, so a word can never match it; leaving it out keeps the condition on the
-        // trigram index of search_text, which an OR with the GTIN would turn into a scan of every product.
+
         String match = token.matches(".*[0-9].*")
                 ? "(p.search_text LIKE :" + pattern + " OR p.gtin LIKE :" + pattern + ")"
                 : "p.search_text LIKE :" + pattern;
+
         if (categoryHint) {
-            // Retailers sometimes omit the generic product type from an otherwise precise name.
             conditions.add("(:" + pattern + " IS NOT NULL)");
         } else if (token.length() >= 4 && !token.matches("[0-9]+")) {
             parameters.put(key, token);
+
             conditions.add("(" + match + " OR (p.search_name %> :" + key
                     + " AND EXISTS (SELECT 1 FROM regexp_split_to_table(p.search_name, ' ') word "
                     + "WHERE length(word) BETWEEN " + (token.length() - 1) + " AND " + (token.length() + 1)
@@ -196,16 +286,23 @@ public class ProductSearchRepository {
         } else {
             conditions.add(match);
         }
+
         if (!categoryHint) {
             exact.add("CASE WHEN " + match + " THEN 1 ELSE 0 END");
         }
+
         scores.add("CASE WHEN p.search_name LIKE :" + pattern + " THEN 100 ELSE 0 END");
         scores.add("CASE WHEN p.search_brand LIKE :" + pattern + " THEN 50 ELSE 0 END");
         scores.add("CASE WHEN " + match + " THEN 20 ELSE 0 END");
     }
 
-    private void addFilter(String column, String parameter, Object value, List<String> conditions,
-            Map<String, Object> parameters) {
+    private void addFilter(
+        String column,
+        String parameter,
+        Object value,
+        List<String> conditions,
+        Map<String, Object> parameters) {
+
         if (value != null) {
             conditions.add(column + " = :" + parameter);
             parameters.put(parameter, value);
@@ -213,14 +310,12 @@ public class ProductSearchRepository {
     }
 
     private String order(ProductSearch search, SearchSql sql) {
-        if (search.sort().equals("name")) {
-            return "p.name";
-        }
-        if (!search.sort().startsWith("price_")) {
-            return sql.relevance();
-        }
+        if (search.sort().equals("name")) {return "p.name";}
+
+        if (!search.sort().startsWith("price_")) {return sql.relevance();}
+
         String storeFilter = search.storeId() == null ? "" : " AND l.store_id = :storeId";
-        // Same validity/stock/promotion rules as PricePolicy; newest observation wins, including stock-outs.
+
         return """
                 (SELECT min(CASE WHEN latest.promotional_price IS NOT NULL
                     AND latest.promotion_valid_until > :now AND latest.promotion_condition IS NULL
@@ -241,10 +336,13 @@ public class ProductSearchRepository {
 
     private Query bind(Query query, Map<String, Object> parameters) {
         parameters.forEach(query::setParameter);
+
         return query;
     }
 
-    private record SearchSql(String where, Map<String, Object> parameters, String relevance,
-            Map<String, Object> relevanceParameters) {
-    }
+    private record SearchSql(
+            String where,
+            Map<String, Object> parameters,
+            String relevance,
+            Map<String, Object> relevanceParameters) {}
 }

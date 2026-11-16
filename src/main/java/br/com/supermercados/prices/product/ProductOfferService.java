@@ -1,6 +1,7 @@
 package br.com.supermercados.prices.product;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -38,21 +39,34 @@ public class ProductOfferService {
         if (productIds.isEmpty() || productIds.size() > 100) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Consulte entre 1 e 100 produtos por página");
         }
-        var catalog = products.findAllById(productIds).stream().collect(Collectors.toMap(Product::getId, product -> product));
-        var markets = stores.selectComparisonStores(cityId, storeIds, 5000).stream().collect(Collectors.toMap(store -> store.id(), store -> store));
+
+        var catalog = products.findAllById(productIds)
+                .stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
+
+        var markets = stores.selectComparisonStores(cityId, storeIds, 5000)
+                .stream()
+                .collect(Collectors.toMap(store -> store.id(), store -> store));
+
         Map<UUID, List<ProductStoreComparison>> offers = new HashMap<>();
+
         if (!catalog.isEmpty() && !markets.isEmpty()) {
             var now = clock.instant();
             var equivalentOffers = prices.find(productIds, List.copyOf(markets.keySet()), now);
+
             for (var storeEntry : equivalentOffers.byStore().entrySet()) {
                 var store = markets.get(storeEntry.getKey());
+
                 for (var productEntry : storeEntry.getValue().entrySet()) {
                     var record = productEntry.getValue();
                     var quote = policy.quote(record, now);
-                    if (quote.unitPrice() == null) continue;
+
+                    if (quote.unitPrice() == null) {continue;}
+
                     var product = catalog.get(productEntry.getKey());
                     var matched = equivalentOffers.matchedProduct(product.getId(), record);
-                    offers.computeIfAbsent(product.getId(), ignored -> new java.util.ArrayList<>())
+
+                    offers.computeIfAbsent(product.getId(), ignored -> new ArrayList<>())
                             .add(new ProductStoreComparison(store.id(), store.name(), quote,
                                     equivalentOffers.measurementPrice(product.getId(), record, quote.unitPrice()),
                                     matched == null ? null : ProductResponse.from(matched), store.priceSourceNote()));

@@ -29,22 +29,22 @@ public record ProductResponse(
 
     public static ProductResponse from(Product product, String displayName) {
         return new ProductResponse(
-                product.getId(),
-                product.getGtin(),
-                displayName,
-                product.getNormalizedName(),
-                product.getBrand(),
-                product.getNormalizedBrand(),
-                product.getDescription(),
-                product.getUnit(),
-                product.getQuantity(),
-                product.getPackageDescription(),
-                product.getCategory(),
-                product.getSourceId(),
-                product.getSourceReference(),
-                product.getCollectedAt(),
-                product.getUpdatedAt(),
-                product.getImageUrl(),
-                product.getOriginUrl());
+            product.getId(),
+            product.getGtin(),
+            displayName,
+            product.getNormalizedName(),
+            product.getBrand(),
+            product.getNormalizedBrand(),
+            product.getDescription(),
+            product.getUnit(),
+            product.getQuantity(),
+            product.getPackageDescription(),
+            product.getCategory(),
+            product.getSourceId(),
+            product.getSourceReference(),
+            product.getCollectedAt(),
+            product.getUpdatedAt(),
+            product.getImageUrl(),
+            product.getOriginUrl());
     }
 }

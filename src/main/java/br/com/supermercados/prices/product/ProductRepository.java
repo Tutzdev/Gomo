@@ -24,6 +24,9 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
             """, nativeQuery = true)
     List<Product> findSimilarComparisonFamilies(@Param("families") String families);
 
-    List<Product> findByNormalizedBrandAndUnitAndQuantity(String brand, String unit,
-            BigDecimal quantity, Pageable pageable);
+    List<Product> findByNormalizedBrandAndUnitAndQuantity(
+        String brand,
+        String unit,
+        BigDecimal quantity,
+        Pageable pageable);
 }
