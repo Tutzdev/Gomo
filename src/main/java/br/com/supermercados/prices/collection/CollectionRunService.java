@@ -30,6 +30,7 @@ public class CollectionRunService {
     public CollectionRunResponse finish(UUID runId, CollectionResult result) {
         CollectionRun run = requireRun(runId);
         run.finish(result, clock.instant());
+
         return CollectionRunResponse.from(run);
     }
 
@@ -37,6 +38,7 @@ public class CollectionRunService {
     public CollectionRunResponse fail(UUID runId, String message) {
         CollectionRun run = requireRun(runId);
         run.fail(message, clock.instant());
+
         return CollectionRunResponse.from(run);
     }
 

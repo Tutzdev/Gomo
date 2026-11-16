@@ -33,8 +33,14 @@ public final class VipStoreCollector implements SupermarketCollector {
     private final Duration delay;
     private final VipProductParser parser;
 
-    public VipStoreCollector(VipStoreDefinition definition, URI api, ObjectMapper mapper,
-            Clock clock, Duration delay, VipProductParser parser) {
+    public VipStoreCollector(
+        VipStoreDefinition definition,
+        URI api,
+        ObjectMapper mapper,
+        Clock clock,
+        Duration delay,
+        VipProductParser parser) {
+
         this.definition = definition;
         this.api = api;
         this.mapper = mapper;
@@ -60,34 +66,57 @@ public final class VipStoreCollector implements SupermarketCollector {
         require(identity, "id", String.valueOf(definition.storefrontId()));
         require(identity.path("organizacao"), "id", String.valueOf(definition.organizationId()));
         require(identity.path("organizacao"), "enderecoServidor", domain);
+
         if (!identity.path("ativo").asBoolean() || identity.path("em_manutencao").asBoolean()) {
             throw new IllegalStateException("Loja pública inativa ou em manutenção");
         }
 
-        String configuration = VipStorefrontConfiguration.load(definition.website(), definition.configurationPath(), http::get);
-        // These values are published by the storefront for anonymous browsing, never customer credentials.
+        String configuration = VipStorefrontConfiguration.load(
+            definition.website(),
+            definition.configurationPath(),
+            http::get);
+
+        // Valores publicados pela própria loja para navegação anônima; não são credenciais de cliente.
+
         String login = mapper.writeValueAsString(mapper.createObjectNode().put("domain", domain)
                 .put("username", configurationValue(configuration, "lojaUser"))
                 .put("key", configurationValue(configuration, "lojaAuthJWT")));
-        JsonNode session = mapper.readTree(http.request(api.resolve(organization + "/auth/loja/login"), headers, login));
+
+        JsonNode session = mapper.readTree(http.request(
+            api.resolve(organization + "/auth/loja/login"),
+            headers,
+            login));
+
         String token = session.path("data").asString("");
+
         if (!session.path("success").asBoolean() || token.isBlank()) {
             throw new IllegalStateException("Fonte não iniciou sessão de navegação pública");
         }
+
         headers.put("Authorization", "Bearer " + token);
         JsonNode store = get(http, headers, organization + "/loja/centros_distribuicoes/" + definition.distributionId()).path("data");
         validateStore(store);
+
         String catalogPath = organization + "/filial/" + definition.branchId()
                 + "/centro_distribuicao/" + definition.distributionId() + "/loja";
+
         JsonNode departments = get(http, headers, catalogPath + "/classificacoes_mercadologicas/departamentos/arvore").path("data");
-        if (!departments.isArray() || departments.isEmpty()) throw new IllegalStateException("Fonte sem departamentos");
+
+        if (!departments.isArray() || departments.isEmpty()) {
+            throw new IllegalStateException("Fonte sem departamentos");
+        }
+
         List<JsonNode> entries = new ArrayList<>();
         List<String> failures = new ArrayList<>();
         CatalogCheckpoint checkpoint = new CatalogCheckpoint(definition.code(), clock, mapper);
+
         for (JsonNode department : departments) {
             int id = department.path("classificacao_mercadologica_id").asInt(-1);
-            if (id < 1) throw new IllegalStateException("Departamento sem identidade");
+
+            if (id < 1) {throw new IllegalStateException("Departamento sem identidade");}
+
             String path = catalogPath + "/classificacoes_mercadologicas/departamentos/" + id + "/produtos";
+
             try {
                 entries.addAll(checkpoint.category(path, CatalogCheckpoint.Entries.class,
                         () -> new CatalogCheckpoint.Entries(paginate(http, headers, path))).products());
@@ -95,48 +124,87 @@ public final class VipStoreCollector implements SupermarketCollector {
                 failures.add("Categoria " + id + " incompleta: " + exception.getMessage());
             }
         }
-        var parsed = parser.parse(entries, "vip:" + definition.organizationId(), definition.chain(), definition.website());
-        if (parsed.products().isEmpty()) throw new IllegalStateException("Fonte não retornou produtos válidos");
+
+        var parsed = parser.parse(
+            entries,
+            "vip:" + definition.organizationId(),
+            definition.chain(),
+            definition.website());
+
+        if (parsed.products().isEmpty()) {throw new IllegalStateException("Fonte não retornou produtos válidos");}
+
         JsonNode address = store.path("endereco");
+
         CollectedStore collectedStore = new CollectedStore(definition.name(),
                 address.path("logradouro").asString() + ", " + address.path("numero").asString()
                         + " - " + address.path("bairro").asString() + " - " + definition.city().label(),
                 new BigDecimal(store.path("coordenada_geografica").path("latitude").asString()).setScale(7, RoundingMode.HALF_UP),
                 new BigDecimal(store.path("coordenada_geografica").path("longitude").asString()).setScale(7, RoundingMode.HALF_UP), true);
-        if (failures.isEmpty()) checkpoint.complete();
+
+        if (failures.isEmpty()) {checkpoint.complete();}
+
         failures.addAll(parsed.warnings());
-        return new CollectedCatalog(collectedStore, parsed.products(), entries.size(), checkpoint.startedAt(), List.copyOf(failures));
+
+        return new CollectedCatalog(
+            collectedStore,
+            parsed.products(),
+            entries.size(),
+            checkpoint.startedAt(),
+            List.copyOf(failures));
     }
 
     private List<JsonNode> paginate(PublicCatalogHttp http, Map<String, String> headers, String path) {
         List<JsonNode> products = new ArrayList<>();
         int totalPages = 1;
         int totalItems = -1;
+
         for (int page = 1; page <= totalPages; page++) {
             JsonNode response = get(http, headers, path + "?page=" + page);
             JsonNode pagination = response.path("paginator");
             int count = pagination.path("total_items").asInt(-1);
             int pages = pagination.path("total_pages").asInt(-1);
+
             if (count < 0 || pages < 0 || pages > 500 || pagination.path("page").asInt(-1) != page
                     || (totalItems >= 0 && (count != totalItems || pages != totalPages))) {
                 throw new IllegalStateException("Paginação inconsistente; a coleta será repetida sem sobrescrever o histórico");
             }
+
             totalPages = pages;
             totalItems = count;
+
             if (page == 1 || page % 20 == 0) {
-                LOGGER.info("Coletor {}: {} página {}/{}, {} produtos na categoria", definition.code(), path, page, pages, count);
+                LOGGER.info(
+                    "Coletor {}: {} página {}/{}, {} produtos na categoria",
+                    definition.code(),
+                    path,
+                    page,
+                    pages,
+                    count);
             }
-            JsonNode entries = response.path("data").isArray() ? response.path("data") : response.path("data").path("produtos");
-            if (!entries.isArray()) throw new IllegalStateException("Página de produtos inválida");
+
+            JsonNode entries = response.path("data")
+                    .isArray() ? response
+                    .path("data") : response
+                    .path("data")
+                    .path("produtos");
+
+            if (!entries.isArray()) {throw new IllegalStateException("Página de produtos inválida");}
+
             entries.forEach(products::add);
         }
-        if (products.size() != totalItems) throw new IllegalStateException("Catálogo incompleto");
+
+        if (products.size() != totalItems) {throw new IllegalStateException("Catálogo incompleto");}
+
         return products;
     }
 
     private JsonNode get(PublicCatalogHttp http, Map<String, String> headers, String path) {
         JsonNode response = mapper.readTree(http.request(api.resolve(path), headers, null));
-        if (!response.path("success").asBoolean()) throw new IllegalStateException("Fonte não confirmou a consulta pública");
+
+        if (!response.path("success").asBoolean()) {
+            throw new IllegalStateException("Fonte não confirmou a consulta pública");
+        }
+
         return response;
     }
 
@@ -145,18 +213,23 @@ public final class VipStoreCollector implements SupermarketCollector {
         require(store, "cnpj", definition.cnpj());
         require(store.path("endereco"), "cidade", definition.city().name());
         require(store.path("endereco"), "estado", definition.city().stateName());
+
         if (!store.path("ativo").asBoolean() || store.path("exclusivo_televendas").asBoolean()) {
             throw new IllegalStateException("Unidade indisponível para consulta pública");
         }
     }
 
     private void require(JsonNode node, String field, String expected) {
-        if (!expected.equals(node.path(field).asString())) throw new IllegalStateException("Identidade da fonte divergente: " + field);
+        if (!expected.equals(node.path(field).asString())) {
+            throw new IllegalStateException("Identidade da fonte divergente: " + field);
+        }
     }
 
     private String configurationValue(String configuration, String field) {
         var matcher = Pattern.compile(Pattern.quote(field) + ":\"([^\"]+)\"").matcher(configuration);
-        if (!matcher.find()) throw new IllegalStateException("Configuração pública mudou: " + field);
+
+        if (!matcher.find()) {throw new IllegalStateException("Configuração pública mudou: " + field);}
+
         return matcher.group(1);
     }
 }

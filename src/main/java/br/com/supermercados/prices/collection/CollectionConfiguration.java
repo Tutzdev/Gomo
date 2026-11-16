@@ -10,5 +10,4 @@ import br.com.supermercados.prices.collection.royal.RoyalProperties;
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
 @EnableConfigurationProperties({NagumoProperties.class, RoyalProperties.class})
-public class CollectionConfiguration {
-}
+public class CollectionConfiguration {}

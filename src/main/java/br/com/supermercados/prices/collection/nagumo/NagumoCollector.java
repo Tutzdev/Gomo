@@ -29,8 +29,8 @@ public class NagumoCollector implements SupermarketCollector {
 
     private static final UUID VOLTA_REDONDA_ID =
             UUID.fromString("5c4cb935-52e1-4bf8-8d17-902dc0837c66");
+
     private static final Instant SOURCE_VERIFIED_AT = Instant.parse("2026-09-17T00:00:00Z");
-    /** How shoppers know the store; the code "036-V.REDONDA" only confirms the unit with the Nagumo API. */
     private static final String STORE_NAME = "Nagumo Ponte Alta";
 
     private final NagumoProperties properties;
@@ -39,10 +39,11 @@ public class NagumoCollector implements SupermarketCollector {
     private final Clock clock;
 
     NagumoCollector(
-            NagumoProperties properties,
-            NagumoClient client,
-            NagumoProductParser parser,
-            Clock clock) {
+        NagumoProperties properties,
+        NagumoClient client,
+        NagumoProductParser parser,
+        Clock clock) {
+
         this.properties = properties;
         this.client = client;
         this.parser = parser;
@@ -52,45 +53,57 @@ public class NagumoCollector implements SupermarketCollector {
     @Override
     public CollectorMetadata metadata() {
         return new CollectorMetadata(
-                "nagumo_volta_redonda",
-                "Nagumo",
-                STORE_NAME,
-                "nagumo_delivery",
-                "E-commerce público Nagumo",
-                properties.getBaseUrl().toString(),
-                SOURCE_VERIFIED_AT,
-                "Nagumo",
-                "nagumo:chain",
-                "nagumo:store:" + properties.getStoreId(),
-                VOLTA_REDONDA_ID);
+            "nagumo_volta_redonda",
+            "Nagumo",
+            STORE_NAME,
+            "nagumo_delivery",
+            "E-commerce público Nagumo",
+            properties.getBaseUrl().toString(),
+            SOURCE_VERIFIED_AT,
+            "Nagumo",
+            "nagumo:chain",
+            "nagumo:store:" + properties.getStoreId(),
+            VOLTA_REDONDA_ID);
     }
 
     @Override
     public CollectedCatalog collect() {
         List<String> warnings = new ArrayList<>();
-        CatalogCheckpoint checkpoint = new CatalogCheckpoint(metadata().code(), clock, new tools.jackson.databind.ObjectMapper());
+
+        CatalogCheckpoint checkpoint = new CatalogCheckpoint(
+            metadata().code(),
+            clock,
+            new tools.jackson.databind.ObjectMapper());
+
         List<NagumoCatalogResponse> externalCatalogs = client.fetch(checkpoint, warnings);
         Instant collectedAt = checkpoint.startedAt();
         Instant validUntil = null;
         Map<String, CollectedProduct> products = new LinkedHashMap<>();
         int foundCount = 0;
+
         for (NagumoCatalogResponse externalCatalog : externalCatalogs) {
             NagumoProductParser.ParsedProducts parsed = parser.parse(externalCatalog, validUntil);
             foundCount += externalCatalog.foundCount();
             warnings.addAll(parsed.warnings());
             parsed.products().forEach(product -> products.putIfAbsent(product.sourceReference(), product));
         }
+
         if (foundCount > 0 && products.isEmpty()) {
             throw new IllegalStateException("Nenhum produto válido foi retornado pela Nagumo");
         }
 
         CollectedStore store = new CollectedStore(
-                STORE_NAME,
-                properties.getAddress(),
-                properties.getLatitude(),
-                properties.getLongitude(),
-                true);
-        return new CollectedCatalog(store, List.copyOf(products.values()), foundCount,
-                collectedAt, warnings);
+            STORE_NAME,
+            properties.getAddress(),
+            properties.getLatitude(),
+            properties.getLongitude(),
+            true);
+
+        return new CollectedCatalog(
+            store,
+            List.copyOf(products.values()),
+            foundCount,
+            collectedAt,
+            warnings);
     }
 }

@@ -18,10 +18,8 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/** Bounded, sequential access to public storefronts; a new instance belongs to one collection. */
 public final class PublicCatalogHttp {
 
-    /** One name for every collector, with a way for a market to reach the project (the public repository). */
     public static final String USER_AGENT = "Gomo/1.0 public-price-collector (+https://github.com/Tutzdev/Gomo)";
     private static final Set<Integer> RETRYABLE = Set.of(502, 503, 504);
     private static final int MAX_BYTES = 8_000_000;
@@ -35,7 +33,8 @@ public final class PublicCatalogHttp {
     }
 
     PublicCatalogHttp(Duration delay, Duration timeout) {
-        if (delay.isNegative()) throw new IllegalArgumentException("Intervalo de coleta inválido");
+        if (delay.isNegative()) {throw new IllegalArgumentException("Intervalo de coleta inválido");}
+
         this.delay = delay;
         this.timeout = timeout;
     }
@@ -47,42 +46,56 @@ public final class PublicCatalogHttp {
     public String request(URI uri, Map<String, String> headers, String body) {
         for (int attempt = 1; attempt <= 2; attempt++) {
             try {
-                if (requested) Thread.sleep(delay.toMillis() * attempt);
+                if (requested) {Thread.sleep(delay.toMillis() * attempt);}
+
                 requested = true;
+
                 HttpRequest.Builder builder = HttpRequest.newBuilder(uri).timeout(timeout)
                         .header("User-Agent", USER_AGENT)
                         .header("Accept", "application/json, text/html");
+
                 headers.forEach(builder::header);
-                if (body == null) builder.GET();
-                else builder.header("Content-Type", "application/json")
+
+                if (body == null) {builder.GET();}
+                else {
+                    builder.header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(body));
+                }
 
                 var response = fetch(builder.build());
-                if (RETRYABLE.contains(response.statusCode()) && attempt < 2) continue;
+
+                if (RETRYABLE.contains(response.statusCode()) && attempt < 2) {continue;}
+
                 if (response.statusCode() != 200) {
                     throw new IllegalStateException("Fonte respondeu HTTP " + response.statusCode()
                             + " em " + uri.getHost() + uri.getPath());
                 }
+
                 return new String(response.body(), StandardCharsets.UTF_8);
             } catch (IOException exception) {
-                if (attempt == 2) throw new IllegalStateException("Falha de comunicação com " + uri.getHost(), exception);
+                if (attempt == 2) {
+                    throw new IllegalStateException("Falha de comunicação com " + uri.getHost(), exception);
+                }
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("Coleta interrompida", exception);
             }
         }
+
         throw new IllegalStateException("Coleta não concluída");
     }
 
     private HttpResponse<byte[]> fetch(HttpRequest request) throws IOException, InterruptedException {
         var pending = client.sendAsync(request, ignored -> new LimitedBody());
+
         try {
             return pending.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (TimeoutException exception) {
             pending.cancel(true);
             throw new HttpTimeoutException("Prazo excedido ao receber o catálogo");
         } catch (ExecutionException exception) {
-            if (exception.getCause() instanceof IOException communication) throw communication;
+            if (exception.getCause() instanceof IOException communication) {throw communication;}
+
             throw new IllegalStateException("Resposta pública inválida", exception.getCause());
         } catch (InterruptedException exception) {
             pending.cancel(true);
@@ -106,12 +119,14 @@ public final class PublicCatalogHttp {
 
         @Override
         public void onNext(List<ByteBuffer> buffers) {
-            for (ByteBuffer buffer : buffers) received += buffer.remaining();
+            for (ByteBuffer buffer : buffers) {received += buffer.remaining();}
             if (received > MAX_BYTES) {
                 subscription.cancel();
                 delegate.onError(new IllegalStateException("Catálogo excede o limite de resposta"));
+
                 return;
             }
+
             delegate.onNext(buffers);
         }
 

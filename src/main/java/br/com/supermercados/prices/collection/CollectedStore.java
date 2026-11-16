@@ -7,5 +7,4 @@ public record CollectedStore(
         String address,
         BigDecimal latitude,
         BigDecimal longitude,
-        boolean active) {
-}
+        boolean active) {}

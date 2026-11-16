@@ -74,11 +74,9 @@ public class CollectionRun {
     @Column(length = 2000)
     private String errorMessage;
 
-    /** Products the rules left out, by reason; they do not make the run partial. */
     @Column(length = 2000)
     private String skipSummary;
 
-    /** Every offer was imported, new products included; otherwise only known products were refreshed. */
     @Column(nullable = false)
     private boolean fullImport;
 
@@ -118,10 +116,10 @@ public class CollectionRun {
     }
 
     private String cleanMessage(String message) {
-        if (message == null || message.isBlank()) {
-            return null;
-        }
+        if (message == null || message.isBlank()) {return null;}
+
         String clean = message.strip();
+
         return clean.length() <= 2000 ? clean : clean.substring(0, 2000);
     }
 }

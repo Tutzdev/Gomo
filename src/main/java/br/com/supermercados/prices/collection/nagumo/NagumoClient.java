@@ -10,9 +10,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import br.com.supermercados.prices.collection.CatalogCheckpoint;
@@ -32,10 +35,13 @@ class NagumoClient {
 
     private static final String STORES_PATH =
             "/on/demandware.store/Sites-Nagumo-Site/pt_BR/Stores-AvailableStores";
+
     private static final String SELECT_STORE_PATH =
             "/on/demandware.store/Sites-Nagumo-Site/pt_BR/Stores-SelectStore";
+
     private static final String SEARCH_PATH =
             "/on/demandware.store/Sites-Nagumo-Site/pt_BR/Search-UpdateGrid";
+
     private static final Set<Integer> RETRYABLE_STATUS_CODES = Set.of(502, 503, 504);
 
     private final NagumoProperties properties;
@@ -49,11 +55,13 @@ class NagumoClient {
 
     List<NagumoCatalogResponse> fetch(CatalogCheckpoint checkpoint, List<String> warnings) {
         CookieManager cookies = new CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER);
+
         HttpClient httpClient = HttpClient.newBuilder()
                 .cookieHandler(cookies)
                 .connectTimeout(properties.getConnectTimeout())
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
+
         RequestSession session = new RequestSession(httpClient, properties.getRequestDelay());
 
         session.get(properties.getBaseUrl(), false);
@@ -64,6 +72,7 @@ class NagumoClient {
         categories.add(properties.getCategoryId());
         categories.addAll(properties.getAdditionalCategoryIds());
         List<NagumoCatalogResponse> catalogs = new ArrayList<>();
+
         for (String category : categories.stream().distinct().toList()) {
             try {
                 catalogs.add(checkpoint.category(category, NagumoCatalogResponse.class,
@@ -72,9 +81,15 @@ class NagumoClient {
                 warnings.add("Categoria Nagumo " + category + " incompleta: " + exception.getMessage());
             }
         }
+
         requireExpectedStore(session.get(resolve(STORES_PATH), true), true);
-        if (catalogs.isEmpty()) throw new IllegalStateException("Nenhuma categoria Nagumo foi coletada: " + String.join("; ", warnings));
-        if (warnings.isEmpty()) checkpoint.complete();
+
+        if (catalogs.isEmpty()) {
+            throw new IllegalStateException("Nenhuma categoria Nagumo foi coletada: " + String.join("; ", warnings));
+        }
+
+        if (warnings.isEmpty()) {checkpoint.complete();}
+
         return List.copyOf(catalogs);
     }
 
@@ -88,31 +103,38 @@ class NagumoClient {
             if (pageNumber >= 10000) {
                 throw new IllegalStateException("Paginação da Nagumo excedeu o limite esperado");
             }
+
             URI uri = resolve(SEARCH_PATH + "?cgid=" + encode(categoryId)
                     + "&start=" + start + "&sz=" + properties.getPageSize());
+
             JsonNode response = session.get(uri, true);
             int responseCount = response.path("productSearch").path("count").asInt(-1);
+
             if (responseCount < 0) {
                 throw new IllegalStateException("Resposta da Nagumo sem quantidade total do catálogo");
             }
+
             if (sourceCount < 0) {
                 sourceCount = responseCount;
+
                 categoryName = responseCount == 0 && response.path("productsSearchResult").isEmpty()
                         ? null : requiredText(response.path("productSearch").path("category"), "name");
             }
 
             JsonNode page = response.path("productsSearchResult");
+
             if (!page.isArray()) {
                 throw new IllegalStateException("Resposta da Nagumo sem lista de produtos");
             }
-            if (page.isEmpty()) {
-                break;
-            }
-            // The declared count excludes some unavailable products; it is not a pagination bound.
+
+            if (page.isEmpty()) {break;}
+
             if (!pageSignatures.add(signature(page))) {
                 throw new IllegalStateException("A Nagumo repetiu uma página durante a coleta");
             }
+
             page.forEach(product -> products.add(essentials(product)));
+
             if ("finished".equals(response.path("productSearch").path("showMoreUrl").asString())
                     || (response.path("productSearch").path("showMoreUrl").isMissingNode()
                         && page.size() < properties.getPageSize())) {
@@ -120,65 +142,88 @@ class NagumoClient {
             }
         }
 
-        // The source counts indexed hits before branch filtering; follow its explicit end marker.
         LOGGER.info("Nagumo: departamento {} concluído, {} registros recebidos", categoryId, products.size());
+
         return new NagumoCatalogResponse(store, categoryName, products.size(), products);
     }
 
-    /** Fields the parser reads; the rest (image sizes, badges, tags…) would multiply the memory of a collection. */
-    private static final java.util.Set<String> PARSED_FIELDS = java.util.Set.of("id", "productName", "price", "flagtypes",
-            "weighable", "averageWeightNumber", "brand", "productAdditionalInfo", "shortDescription", "longDescription",
-            "gtin", "ean", "available", "productShowFullUrl");
+    private static final Set<String> PARSED_FIELDS = Set.of(
+        "id",
+        "productName",
+        "price",
+        "flagtypes",
+        "weighable",
+        "averageWeightNumber",
+        "brand",
+        "productAdditionalInfo",
+        "shortDescription",
+        "longDescription",
+        "gtin",
+        "ean",
+        "available",
+        "productShowFullUrl");
 
     private JsonNode essentials(JsonNode product) {
         var kept = objectMapper.createObjectNode();
+
         for (String field : PARSED_FIELDS) {
-            if (product.has(field)) kept.set(field, product.get(field));
+            if (product.has(field)) {kept.set(field, product.get(field));}
         }
+
         JsonNode image = product.path("images").path("medium").path(0);
-        if (!image.isMissingNode()) kept.putObject("images").putArray("medium").add(image);
+
+        if (!image.isMissingNode()) {kept.putObject("images").putArray("medium").add(image);}
+
         return kept;
     }
 
-    /** Identifies a page without keeping its whole text for the rest of the collection. */
     private static String signature(JsonNode page) {
         try {
-            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
-                    .digest(page.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            return java.util.HexFormat.of().formatHex(digest);
-        } catch (java.security.NoSuchAlgorithmException exception) {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(page.toString().getBytes(StandardCharsets.UTF_8));
+
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(exception);
         }
     }
 
     private JsonNode requireExpectedStore(JsonNode response, boolean selectionRequired) {
         JsonNode stores = response.path("stores");
+
         if (!stores.isArray()) {
             throw new IllegalStateException("Resposta da Nagumo sem lista de lojas");
         }
 
         JsonNode match = null;
+
         for (JsonNode store : stores) {
             if (properties.getStoreId().equals(store.path("storeId").asString())) {
                 if (match != null) {
                     throw new IllegalStateException("A Nagumo retornou a loja configurada mais de uma vez");
                 }
+
                 match = store;
             }
         }
+
         if (match == null) {
             throw new IllegalStateException("A loja Nagumo configurada não está disponível");
         }
+
         requireEquals(match, "storeName", properties.getStoreName());
         requireEquals(match, "city", properties.getExpectedCity());
         requireEquals(match, "district", properties.getExpectedDistrict());
         requireEquals(match, "address", properties.getExpectedSourceAddress());
+
         if (!match.path("operation").asBoolean(false)) {
             throw new IllegalStateException("A loja Nagumo de Volta Redonda não está em operação");
         }
+
         if (selectionRequired && !match.path("active").asBoolean(false)) {
             throw new IllegalStateException("A Nagumo não manteve a loja de Volta Redonda selecionada");
         }
+
         return match;
     }
 
@@ -186,7 +231,9 @@ class NagumoClient {
         URI uri = resolve(SELECT_STORE_PATH + "?storeId=" + encode(properties.getStoreId())
                 + "&lat=" + properties.getLatitude().toPlainString()
                 + "&lng=" + properties.getLongitude().toPlainString());
+
         JsonNode response = session.get(uri, true);
+
         if (!response.path("success").asBoolean(false)) {
             throw new IllegalStateException("A Nagumo não confirmou a seleção da loja de Volta Redonda");
         }
@@ -194,6 +241,7 @@ class NagumoClient {
 
     private void requireEquals(JsonNode object, String field, String expected) {
         String actual = requiredText(object, field);
+
         if (!expected.equals(actual)) {
             throw new IllegalStateException("Identidade inesperada da loja Nagumo no campo " + field);
         }
@@ -201,9 +249,11 @@ class NagumoClient {
 
     private String requiredText(JsonNode object, String field) {
         String value = object.path(field).asString("").strip();
+
         if (value.isEmpty()) {
             throw new IllegalStateException("Resposta da Nagumo sem o campo " + field);
         }
+
         return value;
     }
 
@@ -217,22 +267,28 @@ class NagumoClient {
 
     private void validateProperties() {
         URI baseUrl = properties.getBaseUrl();
+
         if (baseUrl == null || baseUrl.getHost() == null
                 || !("http".equalsIgnoreCase(baseUrl.getScheme())
                 || "https".equalsIgnoreCase(baseUrl.getScheme()))) {
             throw new IllegalArgumentException("URL base da Nagumo inválida");
         }
+
         if (properties.getPageSize() < 1 || properties.getPageSize() > 250) {
             throw new IllegalArgumentException("Tamanho de página da Nagumo deve estar entre 1 e 250");
         }
+
         if (properties.getMaxAttempts() < 1 || properties.getMaxAttempts() > 3) {
             throw new IllegalArgumentException("Quantidade de tentativas da Nagumo deve estar entre 1 e 3");
         }
+
         if (properties.getMaxResponseBytes() < 1_000) {
             throw new IllegalArgumentException("Limite de resposta da Nagumo é muito pequeno");
         }
+
         requirePositive(properties.getConnectTimeout(), "Timeout de conexão");
         requirePositive(properties.getRequestTimeout(), "Timeout de requisição");
+
         if (properties.getRequestDelay().isNegative()) {
             throw new IllegalArgumentException("Intervalo entre requisições não pode ser negativo");
         }
@@ -257,8 +313,10 @@ class NagumoClient {
 
         private JsonNode get(URI uri, boolean jsonExpected) {
             RuntimeException lastFailure = null;
+
             for (int attempt = 1; attempt <= properties.getMaxAttempts(); attempt++) {
                 waitBeforeRequest(attempt);
+
                 try {
                     HttpRequest request = HttpRequest.newBuilder(uri)
                             .timeout(properties.getRequestTimeout())
@@ -266,26 +324,34 @@ class NagumoClient {
                             .header("User-Agent", PublicCatalogHttp.USER_AGENT)
                             .GET()
                             .build();
+
                     HttpResponse<InputStream> response = httpClient.send(
-                            request, HttpResponse.BodyHandlers.ofInputStream());
+                        request,
+                        HttpResponse.BodyHandlers.ofInputStream());
+
                     int status = response.statusCode();
                     byte[] body = readLimited(response.body());
+
                     if (status >= 200 && status < 300) {
                         return jsonExpected ? parseJson(body) : objectMapper.createObjectNode();
                     }
+
                     lastFailure = new IllegalStateException(
                             "Nagumo respondeu HTTP " + status + " em " + uri.getPath());
+
                     if (!RETRYABLE_STATUS_CODES.contains(status)) {
                         throw lastFailure;
                     }
                 } catch (IOException exception) {
                     lastFailure = new IllegalStateException(
-                            "Falha de comunicação com a Nagumo em " + uri.getPath(), exception);
+                        "Falha de comunicação com a Nagumo em " + uri.getPath(),
+                        exception);
                 } catch (InterruptedException exception) {
                     Thread.currentThread().interrupt();
                     throw new IllegalStateException("Coleta da Nagumo interrompida", exception);
                 }
             }
+
             throw lastFailure == null
                     ? new IllegalStateException("Falha desconhecida ao consultar a Nagumo")
                     : lastFailure;
@@ -294,9 +360,11 @@ class NagumoClient {
         private byte[] readLimited(InputStream body) throws IOException {
             try (body) {
                 byte[] bytes = body.readNBytes(properties.getMaxResponseBytes() + 1);
+
                 if (bytes.length > properties.getMaxResponseBytes()) {
                     throw new IOException("Resposta da Nagumo excede o limite configurado");
                 }
+
                 return bytes;
             }
         }
@@ -305,6 +373,7 @@ class NagumoClient {
             if (body.length == 0) {
                 throw new IllegalStateException("A Nagumo retornou uma resposta vazia");
             }
+
             try {
                 return objectMapper.readTree(body);
             } catch (RuntimeException exception) {
@@ -317,6 +386,7 @@ class NagumoClient {
                 requested = true;
                 return;
             }
+
             try {
                 Thread.sleep(delay.toMillis() * attempt);
             } catch (InterruptedException exception) {

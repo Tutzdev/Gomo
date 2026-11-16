@@ -17,7 +17,14 @@ public class RoyalProperties {
     private URI baseUrl = URI.create("https://www.royalsupermercados.com.br");
     private URI apiUrl = URI.create("https://services.vipcommerce.com.br");
     private String publicConfigurationPath = "/chunk-TLHOSSIT.js";
-    private List<String> searchTerms = List.of("coca", "italac", "bauducco", "yoki", "coracoes");
+
+    private List<String> searchTerms = List.of(
+        "coca",
+        "italac",
+        "bauducco",
+        "yoki",
+        "coracoes");
+
     private boolean fullCatalog;
     private Duration connectTimeout = Duration.ofSeconds(10);
     private Duration requestTimeout = Duration.ofSeconds(20);

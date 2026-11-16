@@ -27,33 +27,52 @@ public class CollectionCatalogService {
 
     @Transactional
     public CollectionCatalog ensureCatalog(
-            CollectorMetadata metadata, CollectedStore collectedStore, Instant collectedAt) {
+        CollectorMetadata metadata,
+        CollectedStore collectedStore,
+        Instant collectedAt) {
+
         DataSource source = sources.findByCode(metadata.sourceCode())
                 .orElseGet(() -> sources.registerVerifiedSource(new SourceRegistration(
                         metadata.sourceCode(), metadata.sourceName(), metadata.sourceBaseUrl(),
                         metadata.sourceVerifiedAt())));
+
         sources.requireEnabledSource(source.getId());
 
         if (metadata.storeDirectorySourceCode() != null) {
             DataSource directory = sources.findByCode(metadata.storeDirectorySourceCode())
                     .orElseThrow(() -> new IllegalStateException("Diretório verificado da unidade ausente"));
+
             var existing = storeRepository.findBySourceIdAndSourceReference(directory.getId(), metadata.storeSourceReference())
                     .orElseThrow(() -> new IllegalStateException("Unidade verificada não cadastrada"));
+
             if (!existing.getCityId().equals(metadata.cityId()) || !existing.isActive()) {
                 throw new IllegalStateException("Unidade não pertence à cidade configurada ou está inativa");
             }
+
             return new CollectionCatalog(source.getId(), existing.getId());
         }
 
         SourceObservation chainSource = new SourceObservation(
-                source.getId(), metadata.chainSourceReference(), collectedAt);
+            source.getId(),
+            metadata.chainSourceReference(),
+            collectedAt);
+
         ChainResponse chain = stores.ingestChain(new ChainObservation(metadata.chainName(), chainSource));
 
         SourceObservation storeSource = new SourceObservation(
-                source.getId(), metadata.storeSourceReference(), collectedAt);
+            source.getId(),
+            metadata.storeSourceReference(),
+            collectedAt);
+
         StoreResponse store = stores.ingestStore(new StoreObservation(
-                chain.id(), metadata.cityId(), collectedStore.name(), collectedStore.address(),
-                collectedStore.latitude(), collectedStore.longitude(), collectedStore.active(), storeSource));
+            chain.id(),
+            metadata.cityId(),
+            collectedStore.name(),
+            collectedStore.address(),
+            collectedStore.latitude(),
+            collectedStore.longitude(),
+            collectedStore.active(),
+            storeSource));
 
         return new CollectionCatalog(source.getId(), store.id());
     }

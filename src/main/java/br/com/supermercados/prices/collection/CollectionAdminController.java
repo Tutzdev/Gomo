@@ -29,11 +29,12 @@ public class CollectionAdminController {
     private final CollectionHealthService health;
 
     public CollectionAdminController(
-            CollectionCoordinator coordinator,
-            CollectionRunService runs,
-            AdminAuditService audit,
-            CollectionReviewRepository reviews,
-            CollectionHealthService health) {
+        CollectionCoordinator coordinator,
+        CollectionRunService runs,
+        AdminAuditService audit,
+        CollectionReviewRepository reviews,
+        CollectionHealthService health) {
+
         this.coordinator = coordinator;
         this.runs = runs;
         this.audit = audit;
@@ -41,7 +42,6 @@ public class CollectionAdminController {
         this.health = health;
     }
 
-    /** Each market's freshness and its collectors' last runs, for the admin collections panel. */
     @GetMapping("/health")
     public CollectionHealthService.CollectionHealthReport health() {
         return health.report();
@@ -49,21 +49,26 @@ public class CollectionAdminController {
 
     @PostMapping
     public List<CollectionRunResponse> collect(
-            @RequestParam(required = false) String collectorCode,
-            @RequestParam(defaultValue = "false") boolean existingOnly,
-            @AuthenticationPrincipal AuthenticatedUser actor) {
+        @RequestParam(required = false) String collectorCode,
+        @RequestParam(defaultValue = "false") boolean existingOnly,
+        @AuthenticationPrincipal AuthenticatedUser actor) {
+
         List<CollectionRunResponse> results = existingOnly
                 ? coordinator.refreshExisting(collectorCode) : coordinator.collectSelected(collectorCode);
+
         results.forEach(result -> audit.record(
                 actor.id(), AdminAction.COLLECTION_TRIGGERED, "COLLECTION_RUN", result.id()));
+
         return results;
     }
 
     @GetMapping
     public PageResponse<CollectionRunResponse> findAll(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         Sort sort = Sort.by(Sort.Direction.DESC, "startedAt", "id");
+
         return runs.findAll(PageRequests.create(page, size, sort));
     }
 
@@ -74,8 +79,9 @@ public class CollectionAdminController {
 
     @GetMapping("/reviews")
     public PageResponse<CollectionReviewResponse> findReviews(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         return reviews.findAll(PageRequests.create(page, size, Sort.unsorted()));
     }
 }

@@ -17,13 +17,13 @@ public class CollectionScheduler {
     private final CollectionCoordinator coordinator;
     private final boolean enabled;
     private final boolean existingOnly;
-    /** Markets whose collection failed in the last round; each gets one more try (see {@link #retryFailed()}). */
     private final Set<String> failedInLastRound = ConcurrentHashMap.newKeySet();
 
     public CollectionScheduler(
-            CollectionCoordinator coordinator,
-            @Value("${app.collection.enabled:true}") boolean enabled,
-            @Value("${app.collection.existing-only:true}") boolean existingOnly) {
+        CollectionCoordinator coordinator,
+        @Value("${app.collection.enabled:true}") boolean enabled,
+        @Value("${app.collection.existing-only:true}") boolean existingOnly) {
+
         this.coordinator = coordinator;
         this.enabled = enabled;
         this.existingOnly = existingOnly;
@@ -33,12 +33,12 @@ public class CollectionScheduler {
             cron = "${app.collection.cron:0 0 6,11,16,21 * * *}",
             zone = "${app.collection.zone:America/Sao_Paulo}")
     public void collectDaily() {
-        if (!enabled || coordinator.isRunning()) {
-            return;
-        }
+        if (!enabled || coordinator.isRunning()) {return;}
+
         try {
             List<CollectionRunResponse> runs = existingOnly ? coordinator.refreshExisting(null) : coordinator.collectAll();
             failedInLastRound.clear();
+
             if (runs != null) {
                 runs.stream().filter(run -> run.status() == CollectionStatus.FAILED)
                         .map(CollectionRunResponse::collectorCode).forEach(failedInLastRound::add);
@@ -48,45 +48,40 @@ public class CollectionScheduler {
         }
     }
 
-    /**
-     * 45 minutes after each round, a market whose collection failed gets one more try instead of waiting five
-     * hours for the next round. In 11/2026 two markets hosted on the same platform refused connections from the
-     * server for a few hours, and three rounds in a row missed them; a short block now costs one round at most.
-     */
     @Scheduled(
             cron = "${app.collection.retry-cron:0 45 6,11,16,21 * * *}",
             zone = "${app.collection.zone:America/Sao_Paulo}")
     public void retryFailed() {
-        if (!enabled || coordinator.isRunning() || failedInLastRound.isEmpty()) {
-            return;
-        }
+        if (!enabled || coordinator.isRunning() || failedInLastRound.isEmpty()) {return;}
+
         List<String> due = List.copyOf(failedInLastRound);
         failedInLastRound.clear();
+
         for (String code : due) {
             try {
                 LOGGER.info("Nova tentativa de coleta para {}", code);
+
                 if (existingOnly) {
                     coordinator.refreshExisting(code);
                 } else {
                     coordinator.collectSelected(code);
                 }
             } catch (RuntimeException exception) {
-                LOGGER.error("Nova tentativa de coleta para {} não iniciou: {}", code, exception.getMessage(), exception);
+                LOGGER.error(
+                    "Nova tentativa de coleta para {} não iniciou: {}",
+                    code,
+                    exception.getMessage(),
+                    exception);
             }
         }
     }
 
-    /**
-     * Once a week every offer is imported, not only the products already known, so the catalog follows what
-     * the markets launch and the SKUs they renumber. The other collections of the day only refresh prices.
-     */
     @Scheduled(
             cron = "${app.collection.full-cron:0 0 3 * * SUN}",
             zone = "${app.collection.zone:America/Sao_Paulo}")
     public void importNewProducts() {
-        if (!enabled || coordinator.isRunning()) {
-            return;
-        }
+        if (!enabled || coordinator.isRunning()) {return;}
+
         try {
             coordinator.collectAll();
         } catch (RuntimeException exception) {

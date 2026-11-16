@@ -6,7 +6,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-/** Optional operator command. Normal restarts never trigger a catalog download. */
 @Component
 @ConditionalOnProperty(name = "app.collection.run-on-start")
 public class CollectionStartupRunner implements ApplicationRunner {
@@ -14,8 +13,10 @@ public class CollectionStartupRunner implements ApplicationRunner {
     private final CollectionCoordinator coordinator;
     private final String collectorCodes;
 
-    public CollectionStartupRunner(CollectionCoordinator coordinator,
-            @Value("${app.collection.run-on-start}") String collectorCodes) {
+    public CollectionStartupRunner(
+        CollectionCoordinator coordinator,
+        @Value("${app.collection.run-on-start}") String collectorCodes) {
+
         this.coordinator = coordinator;
         this.collectorCodes = collectorCodes;
     }

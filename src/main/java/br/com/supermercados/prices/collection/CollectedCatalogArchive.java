@@ -13,28 +13,29 @@ import org.springframework.stereotype.Component;
 
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Optional public-data archive for retrying persistence without recollecting or changing timestamps.
- * The application also bundles one gzipped snapshot per market ({@code seed/catalog-snapshots}) to fill
- * an empty database.
- */
 @Component
 public class CollectedCatalogArchive {
 
     private final Path directory;
     private final ObjectMapper mapper;
 
-    public CollectedCatalogArchive(@Value("${app.collection.archive-directory:}") String directory, ObjectMapper mapper) {
+    public CollectedCatalogArchive(
+        @Value("${app.collection.archive-directory:}") String directory,
+        ObjectMapper mapper) {
+
         this.directory = directory.isBlank() ? null : Path.of(directory).toAbsolutePath().normalize();
         this.mapper = mapper;
     }
 
     public void save(CollectorMetadata metadata, CollectedCatalog catalog) {
-        if (directory == null) return;
+        if (directory == null) {return;}
+
         Path destination = path(metadata.code());
+
         try {
             Files.createDirectories(directory);
             Path staging = Files.createTempFile(directory, metadata.code(), ".tmp");
+
             try {
                 Files.writeString(staging, mapper.writeValueAsString(new ArchivedCatalog(metadata, catalog)));
                 Files.move(staging, destination, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
@@ -48,8 +49,12 @@ public class CollectedCatalogArchive {
 
     public CollectedCatalog read(CollectorMetadata metadata) {
         Path source = path(metadata.code());
+
         try {
-            if (Files.size(source) > 64_000_000) throw new IllegalStateException("Arquivo de coleta excessivamente grande");
+            if (Files.size(source) > 64_000_000) {
+                throw new IllegalStateException("Arquivo de coleta excessivamente grande");
+            }
+
             return matching(metadata, mapper.readValue(Files.readString(source), ArchivedCatalog.class));
         } catch (IOException exception) {
             throw new IllegalStateException("Arquivo de coleta não encontrado ou ilegível", exception);
@@ -73,6 +78,7 @@ public class CollectedCatalogArchive {
                 || !metadata.storeSourceReference().equals(archived.metadata().storeSourceReference())) {
             throw new IllegalStateException("Arquivo pertence a outra fonte ou unidade");
         }
+
         return archived.catalog();
     }
 
@@ -81,11 +87,12 @@ public class CollectedCatalogArchive {
     }
 
     private Path path(String code) {
-        if (directory == null) throw new IllegalStateException("Arquivo de coletas não configurado");
-        if (!code.matches("[a-z0-9_]+")) throw new IllegalArgumentException("Código de coletor inválido");
+        if (directory == null) {throw new IllegalStateException("Arquivo de coletas não configurado");}
+
+        if (!code.matches("[a-z0-9_]+")) {throw new IllegalArgumentException("Código de coletor inválido");}
+
         return directory.resolve(code + ".json");
     }
 
-    public record ArchivedCatalog(CollectorMetadata metadata, CollectedCatalog catalog) {
-    }
+    public record ArchivedCatalog(CollectorMetadata metadata, CollectedCatalog catalog) {}
 }

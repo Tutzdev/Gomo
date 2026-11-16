@@ -1,14 +1,18 @@
 package br.com.supermercados.prices.collection;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -48,11 +52,18 @@ public class CollectedCatalogIngestionService {
         return ingest(metadata, collectedCatalog, true);
     }
 
-    private CollectionResult ingest(CollectorMetadata metadata, CollectedCatalog collectedCatalog,
-            boolean existingOnly) {
+    private CollectionResult ingest(
+        CollectorMetadata metadata,
+        CollectedCatalog collectedCatalog,
+        boolean existingOnly) {
+
         CollectionCatalog catalog = catalogs.ensureCatalog(
-                metadata, collectedCatalog.store(), collectedCatalog.collectedAt());
+            metadata,
+            collectedCatalog.store(),
+            collectedCatalog.collectedAt());
+
         MutableResult result = new MutableResult(collectedCatalog.foundCount());
+
         collectedCatalog.products().forEach(product -> {
             switch (product.availability()) {
                 case AVAILABLE -> result.availableCount++;
@@ -60,87 +71,142 @@ public class CollectedCatalogIngestionService {
                 case UNKNOWN -> result.unknownAvailabilityCount++;
             }
         });
+
         collectedCatalog.warnings().forEach(warning -> {
-            if (CollectedCatalog.isSkippedProduct(warning)) result.addSkippedByRule(warning);
-            else result.addSkippedError(warning);
+            if (CollectedCatalog.isSkippedProduct(warning)) {result.addSkippedByRule(warning);}
+            else {result.addSkippedError(warning);}
         });
-        // Read before ingestion: linking a product clears its pending review items.
+
+        // Precisa ser lido antes da ingestão: vincular um produto apaga as pendências de revisão dele.
+
         var heldPriceChanges = reviews.heldPriceChanges(catalog.sourceId(), catalog.storeId(), PRICE_CHANGE_REVIEW);
 
         List<ProductPrice> collectedPrices = ingestProducts(
-                metadata, collectedCatalog, catalog, result, existingOnly);
-        ingestPrices(metadata, collectedCatalog, catalog, collectedPrices, result, heldPriceChanges);
+            metadata,
+            collectedCatalog,
+            catalog,
+            result,
+            existingOnly);
+
+        ingestPrices(
+            metadata,
+            collectedCatalog,
+            catalog,
+            collectedPrices,
+            result,
+            heldPriceChanges);
 
         return result.toResult(catalog.sourceId(), catalog.storeId());
     }
 
     private List<ProductPrice> ingestProducts(
-            CollectorMetadata metadata,
-            CollectedCatalog catalog,
-            CollectionCatalog collection,
-            MutableResult result, boolean existingOnly) {
+        CollectorMetadata metadata,
+        CollectedCatalog catalog,
+        CollectionCatalog collection,
+        MutableResult result,
+        boolean existingOnly) {
+
         List<ProductPrice> collectedPrices = new ArrayList<>();
 
         for (CollectedProduct collectedProduct : catalog.products()) {
             var rejection = offers.rejection(collectedProduct);
+
             if (rejection.isPresent()) {
-                reviews.record(collection.sourceId(), collection.storeId(), collectedProduct, catalog.collectedAt(),
-                        rejection.get());
+                reviews.record(
+                    collection.sourceId(),
+                    collection.storeId(),
+                    collectedProduct,
+                    catalog.collectedAt(),
+                    rejection.get());
+
                 result.skippedCount++;
                 continue;
             }
+
             try {
                 SourceObservation source = new SourceObservation(
-                        collection.sourceId(), collectedProduct.sourceReference(), catalog.collectedAt());
+                    collection.sourceId(),
+                    collectedProduct.sourceReference(),
+                    catalog.collectedAt());
+
                 ProductObservation observation = new ProductObservation(
-                        collectedProduct.gtin(), collectedProduct.name(), collectedProduct.brand(),
-                        collectedProduct.description(), null, null, collectedProduct.category(), source,
-                        collectedProduct.imageUrl(), collectedProduct.originUrl());
+                    collectedProduct.gtin(),
+                    collectedProduct.name(),
+                    collectedProduct.brand(),
+                    collectedProduct.description(),
+                    null,
+                    null,
+                    collectedProduct.category(),
+                    source,
+                    collectedProduct.imageUrl(),
+                    collectedProduct.originUrl());
+
                 var matched = existingOnly ? products.linkExisting(observation)
-                        : java.util.Optional.of(products.ingestWithOutcome(observation));
+                        : Optional.of(products.ingestWithOutcome(observation));
+
                 if (matched.isEmpty()) {
-                    reviews.record(collection.sourceId(), collection.storeId(), collectedProduct, catalog.collectedAt(),
-                            "Sem correspondência confirmada no catálogo existente; revisar identidade e apresentação.");
+                    reviews.record(
+                        collection.sourceId(),
+                        collection.storeId(),
+                        collectedProduct,
+                        catalog.collectedAt(),
+                        "Sem correspondência confirmada no catálogo existente; revisar identidade e apresentação.");
+
                     result.skippedCount++;
                     continue;
                 }
+
                 ProductIngestionResult ingestion = matched.orElseThrow();
                 reviews.resolve(collection.sourceId(), collection.storeId(), collectedProduct.sourceReference());
+
                 if (ingestion.outcome() == ProductIngestionOutcome.CREATED) {
                     result.createdCount++;
                 } else if (ingestion.outcome() == ProductIngestionOutcome.UPDATED) {
                     result.productsUpdatedCount++;
                 }
+
                 collectedPrices.add(new ProductPrice(ingestion.product().id(), collectedProduct));
             } catch (RuntimeException exception) {
-                reviews.record(collection.sourceId(), collection.storeId(), collectedProduct, catalog.collectedAt(), safeMessage(exception));
+                reviews.record(
+                    collection.sourceId(),
+                    collection.storeId(),
+                    collectedProduct,
+                    catalog.collectedAt(),
+                    safeMessage(exception));
+
                 result.addSkippedError("Produto " + collectedProduct.sourceReference() + " ignorado: "
                         + safeMessage(exception));
-                LOGGER.warn("Coletor {} ignorou produto {}: {}", metadata.code(),
-                        collectedProduct.sourceReference(), safeMessage(exception));
+
+                LOGGER.warn(
+                    "Coletor {} ignorou produto {}: {}",
+                    metadata.code(),
+                    collectedProduct.sourceReference(),
+                    safeMessage(exception));
             }
         }
+
         return collectedPrices;
     }
 
     private void ingestPrices(
-            CollectorMetadata metadata,
-            CollectedCatalog collectedCatalog,
-            CollectionCatalog catalog,
-            List<ProductPrice> collectedPrices,
-            MutableResult result,
-            Map<String, CollectionReviewRepository.HeldPrice> heldPriceChanges) {
-        if (collectedPrices.isEmpty()) {
-            return;
-        }
+        CollectorMetadata metadata,
+        CollectedCatalog collectedCatalog,
+        CollectionCatalog catalog,
+        List<ProductPrice> collectedPrices,
+        MutableResult result,
+        Map<String, CollectionReviewRepository.HeldPrice> heldPriceChanges) {
+
+        if (collectedPrices.isEmpty()) {return;}
 
         Map<UUID, PriceRecord> latestPrices = latestPrices(catalog, collectedPrices);
         Map<ProductPrice, String> references = new LinkedHashMap<>();
+
         for (ProductPrice collectedPrice : collectedPrices) {
             references.put(collectedPrice, observationReferences.create(
                     metadata.code(), metadata.storeSourceReference(),
                     collectedPrice.collectedProduct(), collectedCatalog.collectedAt()));
         }
+
         Set<String> existingReferences = existingReferences(catalog.sourceId(), references.values());
 
         for (Map.Entry<ProductPrice, String> entry : references.entrySet()) {
@@ -148,27 +214,46 @@ public class CollectedCatalogIngestionService {
             CollectedProduct product = collectedPrice.collectedProduct();
             String sourceReference = entry.getValue();
             PriceRecord previous = latestPrices.get(collectedPrice.productId());
+
             if (!existingReferences.contains(sourceReference)
                     && priceChangeGuard.isSuspicious(product.regularPrice(), previous)
                     && !confirmedByAnEarlierCollection(heldPriceChanges.get(product.sourceReference()), product,
                             collectedCatalog.collectedAt())) {
-                // Held for review, not lost: a rule at work, not a collection error.
                 result.addSkippedByRule("Produto " + product.sourceReference() + ": variação suspeita de preço");
-                reviews.record(catalog.sourceId(), catalog.storeId(), product, collectedCatalog.collectedAt(),
-                        PRICE_CHANGE_REVIEW);
-                LOGGER.warn("Coletor {} rejeitou variação suspeita do produto {}",
-                        metadata.code(), product.sourceReference());
+
+                reviews.record(
+                    catalog.sourceId(),
+                    catalog.storeId(),
+                    product,
+                    collectedCatalog.collectedAt(),
+                    PRICE_CHANGE_REVIEW);
+
+                LOGGER.warn(
+                    "Coletor {} rejeitou variação suspeita do produto {}",
+                    metadata.code(),
+                    product.sourceReference());
+
                 continue;
             }
 
             try {
                 prices.appendObservation(new PriceObservation(
-                        collectedPrice.productId(), catalog.storeId(), catalog.sourceId(), sourceReference,
-                        product.regularPrice(), product.promotionalPrice(), "BRL",
-                        collectedCatalog.collectedAt(), product.validUntil(),
-                        offers.promotionValidUntil(product, collectedCatalog.collectedAt()),
-                        product.promotionCondition(), product.availability(),
-                        product.originUrl(), product.sourceReference(), product.name()));
+                    collectedPrice.productId(),
+                    catalog.storeId(),
+                    catalog.sourceId(),
+                    sourceReference,
+                    product.regularPrice(),
+                    product.promotionalPrice(),
+                    "BRL",
+                    collectedCatalog.collectedAt(),
+                    product.validUntil(),
+                    offers.promotionValidUntil(product, collectedCatalog.collectedAt()),
+                    product.promotionCondition(),
+                    product.availability(),
+                    product.originUrl(),
+                    product.sourceReference(),
+                    product.name()));
+
                 if (existingReferences.contains(sourceReference)) {
                     result.skippedCount++;
                 } else {
@@ -178,19 +263,28 @@ public class CollectedCatalogIngestionService {
             } catch (RuntimeException exception) {
                 result.addSkippedError("Preço do produto " + product.sourceReference() + " ignorado: "
                         + safeMessage(exception));
-                reviews.record(catalog.sourceId(), catalog.storeId(), product, collectedCatalog.collectedAt(), safeMessage(exception));
-                LOGGER.warn("Coletor {} ignorou preço do produto {}: {}", metadata.code(),
-                        product.sourceReference(), safeMessage(exception));
+
+                reviews.record(
+                    catalog.sourceId(),
+                    catalog.storeId(),
+                    product,
+                    collectedCatalog.collectedAt(),
+                    safeMessage(exception));
+
+                LOGGER.warn(
+                    "Coletor {} ignorou preço do produto {}: {}",
+                    metadata.code(),
+                    product.sourceReference(),
+                    safeMessage(exception));
             }
         }
     }
 
-    /**
-     * A store's typo is usually fixed by the next collection; a real price change is published again. The same
-     * held price seen by an earlier collection is therefore accepted, so a genuine change is never stuck forever.
-     */
-    private static boolean confirmedByAnEarlierCollection(CollectionReviewRepository.HeldPrice held,
-            CollectedProduct product, java.time.Instant collectedAt) {
+    private static boolean confirmedByAnEarlierCollection(
+        CollectionReviewRepository.HeldPrice held,
+        CollectedProduct product,
+        Instant collectedAt) {
+
         return held != null && held.collectedAt().isBefore(collectedAt)
                 && held.regularPrice().compareTo(product.regularPrice()) == 0;
     }
@@ -199,16 +293,20 @@ public class CollectedCatalogIngestionService {
         Set<UUID> productIds = new HashSet<>();
         collectedPrices.forEach(product -> productIds.add(product.productId()));
         Map<UUID, PriceRecord> latestPrices = new HashMap<>();
+
         priceRecords.findLatestForSourceStoreAndProducts(
                 catalog.sourceId(), catalog.storeId(), productIds)
                 .forEach(record -> latestPrices.put(record.getProductId(), record));
+
         return latestPrices;
     }
 
-    private Set<String> existingReferences(UUID sourceId, java.util.Collection<String> references) {
+    private Set<String> existingReferences(UUID sourceId, Collection<String> references) {
         Set<String> existing = new HashSet<>();
+
         priceRecords.findAllBySourceIdAndSourceReferenceIn(sourceId, references)
                 .forEach(record -> existing.add(record.getSourceReference()));
+
         return existing;
     }
 
@@ -216,8 +314,7 @@ public class CollectedCatalogIngestionService {
         return exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage();
     }
 
-    private record ProductPrice(UUID productId, CollectedProduct collectedProduct) {
-    }
+    private record ProductPrice(UUID productId, CollectedProduct collectedProduct) {}
 
     private static final class MutableResult {
 
@@ -250,28 +347,42 @@ public class CollectedCatalogIngestionService {
             skipReasons.merge(skipReason(message), 1, Integer::sum);
         }
 
-        /** "Produto Nagumo 206391 ignorado: peso médio ausente" → "peso médio ausente". */
         private static String skipReason(String message) {
             int ignored = message.indexOf(" ignorado: ");
-            if (ignored >= 0) return message.substring(ignored + " ignorado: ".length()).strip();
+
+            if (ignored >= 0) {return message.substring(ignored + " ignorado: ".length()).strip();}
+
             int colon = message.indexOf(": ");
+
             return colon >= 0 ? message.substring(colon + 2).strip() : message.strip();
         }
 
-        /** Most frequent reasons first: "peso médio ausente ou inválido: 8225 | preço por peso …: 12". */
         private String skipSummary() {
-            if (skipReasons.isEmpty()) return null;
+            if (skipReasons.isEmpty()) {return null;}
+
             return skipReasons.entrySet().stream()
                     .sorted(Map.Entry.<String, Integer>comparingByValue().reversed().thenComparing(Map.Entry::getKey))
                     .map(entry -> entry.getKey() + ": " + entry.getValue())
-                    .collect(java.util.stream.Collectors.joining(" | "));
+                    .collect(Collectors.joining(" | "));
         }
 
         private CollectionResult toResult(UUID sourceId, UUID storeId) {
             String errorMessage = errors.isEmpty() ? null : String.join(" | ", errors);
-            return new CollectionResult(sourceId, storeId, foundCount, createdCount,
-                    updatedCount, skippedCount, errors.size(), errorMessage,
-                    availableCount, unavailableCount, unknownAvailabilityCount, productsUpdatedCount, skipSummary());
+
+            return new CollectionResult(
+                sourceId,
+                storeId,
+                foundCount,
+                createdCount,
+                updatedCount,
+                skippedCount,
+                errors.size(),
+                errorMessage,
+                availableCount,
+                unavailableCount,
+                unknownAvailabilityCount,
+                productsUpdatedCount,
+                skipSummary());
         }
     }
 }

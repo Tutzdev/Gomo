@@ -1,7 +1,10 @@
 package br.com.supermercados.prices.collection;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageImpl;
@@ -13,7 +16,6 @@ import org.springframework.stereotype.Repository;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
 
-/** Unmatched offers remain review evidence; they never become public prices. */
 @Repository
 @RequiredArgsConstructor
 public class CollectionReviewRepository {
@@ -23,6 +25,7 @@ public class CollectionReviewRepository {
 
     public PageResponse<CollectionReviewResponse> findAll(Pageable pageable) {
         Long count = jdbc.queryForObject("SELECT count(*) FROM collection_review_items", Long.class);
+
         var items = jdbc.query("""
                 SELECT * FROM collection_review_items
                 ORDER BY collected_at DESC, source_id, store_id, source_reference LIMIT ? OFFSET ?
@@ -30,10 +33,17 @@ public class CollectionReviewRepository {
                 row.getObject("store_id", UUID.class), row.getString("source_reference"),
                 row.getTimestamp("collected_at").toInstant(), row.getString("reason"),
                 mapper.readValue(row.getString("offer"), CollectedProduct.class)), pageable.getPageSize(), pageable.getOffset());
+
         return PageResponse.from(new PageImpl<>(items, pageable, count == null ? 0 : count));
     }
 
-    public void record(UUID sourceId, UUID storeId, CollectedProduct product, Instant collectedAt, String reason) {
+    public void record(
+        UUID sourceId,
+        UUID storeId,
+        CollectedProduct product,
+        Instant collectedAt,
+        String reason) {
+
         jdbc.update("""
                 INSERT INTO collection_review_items (source_id, store_id, source_reference, collected_at, reason, offer)
                 VALUES (?, ?, ?, ?, ?, CAST(? AS jsonb))
@@ -44,27 +54,31 @@ public class CollectionReviewRepository {
                 reason.substring(0, Math.min(reason.length(), 2000)), mapper.writeValueAsString(product));
     }
 
-    /** Regular price of each offer held because its price changed too much, by source reference. */
-    public java.util.Map<String, HeldPrice> heldPriceChanges(UUID sourceId, UUID storeId, String reason) {
-        java.util.Map<String, HeldPrice> held = new java.util.HashMap<>();
+    public Map<String, HeldPrice> heldPriceChanges(UUID sourceId, UUID storeId, String reason) {
+        Map<String, HeldPrice> held = new HashMap<>();
+
         jdbc.query("""
                 SELECT source_reference, collected_at, offer->>'regularPrice' AS regular_price
                 FROM collection_review_items WHERE source_id = ? AND store_id = ? AND reason = ?
                 """, row -> {
             String price = row.getString("regular_price");
+
             if (price != null) {
                 held.put(row.getString("source_reference"), new HeldPrice(
-                        row.getTimestamp("collected_at").toInstant(), new java.math.BigDecimal(price)));
+                        row.getTimestamp("collected_at").toInstant(), new BigDecimal(price)));
             }
         }, sourceId, storeId, reason);
+
         return held;
     }
 
-    public record HeldPrice(Instant collectedAt, java.math.BigDecimal regularPrice) {
-    }
+    public record HeldPrice(Instant collectedAt, BigDecimal regularPrice) {}
 
     public void resolve(UUID sourceId, UUID storeId, String reference) {
-        jdbc.update("DELETE FROM collection_review_items WHERE source_id = ? AND store_id = ? AND source_reference = ?",
-                sourceId, storeId, reference);
+        jdbc.update(
+            "DELETE FROM collection_review_items WHERE source_id = ? AND store_id = ? AND source_reference = ?",
+            sourceId,
+            storeId,
+            reference);
     }
 }

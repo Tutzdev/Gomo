@@ -11,7 +11,6 @@ import org.jsoup.Jsoup;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/** Reads only the catalog data already rendered in the public storefront HTML. */
 final class MercafacilPage {
 
     private static final Pattern FLIGHT = Pattern.compile("self\\.__next_f\\.push\\((\\[1,.*?\\])\\)", Pattern.DOTALL);
@@ -19,32 +18,41 @@ final class MercafacilPage {
 
     MercafacilPage(String html, ObjectMapper mapper) {
         StringBuilder content = new StringBuilder();
+
         for (var script : Jsoup.parse(html).select("script")) {
             var matches = FLIGHT.matcher(script.data());
+
             while (matches.find()) {
                 content.append(mapper.readTree(matches.group(1)).path(1).asString());
             }
         }
+
         for (String line : content.toString().split("\n")) {
             int separator = line.indexOf(':');
-            if (separator < 1) continue;
+
+            if (separator < 1) {continue;}
+
             String json = line.substring(separator + 1);
+
             if (json.startsWith("{") || json.startsWith("[")) {
                 records.put(line.substring(0, separator), mapper.readTree(json));
             }
         }
-        if (records.isEmpty()) throw new IllegalStateException("A página pública não contém um catálogo reconhecido");
+
+        if (records.isEmpty()) {throw new IllegalStateException("A página pública não contém um catálogo reconhecido");}
     }
 
     List<JsonNode> objects(String typename) {
         Map<String, JsonNode> matches = new LinkedHashMap<>();
         records.values().forEach(record -> visit(record, typename, matches));
+
         return List.copyOf(matches.values());
     }
 
     JsonNode pagination() {
         List<JsonNode> matches = new ArrayList<>();
         records.values().forEach(record -> findPagination(record, matches));
+
         return matches.stream().findFirst()
                 .orElseThrow(() -> new IllegalStateException("Catálogo sem paginação verificável"));
     }
@@ -53,6 +61,7 @@ final class MercafacilPage {
         if (node.isString() && node.asString().matches("\\$[0-9a-f]+")) {
             return records.getOrDefault(node.asString().substring(1), node);
         }
+
         return node;
     }
 
@@ -60,11 +69,13 @@ final class MercafacilPage {
         if (typename.equals(node.path("__typename").asString())) {
             matches.putIfAbsent(node.path("id").asString(), node);
         }
-        if (node.isArray() || node.isObject()) node.forEach(child -> visit(child, typename, matches));
+
+        if (node.isArray() || node.isObject()) {node.forEach(child -> visit(child, typename, matches));}
     }
 
     private void findPagination(JsonNode node, List<JsonNode> matches) {
-        if (node.path("pagination").isObject()) matches.add(node.path("pagination"));
-        if (node.isArray() || node.isObject()) node.forEach(child -> findPagination(child, matches));
+        if (node.path("pagination").isObject()) {matches.add(node.path("pagination"));}
+
+        if (node.isArray() || node.isObject()) {node.forEach(child -> findPagination(child, matches));}
     }
 }
