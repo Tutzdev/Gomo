@@ -16,11 +16,6 @@ class FlywayConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(FlywayConfiguration.class);
 
-    /**
-     * Migrations rewritten after release without changing what they leave in the database. V54 only got a faster
-     * backfill: a database that already ran the first text has the same table, so its stored checksum is realigned
-     * instead of failing validation. Any other mismatch still stops the boot.
-     */
     static final Set<String> REWRITTEN_VERSIONS = Set.of("54");
 
     @Bean
@@ -35,14 +30,14 @@ class FlywayConfiguration {
         var mismatches = flyway.validateWithResult().invalidMigrations.stream()
                 .filter(FlywayConfiguration::isChecksumMismatch)
                 .toList();
-        if (mismatches.isEmpty()) {
-            return;
-        }
-        if (!mismatches.stream().allMatch(output -> REWRITTEN_VERSIONS.contains(output.version))) {
-            return; // migrate() validates again and reports the unexpected mismatch
-        }
+
+        if (mismatches.isEmpty()) {return;}
+
+        if (!mismatches.stream().allMatch(output -> REWRITTEN_VERSIONS.contains(output.version))) {return;}
+
         log.warn("Realinhando checksum das migrations reescritas: {}",
                 mismatches.stream().map(output -> output.version).toList());
+
         flyway.repair();
     }
 

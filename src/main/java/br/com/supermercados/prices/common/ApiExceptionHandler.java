@@ -38,22 +38,25 @@ public class ApiExceptionHandler {
         return problems.create(exception.getStatus(), exception.getMessage(), request);
     }
 
-    /** The frontend reads {@code limit} to explain what the free plan blocked and what Premium unlocks. */
     @ExceptionHandler(PlanLimitException.class)
     ProblemDetail handlePlanLimit(PlanLimitException exception, HttpServletRequest request) {
         var response = problems.create(exception.getStatus(), exception.getMessage(), request);
         response.setProperty("code", "PLAN_LIMIT");
         response.setProperty("limit", exception.getLimit());
+
         return response;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ProblemDetail handleValidation(MethodArgumentNotValidException exception, HttpServletRequest request) {
         var response = problems.create(HttpStatus.BAD_REQUEST, "Dados de entrada inválidos.", request);
+
         List<FieldError> errors = exception.getBindingResult().getFieldErrors().stream()
                 .map(error -> new FieldError(error.getField(), error.getDefaultMessage()))
                 .distinct().toList();
+
         response.setProperty("errors", errors);
+
         return response;
     }
 
@@ -66,6 +69,7 @@ public class ApiExceptionHandler {
     @ExceptionHandler({DataIntegrityViolationException.class, OptimisticLockingFailureException.class})
     ProblemDetail handleConflict(Exception exception, HttpServletRequest request) {
         log.warn("Conflito de persistência: {}", exception.getClass().getSimpleName());
+
         return problems.create(HttpStatus.CONFLICT, "A operação conflita com o estado atual dos dados.", request);
     }
 
@@ -76,14 +80,13 @@ public class ApiExceptionHandler {
             return ResponseEntity.status(status).headers(response.getHeaders())
                     .body(problems.create(status, status.getReasonPhrase(), request));
         }
-        // Exception messages may contain SQL parameters or credentials from upstream systems.
+
         log.error("Falha inesperada: {}", exception.getClass().getName());
-        // No-op unless SENTRY_DSN is set; ErrorMonitoringConfiguration drops the message before sending.
         Sentry.captureException(exception);
+
         return ResponseEntity.internalServerError().body(problems.create(
                 HttpStatus.INTERNAL_SERVER_ERROR, "Não foi possível concluir a operação.", request));
     }
 
-    public record FieldError(String field, String message) {
-    }
+    public record FieldError(String field, String message) {}
 }

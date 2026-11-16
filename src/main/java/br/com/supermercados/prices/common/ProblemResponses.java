@@ -23,6 +23,7 @@ public class ProblemResponses {
         response.setProperty("code", status.name());
         response.setProperty("path", request.getRequestURI());
         response.setProperty("timestamp", clock.instant());
+
         return response;
     }
 }

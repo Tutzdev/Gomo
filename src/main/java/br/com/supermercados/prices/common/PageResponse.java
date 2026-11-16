@@ -10,7 +10,11 @@ public record PageResponse<T>(List<T> content, int page, int size, long totalEle
     }
 
     public static <T> PageResponse<T> from(Page<T> page) {
-        return new PageResponse<>(page.getContent(), page.getNumber(), page.getSize(),
-                page.getTotalElements(), page.getTotalPages());
+        return new PageResponse<>(
+            page.getContent(),
+            page.getNumber(),
+            page.getSize(),
+            page.getTotalElements(),
+            page.getTotalPages());
     }
 }
