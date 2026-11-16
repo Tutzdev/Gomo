@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class PriceAlertController {
 
+    private static final Sort NEWEST_FIRST = Sort.by(Sort.Direction.DESC, "createdAt", "id");
+
     private final PriceAlertService alerts;
     private final AlertNotificationService notifications;
 
@@ -32,36 +34,38 @@ public class PriceAlertController {
 
     @PostMapping("/alerts")
     public ResponseEntity<PriceAlertResponse> create(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @Valid @RequestBody CreatePriceAlertRequest request) {
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @Valid @RequestBody CreatePriceAlertRequest request) {
+
         PriceAlertResponse response = alerts.create(user, request);
-        
+
         return ResponseEntity.created(URI.create("/api/v1/alerts/" + response.id())).body(response);
     }
 
     @GetMapping("/alerts")
     public PageResponse<PriceAlertResponse> findAlerts(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt", "id");
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
 
-        return alerts.findMine(user.id(), PageRequests.create(page, size, sort));
+        return alerts.findMine(user.id(), PageRequests.create(page, size, NEWEST_FIRST));
     }
 
     @PatchMapping("/alerts/{id}/deactivation")
     public PriceAlertResponse deactivate(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id) {return alerts.deactivate(user.id(), id);}
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id) {
+
+        return alerts.deactivate(user.id(), id);
+    }
 
     @GetMapping("/notifications")
     public PageResponse<AlertNotificationResponse> findNotifications(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt", "id");
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
 
-        return notifications.findMine(user.id(), PageRequests.create(page, size, sort));
+        return notifications.findMine(user.id(), PageRequests.create(page, size, NEWEST_FIRST));
     }
 
     @GetMapping("/notifications/unread-count")
@@ -71,6 +75,9 @@ public class PriceAlertController {
 
     @PatchMapping("/notifications/{id}/read")
     public AlertNotificationResponse markRead(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id) {return notifications.markRead(user.id(), id);}
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id) {
+
+        return notifications.markRead(user.id(), id);
+    }
 }

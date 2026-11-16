@@ -24,11 +24,11 @@ public class PriceAlertService {
     private final Clock clock;
 
     public PriceAlertService(
-        PriceAlertRepository alerts, 
+        PriceAlertRepository alerts,
         ProductService products,
-        LocationService locations, 
+        LocationService locations,
         Clock clock) {
-            
+
         this.alerts = alerts;
         this.products = products;
         this.locations = locations;
@@ -37,29 +37,16 @@ public class PriceAlertService {
 
     @Transactional
     public PriceAlertResponse create(AuthenticatedUser user, CreatePriceAlertRequest request) {
-        if (!user.emailVerified()) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Confirme o e-mail antes de criar alertas.");}
-
-        if (!user.premium() && request.kind() == PriceAlertKind.BELOW_AVERAGE) {
-            throw new PlanLimitException(PlanLimit.BELOW_AVERAGE_ALERTS,
-                    "O alerta abaixo da média faz parte do Premium. No plano grátis, escolha o preço que você quer.");
-        }
-
-        if (!user.premium() && alerts.countByUserIdAndActiveTrue(user.id()) >= FreePlan.MAX_ACTIVE_ALERTS) {
-            throw new PlanLimitException(PlanLimit.ACTIVE_ALERTS,
-                    "No plano grátis você mantém até 2 alertas ativos. Desative um ou assine o Premium.");
-        }
-
-        if (!request.hasOnlyItsOwnField()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, request.kind() == PriceAlertKind.TARGET_PRICE
-                    ? "Informe o preço desejado."
-                    : "Informe quantos por cento abaixo da média (de 5 a 50).");
-        }
+        requireVerifiedEmail(user);
+        requireAllowedByPlan(user, request);
+        requireOnlyItsOwnField(request);
 
         products.requireProduct(request.productId());
         locations.requireCity(request.cityId());
 
-        return PriceAlertResponse.from(alerts.save(new PriceAlert(user.id(), request, clock.instant())));
+        PriceAlert alert = new PriceAlert(user.id(), request, clock.instant());
+
+        return PriceAlertResponse.from(alerts.save(alert));
     }
 
     @Transactional(readOnly = true)
@@ -76,8 +63,41 @@ public class PriceAlertService {
     public PriceAlertResponse deactivate(UUID userId, UUID alertId) {
         PriceAlert alert = alerts.findByIdAndUserId(alertId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Alerta não encontrado."));
+
         alert.deactivate(clock.instant());
 
         return PriceAlertResponse.from(alert);
+    }
+
+    private static void requireVerifiedEmail(AuthenticatedUser user) {
+        if (!user.emailVerified()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Confirme o e-mail antes de criar alertas.");
+        }
+    }
+
+    private void requireAllowedByPlan(AuthenticatedUser user, CreatePriceAlertRequest request) {
+        if (user.premium()) {return;}
+
+        if (request.kind() == PriceAlertKind.BELOW_AVERAGE) {
+            throw new PlanLimitException(
+                PlanLimit.BELOW_AVERAGE_ALERTS,
+                "O alerta abaixo da média faz parte do Premium. No plano grátis, escolha o preço que você quer.");
+        }
+
+        if (alerts.countByUserIdAndActiveTrue(user.id()) >= FreePlan.MAX_ACTIVE_ALERTS) {
+            throw new PlanLimitException(
+                PlanLimit.ACTIVE_ALERTS,
+                "No plano grátis você mantém até 2 alertas ativos. Desative um ou assine o Premium.");
+        }
+    }
+
+    private static void requireOnlyItsOwnField(CreatePriceAlertRequest request) {
+        if (request.hasOnlyItsOwnField()) {return;}
+
+        String message = request.kind() == PriceAlertKind.TARGET_PRICE
+                ? "Informe o preço desejado."
+                : "Informe quantos por cento abaixo da média (de 5 a 50).";
+
+        throw new ApiException(HttpStatus.BAD_REQUEST, message);
     }
 }

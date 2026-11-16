@@ -17,17 +17,16 @@ public record PriceAlertResponse(
         Instant lastNotifiedAt) {
 
     static PriceAlertResponse from(PriceAlert alert) {
-
         return new PriceAlertResponse(
-            alert.getId(), 
-            alert.getProductId(), 
-            alert.getCityId(), 
+            alert.getId(),
+            alert.getProductId(),
+            alert.getCityId(),
             alert.getKind(),
-            alert.getTargetPrice(), 
-            alert.getDiscountPercent(), 
-            alert.isActive(), 
+            alert.getTargetPrice(),
+            alert.getDiscountPercent(),
+            alert.isActive(),
             alert.getCreatedAt(),
-            alert.getUpdatedAt(), 
+            alert.getUpdatedAt(),
             alert.getLastNotifiedAt());
     }
 }

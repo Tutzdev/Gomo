@@ -35,8 +35,7 @@ class AlertNotification {
 
     private Instant readAt;
 
-    protected AlertNotification() {
-    }
+    protected AlertNotification() {}
 
     void markRead(Instant now) {
         if (readAt == null) {

@@ -55,8 +55,7 @@ class PriceAlert {
     @Version
     private long version;
 
-    protected PriceAlert() {
-    }
+    protected PriceAlert() {}
 
     PriceAlert(UUID userId, CreatePriceAlertRequest request, Instant now) {
         id = UUID.randomUUID();
@@ -64,7 +63,7 @@ class PriceAlert {
         productId = request.productId();
         cityId = request.cityId();
         kind = request.kind();
-        targetPrice = request.targetPrice() == null ? null : request.targetPrice().setScale(2, RoundingMode.UNNECESSARY);
+        targetPrice = inCents(request.targetPrice());
         discountPercent = request.discountPercent();
         active = true;
         createdAt = now;
@@ -82,21 +81,24 @@ class PriceAlert {
         updatedAt = now;
     }
 
-    /**
-     * A promotion is collected four times a day for as long as it lasts; one notice is enough. After the first,
-     * the alert speaks again only when the price drops below the one it announced, or when it is still there
-     * {@code reminder} later. {@code minimumInterval} keeps the spacing of the plan either way.
-     */
     boolean shouldNotify(BigDecimal price, Instant now, Duration minimumInterval, Duration reminder) {
-        if (lastNotifiedAt == null) {
-            return true;
-        }
-        if (lastNotifiedAt.isAfter(now.minus(minimumInterval))) {
-            return false;
-        }
-        // Notified before the price was kept: the old rule, once, until this notice records it.
-        return lastNotifiedPrice == null || price.compareTo(lastNotifiedPrice) < 0
-                || !lastNotifiedAt.isAfter(now.minus(reminder));
+        if (lastNotifiedAt == null) {return true;}
+
+        if (wasNotifiedWithin(minimumInterval, now)) {return false;}
+
+        return isCheaperThanLastNotice(price) || !wasNotifiedWithin(reminder, now);
+    }
+
+    private boolean wasNotifiedWithin(Duration period, Instant now) {
+        return lastNotifiedAt.isAfter(now.minus(period));
+    }
+
+    private boolean isCheaperThanLastNotice(BigDecimal price) {
+        return lastNotifiedPrice == null || price.compareTo(lastNotifiedPrice) < 0;
+    }
+
+    private static BigDecimal inCents(BigDecimal price) {
+        return price == null ? null : price.setScale(2, RoundingMode.UNNECESSARY);
     }
 
     UUID getId() {

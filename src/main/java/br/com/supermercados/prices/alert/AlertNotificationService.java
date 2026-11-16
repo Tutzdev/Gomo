@@ -34,7 +34,9 @@ public class AlertNotificationService {
     public AlertNotificationResponse markRead(UUID userId, UUID notificationId) {
         AlertNotification notification = notifications.findByIdAndUserId(notificationId, userId)
                 .orElseThrow(this::notFound);
+
         notification.markRead(clock.instant());
+
         return notifications.findDetailedByIdAndUserId(notificationId, userId).orElseThrow(this::notFound);
     }
 

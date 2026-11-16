@@ -22,9 +22,12 @@ interface PriceAlertRepository extends JpaRepository<PriceAlert, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select alert from PriceAlert alert
-            where alert.productId = :productId and alert.cityId = :cityId and alert.active = true
+            where alert.productId = :productId
+              and alert.cityId = :cityId
+              and alert.active = true
             order by alert.id
             """)
     List<PriceAlert> findActiveForEvaluation(
-            @Param("productId") UUID productId, @Param("cityId") UUID cityId);
+        @Param("productId") UUID productId,
+        @Param("cityId") UUID cityId);
 }

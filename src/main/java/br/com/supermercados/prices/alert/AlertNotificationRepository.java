@@ -15,21 +15,38 @@ interface AlertNotificationRepository extends JpaRepository<AlertNotification, U
 
     String DETAILED = """
             select new br.com.supermercados.prices.alert.AlertNotificationResponse(
-                notification.id, notification.alertId, notification.priceRecordId, notification.storeId,
-                notification.unitPrice, notification.createdAt, notification.readAt, alert.productId, product.name,
-                store.name, alert.kind, alert.targetPrice, alert.discountPercent)
+                notification.id,
+                notification.alertId,
+                notification.priceRecordId,
+                notification.storeId,
+                notification.unitPrice,
+                notification.createdAt,
+                notification.readAt,
+                alert.productId,
+                product.name,
+                store.name,
+                alert.kind,
+                alert.targetPrice,
+                alert.discountPercent)
             from AlertNotification notification
             join PriceAlert alert on alert.id = notification.alertId
             join Product product on product.id = alert.productId
             join Store store on store.id = notification.storeId
             """;
 
-    @Query(value = DETAILED + " where notification.userId = :userId",
-            countQuery = "select count(notification) from AlertNotification notification where notification.userId = :userId")
+    String COUNT_BY_USER = """
+            select count(notification)
+            from AlertNotification notification
+            where notification.userId = :userId
+            """;
+
+    @Query(value = DETAILED + " where notification.userId = :userId", countQuery = COUNT_BY_USER)
     Page<AlertNotificationResponse> findDetailedByUserId(@Param("userId") UUID userId, Pageable pageable);
 
     @Query(DETAILED + " where notification.id = :id and notification.userId = :userId")
-    Optional<AlertNotificationResponse> findDetailedByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
+    Optional<AlertNotificationResponse> findDetailedByIdAndUserId(
+        @Param("id") UUID id,
+        @Param("userId") UUID userId);
 
     Optional<AlertNotification> findByIdAndUserId(UUID id, UUID userId);
 
@@ -38,30 +55,29 @@ interface AlertNotificationRepository extends JpaRepository<AlertNotification, U
     @Modifying
     @Query(value = """
             INSERT INTO alert_notifications (
-                id, 
-                user_id, 
-                alert_id, 
-                price_record_id, 
-                store_id, 
-                unit_price, 
+                id,
+                user_id,
+                alert_id,
+                price_record_id,
+                store_id,
+                unit_price,
                 created_at
             ) VALUES (
-                :id, 
-                :userId, 
-                :alertId, 
-                :priceRecordId, 
-                :storeId, 
-                :unitPrice, 
+                :id,
+                :userId,
+                :alertId,
+                :priceRecordId,
+                :storeId,
+                :unitPrice,
                 :createdAt
             ) ON CONFLICT (alert_id, price_record_id) DO NOTHING
             """, nativeQuery = true)
-
     int insertIfAbsent(
-            @Param("id") UUID id,
-            @Param("userId") UUID userId,
-            @Param("alertId") UUID alertId,
-            @Param("priceRecordId") UUID priceRecordId,
-            @Param("storeId") UUID storeId,
-            @Param("unitPrice") BigDecimal unitPrice,
-            @Param("createdAt") Instant createdAt);
+        @Param("id") UUID id,
+        @Param("userId") UUID userId,
+        @Param("alertId") UUID alertId,
+        @Param("priceRecordId") UUID priceRecordId,
+        @Param("storeId") UUID storeId,
+        @Param("unitPrice") BigDecimal unitPrice,
+        @Param("createdAt") Instant createdAt);
 }
