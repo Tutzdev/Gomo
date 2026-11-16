@@ -5,12 +5,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * A recorded purchase. {@code savings} is what the compared items (those with a price in at least two stores of
- * the city) cost less than the city average that day; it is negative when the person paid more.
- *
- * @param itemsWithoutPrice bought items with no price at the store and none typed from the shelf: not counted
- */
 public record PurchaseResponse(
         UUID id,
         UUID listId,
@@ -30,7 +24,6 @@ public record PurchaseResponse(
         items = List.copyOf(items);
     }
 
-    /** @param savings {@code null} for an item not compared with the city */
     public record Item(
             UUID productId,
             String productName,
@@ -40,8 +33,7 @@ public record PurchaseResponse(
             BigDecimal cityAveragePrice,
             int cityStores,
             BigDecimal linePaid,
-            BigDecimal savings) {
-    }
+            BigDecimal savings) {}
 
     static PurchaseResponse from(Purchase purchase, String storeName, List<PurchaseItem> items) {
         return new PurchaseResponse(purchase.getId(), purchase.getShoppingListId(), purchase.getListName(),

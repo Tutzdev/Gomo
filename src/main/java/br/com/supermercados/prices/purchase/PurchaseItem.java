@@ -19,11 +19,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 class PurchaseItem {
 
-    /** Where the price paid came from. */
     enum PriceSource {
-        /** The current price Gomo had for the store. */
         COLLECTED,
-        /** The price the person saw on the shelf and typed in the "No mercado" mode. */
         SHELF
     }
 
@@ -49,15 +46,22 @@ class PurchaseItem {
     @Column(nullable = false, length = 16)
     private PriceSource priceSource;
 
-    /** Average current price among the city's stores; {@code null} when fewer than two had one. */
     @Column(precision = 12, scale = 2)
     private BigDecimal cityAveragePrice;
 
     @Column(nullable = false)
     private int cityStores;
 
-    PurchaseItem(UUID purchaseId, UUID productId, String productName, BigDecimal quantity, BigDecimal unitPrice,
-            PriceSource priceSource, BigDecimal cityAveragePrice, int cityStores) {
+    PurchaseItem(
+        UUID purchaseId,
+        UUID productId,
+        String productName,
+        BigDecimal quantity,
+        BigDecimal unitPrice,
+        PriceSource priceSource,
+        BigDecimal cityAveragePrice,
+        int cityStores) {
+
         this.id = UUID.randomUUID();
         this.purchaseId = purchaseId;
         this.productId = productId;
@@ -73,7 +77,6 @@ class PurchaseItem {
         return unitPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP);
     }
 
-    /** {@code null} when the item is not compared with the city. */
     BigDecimal lineCityAverage() {
         return cityAveragePrice == null ? null : cityAveragePrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP);
     }

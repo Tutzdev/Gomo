@@ -27,26 +27,35 @@ public class PurchaseController {
     }
 
     @GetMapping("/shopping-lists/{id}/trip")
-    public TripResponse trip(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id,
-            @RequestParam UUID storeId) {
+    public TripResponse trip(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id,
+        @RequestParam UUID storeId) {
+
         return trips.trip(user.id(), id, storeId);
     }
 
     @PostMapping("/shopping-lists/{id}/purchases")
-    public PurchaseService.RecordedPurchase record(@AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id, @Valid @RequestBody RecordPurchaseRequest request) {
+    public PurchaseService.RecordedPurchase record(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id,
+        @Valid @RequestBody RecordPurchaseRequest request) {
+
         return purchases.record(user.id(), id, request);
     }
 
     @GetMapping("/savings")
-    public SavingsReportResponse savings(@AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam(required = false) String month) {
+    public SavingsReportResponse savings(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @RequestParam(required = false) String month) {
+
         return purchases.month(user.id(), user.premium(), month);
     }
 
     @DeleteMapping("/purchases/{id}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
         purchases.delete(user.id(), id);
+
         return ResponseEntity.noContent().build();
     }
 }

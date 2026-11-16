@@ -11,7 +11,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** Written once by {@link PurchaseRepository#insertIfAbsent}; read for the savings report. */
 @Entity
 @Table(name = "purchases")
 @Getter
@@ -53,7 +52,6 @@ class Purchase {
     @Column(nullable = false)
     private int itemsWithoutPrice;
 
-    /** What the compared items cost less than the city average; negative when the person paid more. */
     BigDecimal savings() {
         return comparedCityAverage.subtract(comparedPaid);
     }
