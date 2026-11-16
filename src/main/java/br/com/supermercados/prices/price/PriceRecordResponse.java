@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Historical values describe the observation time and are not a current-price assertion. */
 public record PriceRecordResponse(
         UUID id,
         UUID productId,
@@ -29,25 +28,25 @@ public record PriceRecordResponse(
 
     public static PriceRecordResponse from(PriceRecord record) {
         return new PriceRecordResponse(
-                record.getId(),
-                record.getProductId(),
-                record.getStoreId(),
-                record.getRegularPrice(),
-                record.getPromotionalPrice(),
-                record.getCurrency(),
-                record.getAvailability(),
-                record.getCollectedAt(),
-                record.getRecordedAt(),
-                record.getValidUntil(),
-                record.getPromotionValidUntil(),
-                record.getPromotionCondition(),
-                record.getSourceId(),
-                record.getSourceReference(),
-                record.getOriginType(),
-                record.getContributionId(),
-                record.getOriginUrl(),
-                record.getSourceProductReference(),
-                record.getSourceProductName(),
-                PriceSalesChannel.of(record));
+            record.getId(),
+            record.getProductId(),
+            record.getStoreId(),
+            record.getRegularPrice(),
+            record.getPromotionalPrice(),
+            record.getCurrency(),
+            record.getAvailability(),
+            record.getCollectedAt(),
+            record.getRecordedAt(),
+            record.getValidUntil(),
+            record.getPromotionValidUntil(),
+            record.getPromotionCondition(),
+            record.getSourceId(),
+            record.getSourceReference(),
+            record.getOriginType(),
+            record.getContributionId(),
+            record.getOriginUrl(),
+            record.getSourceProductReference(),
+            record.getSourceProductName(),
+            PriceSalesChannel.of(record));
     }
 }

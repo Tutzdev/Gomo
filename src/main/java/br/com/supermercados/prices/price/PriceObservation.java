@@ -11,7 +11,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-/** A source reference identifies one immutable observation, not a mutable product page. */
 public record PriceObservation(
         @NotNull UUID productId,
         @NotNull UUID storeId,
@@ -29,43 +28,127 @@ public record PriceObservation(
         @Size(max = 2048) String sourceProductReference,
         @Size(max = 200) String sourceProductName) {
 
-    public PriceObservation(UUID productId, UUID storeId, UUID sourceId, String sourceReference,
-            BigDecimal regularPrice, BigDecimal promotionalPrice, String currency, Instant collectedAt,
-            Instant validUntil, Instant promotionValidUntil, String promotionCondition, StockAvailability availability,
-            String originUrl, String sourceProductReference) {
-        this(productId, storeId, sourceId, sourceReference, regularPrice, promotionalPrice, currency,
-                collectedAt, validUntil, promotionValidUntil, promotionCondition, availability, originUrl,
-                sourceProductReference, null);
-    }
+    public PriceObservation(
+        UUID productId,
+        UUID storeId,
+        UUID sourceId,
+        String sourceReference,
+        BigDecimal regularPrice,
+        BigDecimal promotionalPrice,
+        String currency,
+        Instant collectedAt,
+        Instant validUntil,
+        Instant promotionValidUntil,
+        String promotionCondition,
+        StockAvailability availability,
+        String originUrl,
+        String sourceProductReference) {
 
-    public PriceObservation(UUID productId, UUID storeId, UUID sourceId, String sourceReference,
-            BigDecimal regularPrice, BigDecimal promotionalPrice, String currency, Instant collectedAt,
-            Instant validUntil, Instant promotionValidUntil, String promotionCondition, StockAvailability availability,
-            String originUrl) {
-        this(productId, storeId, sourceId, sourceReference, regularPrice, promotionalPrice, currency,
-                collectedAt, validUntil, promotionValidUntil, promotionCondition, availability, originUrl, null);
-    }
-
-    public PriceObservation(UUID productId, UUID storeId, UUID sourceId, String sourceReference,
-            BigDecimal regularPrice, BigDecimal promotionalPrice, String currency, Instant collectedAt,
-            Instant validUntil, Instant promotionValidUntil, String promotionCondition, StockAvailability availability) {
-        this(productId, storeId, sourceId, sourceReference, regularPrice, promotionalPrice, currency,
-                collectedAt, validUntil, promotionValidUntil, promotionCondition, availability, null);
+        this(
+            productId,
+            storeId,
+            sourceId,
+            sourceReference,
+            regularPrice,
+            promotionalPrice,
+            currency,
+            collectedAt,
+            validUntil,
+            promotionValidUntil,
+            promotionCondition,
+            availability,
+            originUrl,
+            sourceProductReference,
+            null);
     }
 
     public PriceObservation(
-            UUID productId,
-            UUID storeId,
-            UUID sourceId,
-            String sourceReference,
-            BigDecimal regularPrice,
-            BigDecimal promotionalPrice,
-            String currency,
-            Instant collectedAt,
-            Instant validUntil,
-            Instant promotionValidUntil,
-            StockAvailability availability) {
-        this(productId, storeId, sourceId, sourceReference, regularPrice, promotionalPrice,
-                currency, collectedAt, validUntil, promotionValidUntil, null, availability);
+        UUID productId,
+        UUID storeId,
+        UUID sourceId,
+        String sourceReference,
+        BigDecimal regularPrice,
+        BigDecimal promotionalPrice,
+        String currency,
+        Instant collectedAt,
+        Instant validUntil,
+        Instant promotionValidUntil,
+        String promotionCondition,
+        StockAvailability availability,
+        String originUrl) {
+
+        this(
+            productId,
+            storeId,
+            sourceId,
+            sourceReference,
+            regularPrice,
+            promotionalPrice,
+            currency,
+            collectedAt,
+            validUntil,
+            promotionValidUntil,
+            promotionCondition,
+            availability,
+            originUrl,
+            null);
+    }
+
+    public PriceObservation(
+        UUID productId,
+        UUID storeId,
+        UUID sourceId,
+        String sourceReference,
+        BigDecimal regularPrice,
+        BigDecimal promotionalPrice,
+        String currency,
+        Instant collectedAt,
+        Instant validUntil,
+        Instant promotionValidUntil,
+        String promotionCondition,
+        StockAvailability availability) {
+
+        this(
+            productId,
+            storeId,
+            sourceId,
+            sourceReference,
+            regularPrice,
+            promotionalPrice,
+            currency,
+            collectedAt,
+            validUntil,
+            promotionValidUntil,
+            promotionCondition,
+            availability,
+            null);
+    }
+
+    public PriceObservation(
+        UUID productId,
+        UUID storeId,
+        UUID sourceId,
+        String sourceReference,
+        BigDecimal regularPrice,
+        BigDecimal promotionalPrice,
+        String currency,
+        Instant collectedAt,
+        Instant validUntil,
+        Instant promotionValidUntil,
+        StockAvailability availability) {
+
+        this(
+            productId,
+            storeId,
+            sourceId,
+            sourceReference,
+            regularPrice,
+            promotionalPrice,
+            currency,
+            collectedAt,
+            validUntil,
+            promotionValidUntil,
+            null,
+            availability);
     }
 }

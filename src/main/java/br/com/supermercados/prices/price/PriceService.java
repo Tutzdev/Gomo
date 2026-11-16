@@ -31,9 +31,16 @@ public class PriceService {
     private final PriceAlertEvaluator alertEvaluator;
     private final Clock clock;
 
-    public PriceService(PriceRecordRepository prices, ProductService products, StoreRepository stores,
-            DataSourceService sources, Validator validator,
-            PriceObservationRules observationRules, PriceAlertEvaluator alertEvaluator, Clock clock) {
+    public PriceService(
+        PriceRecordRepository prices,
+        ProductService products,
+        StoreRepository stores,
+        DataSourceService sources,
+        Validator validator,
+        PriceObservationRules observationRules,
+        PriceAlertEvaluator alertEvaluator,
+        Clock clock) {
+
         this.prices = prices;
         this.products = products;
         this.stores = stores;
@@ -47,23 +54,28 @@ public class PriceService {
     @Transactional(readOnly = true)
     public PageResponse<PriceRecordResponse> findHistory(UUID productId, UUID storeId, Pageable pageable) {
         requireProductAndStore(productId, storeId);
+
         return PageResponse.from(prices.findByProductIdAndStoreId(productId, storeId, pageable)
                 .map(PriceRecordResponse::from));
     }
 
-    /** The history people see in the app: Premium only, limited to the Premium history window. */
-    public PageResponse<PriceRecordResponse> findRecentHistory(UUID productId, UUID storeId, Pageable pageable,
-            boolean premium) {
+    public PageResponse<PriceRecordResponse> findRecentHistory(
+        UUID productId,
+        UUID storeId,
+        Pageable pageable,
+        boolean premium) {
+
         if (!premium) {
             throw new PlanLimitException(PlanLimit.PRICE_HISTORY, "O histórico de preços faz parte do Premium.");
         }
+
         requireProductAndStore(productId, storeId);
         Instant since = clock.instant().minus(FreePlan.PREMIUM_HISTORY);
+
         return PageResponse.from(prices.findByProductIdAndStoreIdAndCollectedAtGreaterThanEqual(
                 productId, storeId, since, pageable).map(PriceRecordResponse::from));
     }
 
-    /** Internal ingestion boundary. Reusing a source reference with changed content is a conflict. */
     @Transactional
     public PriceRecordResponse appendObservation(PriceObservation observation) {
         return append(observation, null);
@@ -74,10 +86,10 @@ public class PriceService {
         if (contributionId == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "A contribuição é obrigatória.");
         }
+
         return append(observation, PriceOriginType.USER_CONTRIBUTION, contributionId);
     }
 
-    /** A price written down at the shelf by the Gomo team; it stays current for the in-store max age. */
     @Transactional
     public PriceRecordResponse appendStoreVisit(PriceObservation observation) {
         return append(observation, PriceOriginType.STORE_VISIT, null);
@@ -98,27 +110,36 @@ public class PriceService {
             case USER_CONTRIBUTION -> PriceRecord.fromContribution(observation, contributionId, now);
             case STORE_VISIT -> PriceRecord.fromStoreVisit(observation, now);
         };
+
         prices.insertIfAbsent(candidate);
+
         PriceRecord persisted = prices.findBySourceIdAndSourceReference(
                 candidate.getSourceId(), candidate.getSourceReference()).orElseThrow();
+
         if (!persisted.hasSameObservation(candidate)) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "A referência da fonte já identifica outra observação de preço.");
+            throw new ApiException(
+                HttpStatus.CONFLICT,
+                "A referência da fonte já identifica outra observação de preço.");
         }
+
         if (persisted.getOriginUrl() == null && candidate.getOriginUrl() != null
                 && prices.fillMissingOrigin(persisted.getId(), candidate.getOriginUrl()) > 0) {
             persisted.enrichOrigin(candidate.getOriginUrl());
         }
+
         if (persisted.getSourceProductName() == null && candidate.getSourceProductName() != null
                 && prices.fillMissingSourceDescription(persisted.getId(), candidate.getSourceProductName()) > 0) {
             persisted.enrichSourceDescription(candidate.getSourceProductName());
         }
+
         alertEvaluator.evaluate(persisted.getId());
+
         return PriceRecordResponse.from(persisted);
     }
 
     private void requireProductAndStore(UUID productId, UUID storeId) {
         products.requireProduct(productId);
+
         if (!stores.existsById(storeId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Loja não encontrada.");
         }
@@ -128,12 +149,20 @@ public class PriceService {
         if (observation == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "A observação de preço é obrigatória.");
         }
+
         var violations = validator.validate(observation);
+
         if (!violations.isEmpty()) {
             throw new ConstraintViolationException(violations);
         }
-        observationRules.validate(observation.regularPrice(), observation.promotionalPrice(),
-                observation.collectedAt(), observation.validUntil(), observation.promotionValidUntil(),
-                observation.promotionCondition(), now);
+
+        observationRules.validate(
+            observation.regularPrice(),
+            observation.promotionalPrice(),
+            observation.collectedAt(),
+            observation.validUntil(),
+            observation.promotionValidUntil(),
+            observation.promotionCondition(),
+            now);
     }
 }

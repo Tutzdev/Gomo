@@ -24,13 +24,18 @@ public class PriceController {
 
     @GetMapping
     public PageResponse<PriceRecordResponse> history(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam UUID productId,
-            @RequestParam UUID storeId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @RequestParam UUID productId,
+        @RequestParam UUID storeId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         Sort sort = Sort.by(Sort.Direction.DESC, "collectedAt", "recordedAt", "id");
-        return prices.findRecentHistory(productId, storeId, PageRequests.create(page, size, sort),
-                AuthenticatedUser.hasPremium(user));
+
+        return prices.findRecentHistory(
+            productId,
+            storeId,
+            PageRequests.create(page, size, sort),
+            AuthenticatedUser.hasPremium(user));
     }
 }

@@ -12,7 +12,12 @@ public record PriceQuote(
         PriceRecordResponse observation) {
 
     public static PriceQuote missing() {
-        return new PriceQuote(PriceStatus.NO_OBSERVATION, StockAvailability.UNKNOWN,
-                null, false, null, null);
+        return new PriceQuote(
+            PriceStatus.NO_OBSERVATION,
+            StockAvailability.UNKNOWN,
+            null,
+            false,
+            null,
+            null);
     }
 }

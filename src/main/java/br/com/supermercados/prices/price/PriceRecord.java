@@ -85,8 +85,7 @@ public class PriceRecord {
         return from(observation, recordedAt, PriceOriginType.SOURCE, null);
     }
 
-    static PriceRecord fromContribution(
-            PriceObservation observation, UUID contributionId, Instant recordedAt) {
+    static PriceRecord fromContribution(PriceObservation observation, UUID contributionId, Instant recordedAt) {
         return from(observation, recordedAt, PriceOriginType.USER_CONTRIBUTION, contributionId);
     }
 
@@ -95,9 +94,13 @@ public class PriceRecord {
     }
 
     private static PriceRecord from(
-            PriceObservation observation, Instant recordedAt, PriceOriginType originType, UUID contributionId) {
+        PriceObservation observation,
+        Instant recordedAt,
+        PriceOriginType originType,
+        UUID contributionId) {
+
         PriceRecord record = new PriceRecord();
-        
+
         record.id = UUID.randomUUID();
         record.productId = observation.productId();
         record.storeId = observation.storeId();
@@ -125,11 +128,11 @@ public class PriceRecord {
     }
 
     void enrichOrigin(String publicUrl) {
-        if (originUrl == null) originUrl = publicUrl;
+        if (originUrl == null) {originUrl = publicUrl;}
     }
 
     void enrichSourceDescription(String name) {
-        if (sourceProductName == null) sourceProductName = name;
+        if (sourceProductName == null) {sourceProductName = name;}
     }
 
     boolean hasSameObservation(PriceRecord other) {
