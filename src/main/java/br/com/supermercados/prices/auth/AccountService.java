@@ -3,7 +3,6 @@ package br.com.supermercados.prices.auth;
 import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.user.User;
 import br.com.supermercados.prices.user.UserRepository;
-import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -34,14 +33,21 @@ public class AccountService {
     private final Duration verificationTtl;
     private final Duration resetTtl;
 
-    public AccountService(UserRepository users, EmailVerificationTokenRepository verificationTokens,
-            PasswordResetTokenRepository resetTokens, PasswordEncoder passwordEncoder,
-            PasswordPolicy passwordPolicy, TokenService accessTokens, AccountEmailSender emailSender,
-            Clock clock,
-            @Value("${app.auth.email-verification-ttl:P1D}") Duration verificationTtl,
-            @Value("${app.auth.password-reset-ttl:PT1H}") Duration resetTtl) {
+    public AccountService(
+        UserRepository users,
+        EmailVerificationTokenRepository verificationTokens,
+        PasswordResetTokenRepository resetTokens,
+        PasswordEncoder passwordEncoder,
+        PasswordPolicy passwordPolicy,
+        TokenService accessTokens,
+        AccountEmailSender emailSender,
+        Clock clock,
+        @Value("${app.auth.email-verification-ttl:P1D}") Duration verificationTtl,
+        @Value("${app.auth.password-reset-ttl:PT1H}") Duration resetTtl) {
+
         requirePositive(verificationTtl, "app.auth.email-verification-ttl");
         requirePositive(resetTtl, "app.auth.password-reset-ttl");
+
         this.users = users;
         this.verificationTokens = verificationTokens;
         this.resetTokens = resetTokens;
@@ -56,18 +62,22 @@ public class AccountService {
 
     @Transactional
     public void issueEmailVerification(User user) {
-        if (user.isEmailVerified()) {
-            return;
-        }
+        if (user.isEmailVerified()) {return;}
+
         Instant now = clock.instant();
-        verificationTokens.invalidateUnused(user.getId(), now);
         String rawToken = SecureTokenValues.random();
+
+        verificationTokens.invalidateUnused(user.getId(), now);
+
         verificationTokens.save(new EmailVerificationToken(
-                user.getId(), SecureTokenValues.hash(rawToken), now, now.plus(verificationTtl)));
+            user.getId(),
+            SecureTokenValues.hash(rawToken),
+            now,
+            now.plus(verificationTtl)));
+
         deliverAfterCommit(() -> emailSender.sendEmailVerification(user.getEmail(), rawToken));
     }
 
-    /** Tells the owner that someone tried to sign up with their e-mail; the sign-up itself answers as usual. */
     @Transactional
     public void notifyExistingAccount(User user) {
         deliverAfterCommit(() -> emailSender.sendExistingAccountNotice(user.getEmail()));
@@ -75,22 +85,21 @@ public class AccountService {
 
     @Transactional
     public void requestEmailVerification(UUID userId) {
-        User user = users.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
-        issueEmailVerification(user);
+        issueEmailVerification(requireUser(userId));
     }
 
     @Transactional
     public void confirmEmail(String rawToken) {
         Instant now = clock.instant();
+
         EmailVerificationToken token = verificationTokens
                 .findByTokenHashForUpdate(SecureTokenValues.hash(rawToken))
                 .orElseThrow(this::invalidToken);
-        if (token.getUsedAt() != null || !token.getExpiresAt().isAfter(now)) {
-            throw invalidToken();
-        }
-        User user = users.findById(token.getUserId())
-                .orElseThrow(this::invalidToken);
+
+        if (!token.isUsableAt(now)) {throw invalidToken();}
+
+        User user = users.findById(token.getUserId()).orElseThrow(this::invalidToken);
+
         token.use(now);
         user.verifyEmail(now);
     }
@@ -103,15 +112,16 @@ public class AccountService {
     @Transactional
     public void resetPassword(String rawToken, String password) {
         passwordPolicy.validate(password);
+
         Instant now = clock.instant();
+
         PasswordResetToken token = resetTokens
                 .findByTokenHashForUpdate(SecureTokenValues.hash(rawToken))
                 .orElseThrow(this::invalidToken);
-        if (token.getUsedAt() != null || !token.getExpiresAt().isAfter(now)) {
-            throw invalidToken();
-        }
-        User user = users.findById(token.getUserId())
-                .orElseThrow(this::invalidToken);
+
+        if (!token.isUsableAt(now)) {throw invalidToken();}
+
+        User user = users.findById(token.getUserId()).orElseThrow(this::invalidToken);
 
         resetTokens.invalidateUnused(user.getId(), now);
         token.use(now);
@@ -119,23 +129,16 @@ public class AccountService {
         accessTokens.revokeAll(user.getId());
     }
 
-    /**
-     * Changes the password of a signed-in user who proves the current one. Every other session ends (someone who
-     * knew the old password is signed out) and a pending reset link stops working; this session stays.
-     */
     @Transactional
     public void changePassword(UUID userId, String currentPassword, String newPassword, String currentSession) {
-        User user = users.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
-        if (currentPassword.getBytes(StandardCharsets.UTF_8).length > PasswordPolicy.BCRYPT_MAX_BYTES
-                || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Senha atual incorreta.");
-        }
+        User user = requireUser(userId);
+
+        requireCurrentPassword(user, currentPassword);
         passwordPolicy.validate(newPassword);
-        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "A nova senha precisa ser diferente da atual.");
-        }
+        requireDifferentPassword(user, newPassword);
+
         Instant now = clock.instant();
+
         resetTokens.invalidateUnused(userId, now);
         user.changePassword(passwordEncoder.encode(newPassword), now);
         accessTokens.revokeOthers(userId, currentSession);
@@ -143,11 +146,37 @@ public class AccountService {
 
     private void issuePasswordReset(User user) {
         Instant now = clock.instant();
-        resetTokens.invalidateUnused(user.getId(), now);
         String rawToken = SecureTokenValues.random();
+
+        resetTokens.invalidateUnused(user.getId(), now);
+
         resetTokens.save(new PasswordResetToken(
-                user.getId(), SecureTokenValues.hash(rawToken), now, now.plus(resetTtl)));
+            user.getId(),
+            SecureTokenValues.hash(rawToken),
+            now,
+            now.plus(resetTtl)));
+
         deliverAfterCommit(() -> emailSender.sendPasswordReset(user.getEmail(), rawToken));
+    }
+
+    private User requireUser(UUID userId) {
+        return users.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+    }
+
+    private void requireCurrentPassword(User user, String currentPassword) {
+        boolean wrongPassword = PasswordPolicy.exceedsBcryptLimit(currentPassword)
+                || !passwordEncoder.matches(currentPassword, user.getPasswordHash());
+
+        if (wrongPassword) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Senha atual incorreta.");
+        }
+    }
+
+    private void requireDifferentPassword(User user, String newPassword) {
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A nova senha precisa ser diferente da atual.");
+        }
     }
 
     private void deliverAfterCommit(Runnable delivery) {
@@ -155,6 +184,7 @@ public class AccountService {
             deliver(delivery);
             return;
         }
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {

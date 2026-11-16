@@ -12,16 +12,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
-/**
- * The site keeps its session in an HttpOnly cookie, so a script injected into the page cannot read the token.
- * The app and other API clients keep sending the same opaque token as "Authorization: Bearer".
- */
 @Component
 public class SessionCookies {
 
-    /** Sent by the site on every request: it asks for the cookie and marks the request for the origin check. */
     public static final String MODE_HEADER = "X-Gomo-Session";
     public static final String MODE_COOKIE = "cookie";
+
+    private static final String SECURE_NAME = "__Host-gomo_session";
+    private static final String LOCAL_NAME = "gomo_session";
 
     private final Clock clock;
     private final boolean secure;
@@ -30,8 +28,7 @@ public class SessionCookies {
     public SessionCookies(Clock clock, @Value("${app.auth.cookie.secure:true}") boolean secure) {
         this.clock = clock;
         this.secure = secure;
-        // The __Host- prefix makes the browser refuse the cookie unless it is Secure, host-only and on "/".
-        this.name = secure ? "__Host-gomo_session" : "gomo_session";
+        this.name = secure ? SECURE_NAME : LOCAL_NAME;
     }
 
     public String name() {
@@ -44,16 +41,21 @@ public class SessionCookies {
 
     public Optional<String> read(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            return Optional.empty();
-        }
-        return Arrays.stream(cookies).filter(cookie -> name.equals(cookie.getName()))
-                .map(Cookie::getValue).filter(value -> value != null && !value.isBlank()).findFirst();
+
+        if (cookies == null) {return Optional.empty();}
+
+        return Arrays.stream(cookies)
+                .filter(cookie -> name.equals(cookie.getName()))
+                .map(Cookie::getValue)
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst();
     }
 
     public void write(HttpServletResponse response, TokenService.IssuedToken token) {
-        Duration maxAge = Duration.between(clock.instant(), token.expiresAt());
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie(token.value(), maxAge.isNegative() ? Duration.ZERO : maxAge));
+        Duration remaining = Duration.between(clock.instant(), token.expiresAt());
+        Duration maxAge = remaining.isNegative() ? Duration.ZERO : remaining;
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie(token.value(), maxAge));
     }
 
     public void clear(HttpServletResponse response) {
@@ -61,7 +63,13 @@ public class SessionCookies {
     }
 
     private String cookie(String value, Duration maxAge) {
-        return ResponseCookie.from(name, value).httpOnly(true).secure(secure).sameSite("Lax").path("/")
-                .maxAge(maxAge).build().toString();
+        return ResponseCookie.from(name, value)
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(maxAge)
+                .build()
+                .toString();
     }
 }

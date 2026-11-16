@@ -19,34 +19,38 @@ class ProblemCorsProcessor extends DefaultCorsProcessor {
     }
 
     @Override
-    public boolean processRequest(CorsConfiguration configuration, HttpServletRequest request,
-            HttpServletResponse response) throws IOException {
-        if (isUnlistedOriginOutsidePreflight(configuration, request)) {
-            /*
-             * Behind Nginx the site's own login arrives with "Origin: https://<domain>" while the backend
-             * sees http://127.0.0.1, so a same-origin request looks cross-origin unless the proxy forwards
-             * the right headers. It is served without CORS headers: a browser still keeps other sites from
-             * reading the response, and any cross-site request carrying JSON or Authorization is preflighted
-             * first, which is rejected below.
-             */
-            return true;
-        }
+    public boolean processRequest(
+        CorsConfiguration configuration,
+        HttpServletRequest request,
+        HttpServletResponse response) throws IOException {
+
+        // Atrás do Nginx, o login do próprio site parece vir de outra origem. Segue sem cabeçalhos CORS:
+        // o navegador continua impedindo outros sites de ler a resposta, e o preflight é barrado abaixo.
+        if (isUnlistedOriginOutsidePreflight(configuration, request)) {return true;}
+
         boolean allowed = super.processRequest(configuration, request, response);
+
         if (!allowed) {
             problems.write(request, response, HttpStatus.FORBIDDEN, "Origem ou parâmetros CORS não permitidos.");
         }
-        return allowed;
-    }
 
-    private static boolean isUnlistedOriginOutsidePreflight(CorsConfiguration configuration, HttpServletRequest request) {
-        String origin = request.getHeader(HttpHeaders.ORIGIN);
-        return origin != null && configuration != null && !CorsUtils.isPreFlightRequest(request)
-                && configuration.checkOrigin(origin) == null;
+        return allowed;
     }
 
     @Override
     protected void rejectRequest(ServerHttpResponse response) {
-        // Defer the body until processRequest can include the original request path.
         response.setStatusCode(HttpStatus.FORBIDDEN);
+    }
+
+    private static boolean isUnlistedOriginOutsidePreflight(
+        CorsConfiguration configuration,
+        HttpServletRequest request) {
+
+        String origin = request.getHeader(HttpHeaders.ORIGIN);
+
+        return origin != null
+                && configuration != null
+                && !CorsUtils.isPreFlightRequest(request)
+                && configuration.checkOrigin(origin) == null;
     }
 }

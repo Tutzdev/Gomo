@@ -28,8 +28,14 @@ public class AuthController {
     private final SessionCookies cookies;
     private final UserService users;
 
-    public AuthController(AuthService auth, TokenService tokens, AccountService accounts,
-            AbuseProtectionService abuseProtection, SessionCookies cookies, UserService users) {
+    public AuthController(
+        AuthService auth,
+        TokenService tokens,
+        AccountService accounts,
+        AbuseProtectionService abuseProtection,
+        SessionCookies cookies,
+        UserService users) {
+
         this.auth = auth;
         this.tokens = tokens;
         this.accounts = accounts;
@@ -38,128 +44,160 @@ public class AuthController {
         this.users = users;
     }
 
-    /**
-     * Always 202 with no body or session, whether or not the e-mail already had an account (its owner gets an
-     * e-mail instead), so registration does not reveal who uses the Gomo. The client signs in afterwards.
-     */
     @PostMapping("/register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
         abuseProtection.checkRegistration(httpRequest.getRemoteAddr(), request.email());
         auth.register(request);
+
         return ResponseEntity.accepted().build();
     }
 
-    /** The site asks for the cookie and gets no token in the body; other clients keep the Bearer token. */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
-            @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest,
-            HttpServletResponse httpResponse) {
+        @Valid @RequestBody LoginRequest request,
+        HttpServletRequest httpRequest,
+        HttpServletResponse httpResponse) {
+
         abuseProtection.checkLogin(httpRequest.getRemoteAddr(), request.email());
+
         AuthResponse response = auth.login(request);
+
         if (SessionCookies.requested(httpRequest)) {
-            cookies.write(httpResponse, new TokenService.IssuedToken(response.accessToken(), response.expiresAt()));
-            response = new AuthResponse(null, "Cookie", response.expiresAt(), response.user());
+            response = keepTokenInCookie(response, httpResponse);
         }
-        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .header(HttpHeaders.PRAGMA, "no-cache").body(response);
+
+        return okWithoutCache()
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .body(response);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@AuthenticationPrincipal AuthenticatedUser principal,
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
-            HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+    public ResponseEntity<Void> logout(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+        HttpServletRequest httpRequest,
+        HttpServletResponse httpResponse) {
+
         tokens.revoke(currentToken(authorization, httpRequest), principal.id());
         cookies.clear(httpResponse);
+
         return ResponseEntity.noContent().build();
     }
 
-    /** Ends every session of the account, on every device, including this one. */
     @PostMapping("/logout-all")
-    public ResponseEntity<Void> logoutEverywhere(@AuthenticationPrincipal AuthenticatedUser principal,
-            HttpServletResponse httpResponse) {
+    public ResponseEntity<Void> logoutEverywhere(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        HttpServletResponse httpResponse) {
+
         tokens.revokeAll(principal.id());
         cookies.clear(httpResponse);
+
         return ResponseEntity.noContent().build();
     }
 
-    /** Needs the current password; this session stays and every other one ends. */
     @PostMapping("/password")
-    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal AuthenticatedUser principal,
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
-            @Valid @RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<Void> changePassword(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+        @Valid @RequestBody ChangePasswordRequest request,
+        HttpServletRequest httpRequest) {
+
         abuseProtection.checkPasswordChange(principal.id());
-        accounts.changePassword(principal.id(), request.currentPassword(), request.newPassword(),
-                currentToken(authorization, httpRequest));
+
+        accounts.changePassword(
+            principal.id(),
+            request.currentPassword(),
+            request.newPassword(),
+            currentToken(authorization, httpRequest));
+
         return ResponseEntity.noContent().build();
     }
 
-    /** The token that authenticated this request: the Bearer header, or else the site's session cookie. */
-    private String currentToken(String authorization, HttpServletRequest httpRequest) {
-        return authorization != null
-                ? authorization.substring("Bearer ".length())
-                : cookies.read(httpRequest).orElseThrow();
-    }
-
-    /** The signed-in user, or 204 when there is no session; lets the site check its cookie without a 401. */
     @GetMapping("/session")
     public ResponseEntity<UserResponse> currentSession(@AuthenticationPrincipal AuthenticatedUser principal) {
         if (principal == null) {
             return ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL, "no-store").build();
         }
-        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .body(users.findCurrentUser(principal.id()));
+
+        return okWithoutCache().body(users.findCurrentUser(principal.id()));
     }
 
-    /**
-     * Moves a session the site kept in localStorage (before the cookie) to the cookie: the old Bearer token is
-     * revoked and a new one goes only into the cookie, so nobody already signed in has to log in again.
-     */
     @PostMapping("/session")
-    public ResponseEntity<UserResponse> moveSessionToCookie(@AuthenticationPrincipal AuthenticatedUser principal,
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
-            HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+    public ResponseEntity<UserResponse> moveSessionToCookie(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+        HttpServletRequest httpRequest,
+        HttpServletResponse httpResponse) {
+
         if (authorization == null || !SessionCookies.requested(httpRequest)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Envie o token antigo no Authorization e o cabeçalho X-Gomo-Session: cookie.");
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "Envie o token antigo no Authorization e o cabeçalho X-Gomo-Session: cookie.");
         }
+
         cookies.write(httpResponse, tokens.issue(principal.id()));
-        tokens.revoke(authorization.substring("Bearer ".length()), principal.id());
-        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .body(users.findCurrentUser(principal.id()));
+        tokens.revoke(BearerTokenFilter.bearerToken(authorization), principal.id());
+
+        return okWithoutCache().body(users.findCurrentUser(principal.id()));
     }
 
     @PostMapping("/email-verifications")
     public ResponseEntity<Void> requestEmailVerification(
-            @AuthenticationPrincipal AuthenticatedUser principal, HttpServletRequest httpRequest) {
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        HttpServletRequest httpRequest) {
+
         abuseProtection.checkAccountConfirmation(httpRequest.getRemoteAddr());
         accounts.requestEmailVerification(principal.id());
+
         return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/email-verifications/confirm")
     public ResponseEntity<Void> confirmEmail(
-            @Valid @RequestBody EmailVerificationConfirmRequest request,
-            HttpServletRequest httpRequest) {
+        @Valid @RequestBody EmailVerificationConfirmRequest request,
+        HttpServletRequest httpRequest) {
+
         abuseProtection.checkAccountConfirmation(httpRequest.getRemoteAddr());
         accounts.confirmEmail(request.token());
+
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/password-resets")
     public ResponseEntity<Void> requestPasswordReset(
-            @Valid @RequestBody PasswordResetRequest request,
-            HttpServletRequest httpRequest) {
+        @Valid @RequestBody PasswordResetRequest request,
+        HttpServletRequest httpRequest) {
+
         abuseProtection.checkAccountMessage(httpRequest.getRemoteAddr(), request.email());
         accounts.requestPasswordReset(request.email());
+
         return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/password-resets/confirm")
     public ResponseEntity<Void> resetPassword(
-            @Valid @RequestBody PasswordResetConfirmRequest request,
-            HttpServletRequest httpRequest) {
+        @Valid @RequestBody PasswordResetConfirmRequest request,
+        HttpServletRequest httpRequest) {
+
         abuseProtection.checkAccountConfirmation(httpRequest.getRemoteAddr());
         accounts.resetPassword(request.token(), request.password());
+
         return ResponseEntity.noContent().build();
+    }
+
+    private AuthResponse keepTokenInCookie(AuthResponse response, HttpServletResponse httpResponse) {
+        cookies.write(httpResponse, new TokenService.IssuedToken(response.accessToken(), response.expiresAt()));
+
+        return new AuthResponse(null, "Cookie", response.expiresAt(), response.user());
+    }
+
+    private String currentToken(String authorization, HttpServletRequest httpRequest) {
+        return authorization != null
+                ? BearerTokenFilter.bearerToken(authorization)
+                : cookies.read(httpRequest).orElseThrow();
+    }
+
+    private static ResponseEntity.BodyBuilder okWithoutCache() {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store");
     }
 }

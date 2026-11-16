@@ -34,8 +34,7 @@ class AuthToken {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
-    protected AuthToken() {
-    }
+    protected AuthToken() {}
 
     AuthToken(UUID userId, String tokenHash, Instant createdAt, Instant expiresAt) {
         this.id = UUID.randomUUID();

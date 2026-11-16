@@ -22,16 +22,23 @@ class SecurityProblemWriter {
         this.problems = problems;
     }
 
-    void write(HttpServletRequest request, HttpServletResponse response, HttpStatus status,
-            String detail) throws IOException {
+    void write(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        HttpStatus status,
+        String detail) throws IOException {
+
         ProblemDetail problem = problems.create(status, detail, request);
+
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+
         if (status == HttpStatus.UNAUTHORIZED) {
             response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
         }
+
         objectMapper.writeValue(response.getOutputStream(), problem);
     }
 }

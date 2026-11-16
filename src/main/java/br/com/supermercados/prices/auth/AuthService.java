@@ -5,7 +5,6 @@ import br.com.supermercados.prices.subscription.PremiumAccess;
 import br.com.supermercados.prices.user.User;
 import br.com.supermercados.prices.user.UserRepository;
 import br.com.supermercados.prices.user.UserResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,8 +25,15 @@ public class AuthService {
     private final Clock clock;
     private final String dummyPasswordHash;
 
-    public AuthService(UserRepository users, PasswordEncoder passwordEncoder, TokenService tokens,
-            PasswordPolicy passwordPolicy, AccountService accounts, PremiumAccess premiumAccess, Clock clock) {
+    public AuthService(
+        UserRepository users,
+        PasswordEncoder passwordEncoder,
+        TokenService tokens,
+        PasswordPolicy passwordPolicy,
+        AccountService accounts,
+        PremiumAccess premiumAccess,
+        Clock clock) {
+
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.tokens = tokens;
@@ -38,37 +44,39 @@ public class AuthService {
         this.dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
-    /**
-     * Creates the account and sends the confirmation e-mail. An e-mail that already has an account gets a notice
-     * instead, after the same password hashing, so the caller cannot tell the two cases apart.
-     */
     @Transactional
     public void register(RegisterRequest request) {
         passwordPolicy.validate(request.password());
+
+        // O hash vem antes de saber se o e-mail já tem conta: o tempo de resposta não revela quem usa o Gomo.
         String email = User.normalizeEmail(request.email());
         String passwordHash = passwordEncoder.encode(request.password());
         Optional<User> existing = users.findByEmail(email);
+
         if (existing.isPresent()) {
             accounts.notifyExistingAccount(existing.get());
             return;
         }
+
         User savedUser = users.saveAndFlush(new User(request.name(), email, passwordHash, clock.instant()));
+
         accounts.issueEmailVerification(savedUser);
     }
 
     public AuthResponse login(LoginRequest request) {
-        if (request.password().getBytes(StandardCharsets.UTF_8).length > PasswordPolicy.BCRYPT_MAX_BYTES) {
-            throw invalidCredentials();
-        }
+        if (PasswordPolicy.exceedsBcryptLimit(request.password())) {throw invalidCredentials();}
+
         Optional<User> user = users.findByEmail(User.normalizeEmail(request.email()));
         String passwordHash = user.map(User::getPasswordHash).orElse(dummyPasswordHash);
         boolean passwordMatches = passwordEncoder.matches(request.password(), passwordHash);
-        if (!passwordMatches || user.isEmpty()) {
-            throw invalidCredentials();
-        }
+
+        if (!passwordMatches || user.isEmpty()) {throw invalidCredentials();}
+
         User authenticatedUser = user.orElseThrow();
         TokenService.IssuedToken token = tokens.issue(authenticatedUser.getId());
-        return new AuthResponse(token.value(), "Bearer", token.expiresAt(), UserResponse.from(authenticatedUser, premiumAccess, clock.instant()));
+        UserResponse userResponse = UserResponse.from(authenticatedUser, premiumAccess, clock.instant());
+
+        return new AuthResponse(token.value(), "Bearer", token.expiresAt(), userResponse);
     }
 
     private ApiException invalidCredentials() {

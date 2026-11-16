@@ -15,11 +15,13 @@ public class AbuseProtectionService {
     private final int accountMessageLimit;
     private final int contributionLimit;
 
-    public AbuseProtectionService(AttemptRateLimiter limiter,
-            @Value("${app.rate-limit.registration:5}") int registrationLimit,
-            @Value("${app.rate-limit.login:10}") int loginLimit,
-            @Value("${app.rate-limit.account-messages:5}") int accountMessageLimit,
-            @Value("${app.rate-limit.contributions:20}") int contributionLimit) {
+    public AbuseProtectionService(
+        AttemptRateLimiter limiter,
+        @Value("${app.rate-limit.registration:5}") int registrationLimit,
+        @Value("${app.rate-limit.login:10}") int loginLimit,
+        @Value("${app.rate-limit.account-messages:5}") int accountMessageLimit,
+        @Value("${app.rate-limit.contributions:20}") int contributionLimit) {
+
         this.limiter = limiter;
         this.registrationLimit = requirePositive(registrationLimit, "app.rate-limit.registration");
         this.loginLimit = requirePositive(loginLimit, "app.rate-limit.login");
@@ -27,7 +29,6 @@ public class AbuseProtectionService {
         this.contributionLimit = requirePositive(contributionLimit, "app.rate-limit.contributions");
     }
 
-    /** Every sign-up sends an e-mail (confirmation or existing-account notice), so it also counts per address. */
     public void checkRegistration(String remoteAddress, String email) {
         limiter.check("registration-ip", safe(remoteAddress), registrationLimit, Duration.ofHours(1));
         limiter.check("registration-account", emailKey(email), accountMessageLimit, Duration.ofHours(1));
@@ -47,7 +48,6 @@ public class AbuseProtectionService {
         limiter.check("account-confirmation-ip", safe(remoteAddress), loginLimit, Duration.ofMinutes(1));
     }
 
-    /** Guessing the current password from a stolen session is as limited as guessing it at login. */
     public void checkPasswordChange(UUID userId) {
         limiter.check("password-change-user", userId.toString(), loginLimit, Duration.ofMinutes(15));
     }
@@ -68,6 +68,7 @@ public class AbuseProtectionService {
         if (value < 1) {
             throw new IllegalArgumentException(property + " must be positive");
         }
+
         return value;
     }
 }

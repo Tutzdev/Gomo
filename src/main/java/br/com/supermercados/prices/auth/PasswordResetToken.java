@@ -28,8 +28,7 @@ class PasswordResetToken {
 
     private Instant usedAt;
 
-    protected PasswordResetToken() {
-    }
+    protected PasswordResetToken() {}
 
     PasswordResetToken(UUID userId, String tokenHash, Instant createdAt, Instant expiresAt) {
         id = UUID.randomUUID();
@@ -47,11 +46,7 @@ class PasswordResetToken {
         return userId;
     }
 
-    Instant getExpiresAt() {
-        return expiresAt;
-    }
-
-    Instant getUsedAt() {
-        return usedAt;
+    boolean isUsableAt(Instant now) {
+        return usedAt == null && expiresAt.isAfter(now);
     }
 }
