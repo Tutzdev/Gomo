@@ -119,7 +119,15 @@ public class SecurityConfiguration {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(origins(configuredOrigins));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
+        configuration.setAllowedMethods(List.of(
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS"));
+
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", SessionCookies.MODE_HEADER));
         configuration.setExposedHeaders(List.of("Location"));
         configuration.setAllowCredentials(true);

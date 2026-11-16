@@ -36,7 +36,12 @@ class AuthToken {
 
     protected AuthToken() {}
 
-    AuthToken(UUID userId, String tokenHash, Instant createdAt, Instant expiresAt) {
+    AuthToken(
+        UUID userId,
+        String tokenHash,
+        Instant createdAt,
+        Instant expiresAt) {
+
         this.id = UUID.randomUUID();
         this.userId = userId;
         this.tokenHash = tokenHash;

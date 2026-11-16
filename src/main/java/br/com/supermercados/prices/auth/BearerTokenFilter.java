@@ -105,6 +105,7 @@ class BearerTokenFilter extends OncePerRequestFilter {
         if (principal.isEmpty()) {
             cookies.clear(response);
             chain.doFilter(request, response);
+
             return;
         }
 
@@ -118,6 +119,7 @@ class BearerTokenFilter extends OncePerRequestFilter {
         FilterChain chain) throws ServletException, IOException {
 
         SecurityContext context = SecurityContextHolder.createEmptyContext();
+
         UsernamePasswordAuthenticationToken authentication = UsernamePasswordAuthenticationToken.authenticated(
             principal,
             null,
@@ -136,11 +138,7 @@ class BearerTokenFilter extends OncePerRequestFilter {
 
         log.error("Falha de persistência durante autenticação: {}", exception.getClass().getSimpleName());
 
-        problems.write(
-            request,
-            response,
-            HttpStatus.SERVICE_UNAVAILABLE,
-            "Autenticação temporariamente indisponível.");
+        problems.write(request, response, HttpStatus.SERVICE_UNAVAILABLE, "Autenticação temporariamente indisponível.");
     }
 
     private void reject(HttpServletRequest request, HttpServletResponse response) throws IOException {

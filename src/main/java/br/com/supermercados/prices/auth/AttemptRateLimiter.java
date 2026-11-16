@@ -22,7 +22,12 @@ class AttemptRateLimiter {
         this.clock = clock;
     }
 
-    void check(String scope, String key, int limit, Duration duration) {
+    void check(
+        String scope,
+        String key,
+        int limit,
+        Duration duration) {
+
         Instant now = clock.instant();
         AtomicBoolean rejected = new AtomicBoolean();
 

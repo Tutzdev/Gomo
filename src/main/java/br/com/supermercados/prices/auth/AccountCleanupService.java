@@ -120,5 +120,9 @@ public class AccountCleanupService {
         return retention.compareTo(MINIMUM_RETENTION) < 0;
     }
 
-    public record Result(int sessions, int accountTokens, int unverifiedAccounts, int comparisonUsage) {}
+    public record Result(
+            int sessions,
+            int accountTokens,
+            int unverifiedAccounts,
+            int comparisonUsage) {}
 }

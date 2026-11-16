@@ -130,7 +130,12 @@ public class AccountService {
     }
 
     @Transactional
-    public void changePassword(UUID userId, String currentPassword, String newPassword, String currentSession) {
+    public void changePassword(
+        UUID userId,
+        String currentPassword,
+        String newPassword,
+        String currentSession) {
+
         User user = requireUser(userId);
 
         requireCurrentPassword(user, currentPassword);

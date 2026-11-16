@@ -4,7 +4,11 @@ import br.com.supermercados.prices.user.UserRole;
 import java.util.UUID;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-public record AuthenticatedUser(UUID id, UserRole role, boolean emailVerified, boolean premium) {
+public record AuthenticatedUser(
+        UUID id,
+        UserRole role,
+        boolean emailVerified,
+        boolean premium) {
 
     public AuthenticatedUser(UUID id) {
         this(id, UserRole.USER, false, false);

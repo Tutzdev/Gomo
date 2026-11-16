@@ -30,7 +30,12 @@ class PasswordResetToken {
 
     protected PasswordResetToken() {}
 
-    PasswordResetToken(UUID userId, String tokenHash, Instant createdAt, Instant expiresAt) {
+    PasswordResetToken(
+        UUID userId,
+        String tokenHash,
+        Instant createdAt,
+        Instant expiresAt) {
+
         id = UUID.randomUUID();
         this.userId = userId;
         this.tokenHash = tokenHash;

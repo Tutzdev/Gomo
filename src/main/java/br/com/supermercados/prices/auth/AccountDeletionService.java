@@ -22,21 +22,21 @@ public class AccountDeletionService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private static final List<String> PERSONAL_DATA = List.of(
-            "DELETE FROM purchases WHERE user_id = ?",
-            "DELETE FROM shopping_list_members WHERE user_id = ?",
-            "DELETE FROM shopping_list_invites WHERE created_by = ?",
-            "UPDATE shopping_list_items SET checked_by = NULL WHERE checked_by = ?",
-            "DELETE FROM shopping_lists WHERE user_id = ?",
-            "DELETE FROM alert_notifications WHERE user_id = ?",
-            "DELETE FROM price_alerts WHERE user_id = ?",
-            "DELETE FROM favorite_stores WHERE user_id = ?",
-            "DELETE FROM user_preferences WHERE user_id = ?",
-            "DELETE FROM comparison_usage WHERE user_id = ?",
-            "DELETE FROM billing_checkouts WHERE user_id = ?",
-            "DELETE FROM billing_subscriptions WHERE user_id = ?",
-            "DELETE FROM email_verification_tokens WHERE user_id = ?",
-            "DELETE FROM password_reset_tokens WHERE user_id = ?",
-            "DELETE FROM auth_tokens WHERE user_id = ?");
+        "DELETE FROM purchases WHERE user_id = ?",
+        "DELETE FROM shopping_list_members WHERE user_id = ?",
+        "DELETE FROM shopping_list_invites WHERE created_by = ?",
+        "UPDATE shopping_list_items SET checked_by = NULL WHERE checked_by = ?",
+        "DELETE FROM shopping_lists WHERE user_id = ?",
+        "DELETE FROM alert_notifications WHERE user_id = ?",
+        "DELETE FROM price_alerts WHERE user_id = ?",
+        "DELETE FROM favorite_stores WHERE user_id = ?",
+        "DELETE FROM user_preferences WHERE user_id = ?",
+        "DELETE FROM comparison_usage WHERE user_id = ?",
+        "DELETE FROM billing_checkouts WHERE user_id = ?",
+        "DELETE FROM billing_subscriptions WHERE user_id = ?",
+        "DELETE FROM email_verification_tokens WHERE user_id = ?",
+        "DELETE FROM password_reset_tokens WHERE user_id = ?",
+        "DELETE FROM auth_tokens WHERE user_id = ?");
 
     static final String ABANDONED_ACCOUNT = """
             u.email_verified_at IS NULL
@@ -125,7 +125,12 @@ public class AccountDeletionService {
     }
 
     private boolean hasPublicRecords(UUID userId) {
-        Boolean found = jdbc.queryForObject(HAS_PUBLIC_RECORDS, Boolean.class, userId, userId, userId);
+        Boolean found = jdbc.queryForObject(
+            HAS_PUBLIC_RECORDS,
+            Boolean.class,
+            userId,
+            userId,
+            userId);
 
         return Boolean.TRUE.equals(found);
     }

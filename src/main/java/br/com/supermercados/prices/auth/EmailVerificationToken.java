@@ -30,7 +30,12 @@ class EmailVerificationToken {
 
     protected EmailVerificationToken() {}
 
-    EmailVerificationToken(UUID userId, String tokenHash, Instant createdAt, Instant expiresAt) {
+    EmailVerificationToken(
+        UUID userId,
+        String tokenHash,
+        Instant createdAt,
+        Instant expiresAt) {
+
         id = UUID.randomUUID();
         this.userId = userId;
         this.tokenHash = tokenHash;
