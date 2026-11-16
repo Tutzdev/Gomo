@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The account's plan and the free 7-day Premium trial; paid Premium is in {@link PaidSubscriptionService}. */
 @Service
 public class SubscriptionService {
 
@@ -33,9 +32,16 @@ public class SubscriptionService {
     private final PremiumAccess premiumAccess;
     private final Clock clock;
 
-    public SubscriptionService(UserRepository users, ShoppingListService shoppingLists, PriceAlertService alerts,
-            ComparisonUsageService comparisonUsage, ShoppingComparisonService comparisons,
-            PaidSubscriptionService paidSubscriptions, PremiumAccess premiumAccess, Clock clock) {
+    public SubscriptionService(
+        UserRepository users,
+        ShoppingListService shoppingLists,
+        PriceAlertService alerts,
+        ComparisonUsageService comparisonUsage,
+        ShoppingComparisonService comparisons,
+        PaidSubscriptionService paidSubscriptions,
+        PremiumAccess premiumAccess,
+        Clock clock) {
+
         this.users = users;
         this.shoppingLists = shoppingLists;
         this.alerts = alerts;
@@ -51,19 +57,21 @@ public class SubscriptionService {
         return status(requireUser(userId), clock.instant());
     }
 
-    /** Starts the one-time trial. No payment data is requested; the chosen cycle is kept for future checkout. */
     @Transactional
     public SubscriptionStatusResponse startTrial(UUID userId, StartTrialRequest request) {
         User user = requireUser(userId);
         Instant now = clock.instant();
+
         if (premiumAccess.hasPremium(user, now)) {
             throw new ApiException(HttpStatus.CONFLICT, "Sua conta já tem acesso Premium.");
         }
+
         if (!user.isTrialAvailable(now)) {
             throw new ApiException(HttpStatus.CONFLICT, "O teste grátis do Premium já foi usado nesta conta.");
         }
 
         user.startPremiumTrial(FreePlan.TRIAL_LENGTH, request.billingCycle(), now);
+
         return status(user, now);
     }
 
@@ -71,30 +79,42 @@ public class SubscriptionService {
     public SubscriptionStatusResponse cancelTrial(UUID userId) {
         User user = requireUser(userId);
         Instant now = clock.instant();
+
         if (user.premiumSource(now) != PremiumSource.TRIAL) {
             throw new ApiException(HttpStatus.CONFLICT, "Não há teste grátis ativo para cancelar.");
         }
 
         user.cancelPremiumTrial(now);
+
         return status(user, now);
     }
 
-    /** The list where splitting the purchase between stores saves the most today. */
     @Transactional(readOnly = true)
     public PremiumValueResponse premiumValue(UUID userId, UUID cityId) {
-        var recentLists = shoppingLists.findOwnedLists(userId,
-                PageRequest.of(0, LISTS_CHECKED_FOR_VALUE, Sort.by(Sort.Direction.DESC, "updatedAt")));
+        var recentLists = shoppingLists.findOwnedLists(
+            userId,
+            PageRequest.of(0, LISTS_CHECKED_FOR_VALUE, Sort.by(Sort.Direction.DESC, "updatedAt")));
+
         PremiumValueResponse best = PremiumValueResponse.none();
+
         for (ShoppingListSummary list : recentLists) {
-            ShoppingRecommendationResponse recommendation = comparisons.recommendShoppingList(userId, list.id(), cityId);
+            ShoppingRecommendationResponse recommendation = comparisons.recommendShoppingList(
+                userId,
+                list.id(),
+                cityId);
+
             SplitSavings split = recommendation.splitSavings();
-            if (split == null || split.savings().signum() <= 0) {
-                continue;
-            }
+
+            if (split == null || split.savings().signum() <= 0) {continue;}
+
             if (best.savings() == null || split.savings().compareTo(best.savings()) > 0) {
-                best = new PremiumValueResponse(list.name(), split.savings(), recommendation.combination().storeCount());
+                best = new PremiumValueResponse(
+                    list.name(),
+                    split.savings(),
+                    recommendation.combination().storeCount());
             }
         }
+
         return best;
     }
 
@@ -102,12 +122,23 @@ public class SubscriptionService {
         PremiumSource source = premiumAccess.sourceOf(user, now);
         Instant trialEndsAt = source == PremiumSource.TRIAL ? user.getPremiumTrialEndsAt() : null;
         Instant paidUntil = source == PremiumSource.SUBSCRIPTION ? user.getPremiumPaidUntil() : null;
-        var usage = new SubscriptionStatusResponse.Usage(shoppingLists.countOwnedLists(user.getId()),
-                alerts.countActive(user.getId()), comparisonUsage.countToday(user.getId()));
-        return new SubscriptionStatusResponse(source != PremiumSource.NONE, source, trialEndsAt,
-                premiumAccess.trialAvailable(user, now), user.getPreferredBillingCycle(), paidUntil,
-                paidSubscriptions.activeSubscriptionId(user.getId()).isPresent(), paidSubscriptions.checkoutAvailable(),
-                SubscriptionStatusResponse.FreeLimits.current(), usage);
+
+        var usage = new SubscriptionStatusResponse.Usage(
+            shoppingLists.countOwnedLists(user.getId()),
+            alerts.countActive(user.getId()),
+            comparisonUsage.countToday(user.getId()));
+
+        return new SubscriptionStatusResponse(
+            source != PremiumSource.NONE,
+            source,
+            trialEndsAt,
+            premiumAccess.trialAvailable(user, now),
+            user.getPreferredBillingCycle(),
+            paidUntil,
+            paidSubscriptions.activeSubscriptionId(user.getId()).isPresent(),
+            paidSubscriptions.checkoutAvailable(),
+            SubscriptionStatusResponse.FreeLimits.current(),
+            usage);
     }
 
     private User requireUser(UUID userId) {

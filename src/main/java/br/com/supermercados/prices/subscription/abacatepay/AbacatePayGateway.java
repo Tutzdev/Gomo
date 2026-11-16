@@ -22,12 +22,10 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/** AbacatePay API v2: hosted subscription checkout and cancellation. Amounts and cycles live in the products. */
 @Component
 public class AbacatePayGateway implements PaymentGateway {
 
     private static final Logger log = LoggerFactory.getLogger(AbacatePayGateway.class);
-    /** A failed renewal is retried on the next three days before AbacatePay cancels the subscription. */
     private static final Map<String, Integer> RETRY_POLICY = Map.of("maxRetry", 3, "retryEvery", 1);
     private static final String UNAVAILABLE = "O pagamento online está indisponível agora. Tente de novo em instantes.";
 
@@ -62,10 +60,12 @@ public class AbacatePayGateway implements PaymentGateway {
         JsonNode data = post("/subscriptions/create", body);
         String id = data.path("id").asString("");
         String url = data.path("url").asString("");
+
         if (!id.startsWith("bill_") || !url.startsWith("https://")) {
             log.error("AbacatePay devolveu um checkout sem id ou URL válidos");
             throw new ApiException(HttpStatus.BAD_GATEWAY, UNAVAILABLE);
         }
+
         return new Checkout(id, URI.create(url));
     }
 
@@ -74,9 +74,12 @@ public class AbacatePayGateway implements PaymentGateway {
         requireAvailable();
         JsonNode data = post("/subscriptions/cancel", Map.of("id", subscriptionId));
         String status = data.path("status").asString("");
+
         if (!"CANCELLED".equals(status)) {
             log.error("AbacatePay não confirmou o cancelamento da assinatura {}: status {}", subscriptionId, status);
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "Não foi possível cancelar a assinatura agora. Tente de novo.");
+            throw new ApiException(
+                HttpStatus.BAD_GATEWAY,
+                "Não foi possível cancelar a assinatura agora. Tente de novo.");
         }
     }
 
@@ -94,11 +97,12 @@ public class AbacatePayGateway implements PaymentGateway {
                 .header("Accept", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)))
                 .build();
+
         HttpResponse<String> response;
+
         try {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException exception) {
-            // A timeout may hide a request AbacatePay did process; the webhook still settles the outcome.
             log.error("AbacatePay {} sem resposta: {}", path, exception.getClass().getSimpleName());
             throw new ApiException(HttpStatus.BAD_GATEWAY, UNAVAILABLE);
         } catch (InterruptedException exception) {
@@ -107,18 +111,21 @@ public class AbacatePayGateway implements PaymentGateway {
         }
 
         JsonNode envelope;
+
         try {
             envelope = json.readTree(response.body());
         } catch (JacksonException exception) {
             envelope = null;
         }
+
         boolean success = envelope != null && envelope.path("success").asBoolean(false);
+
         if (response.statusCode() / 100 != 2 || !success) {
-            // The error text is the provider's own message; the key and the request body are never logged.
             String error = envelope == null ? "resposta não JSON" : envelope.path("error").asString("sem detalhe");
             log.error("AbacatePay {} respondeu {}: {}", path, response.statusCode(), error);
             throw new ApiException(HttpStatus.BAD_GATEWAY, UNAVAILABLE);
         }
+
         return envelope.path("data");
     }
 }

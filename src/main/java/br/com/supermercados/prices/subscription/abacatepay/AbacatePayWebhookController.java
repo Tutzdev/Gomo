@@ -11,10 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.com.supermercados.prices.subscription.PaidSubscriptionService;
 
-/**
- * Receives AbacatePay webhooks. A 2xx tells the provider the event was handled; a 5xx makes it retry later,
- * which is what a database failure here should do. The body is read as bytes because the HMAC covers them.
- */
 @RestController
 public class AbacatePayWebhookController {
 
@@ -29,11 +25,16 @@ public class AbacatePayWebhookController {
     }
 
     @PostMapping("/api/v1/billing/abacatepay/webhook")
-    public ResponseEntity<Void> receive(@RequestParam(name = "webhookSecret", required = false) String secret,
-            @RequestHeader(name = "X-Webhook-Signature", required = false) String signature,
-            @RequestBody byte[] body) {
+    public ResponseEntity<Void> receive(
+        @RequestParam(name = "webhookSecret", required = false) String secret,
+        @RequestHeader(name = "X-Webhook-Signature", required = false) String signature,
+        @RequestBody byte[] body) {
+
+        // O corpo chega em bytes porque a assinatura HMAC é calculada sobre eles, exatamente como vieram.
+
         webhook.read(secret, signature, body).ifPresentOrElse(subscriptions::apply,
                 () -> log.warn("Webhook da AbacatePay de outro ambiente ignorado"));
+
         return ResponseEntity.ok().build();
     }
 }

@@ -3,7 +3,6 @@ package br.com.supermercados.prices.subscription;
 import br.com.supermercados.prices.common.ApiException;
 import org.springframework.http.HttpStatus;
 
-/** A free account tried something only Premium allows. */
 public class PlanLimitException extends ApiException {
 
     private final PlanLimit limit;

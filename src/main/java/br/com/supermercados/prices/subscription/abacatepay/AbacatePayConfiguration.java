@@ -5,5 +5,4 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @EnableConfigurationProperties(AbacatePayProperties.class)
-class AbacatePayConfiguration {
-}
+class AbacatePayConfiguration {}

@@ -29,23 +29,26 @@ public class SubscriptionController {
         return subscriptions.status(user.id());
     }
 
-    /** Opens the provider's payment page; Premium starts when the provider confirms the payment. */
     @PostMapping("/checkout")
-    public CheckoutResponse startCheckout(@AuthenticationPrincipal AuthenticatedUser user,
-            @Valid @RequestBody StartCheckoutRequest request) {
+    public CheckoutResponse startCheckout(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @Valid @RequestBody StartCheckoutRequest request) {
+
         return paidSubscriptions.startCheckout(user.id(), request.billingCycle());
     }
 
-    /** Stops renewals; the paid period stays available until it ends. */
     @DeleteMapping
     public SubscriptionStatusResponse cancelSubscription(@AuthenticationPrincipal AuthenticatedUser user) {
         paidSubscriptions.cancel(user.id());
+
         return subscriptions.status(user.id());
     }
 
     @PostMapping("/trial")
-    public SubscriptionStatusResponse startTrial(@AuthenticationPrincipal AuthenticatedUser user,
-            @Valid @RequestBody StartTrialRequest request) {
+    public SubscriptionStatusResponse startTrial(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @Valid @RequestBody StartTrialRequest request) {
+
         return subscriptions.startTrial(user.id(), request);
     }
 
@@ -55,8 +58,10 @@ public class SubscriptionController {
     }
 
     @GetMapping("/premium-value")
-    public PremiumValueResponse premiumValue(@AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam UUID cityId) {
+    public PremiumValueResponse premiumValue(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @RequestParam UUID cityId) {
+
         return subscriptions.premiumValue(user.id(), cityId);
     }
 }

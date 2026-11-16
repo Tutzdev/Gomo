@@ -20,8 +20,11 @@ public class SubscriptionProvisioningRunner implements ApplicationRunner {
     private final Clock clock;
     private final String bootstrapEmail;
 
-    public SubscriptionProvisioningRunner(UserRepository users, Clock clock,
-            @Value("${app.subscription.bootstrap-email:}") String bootstrapEmail) {
+    public SubscriptionProvisioningRunner(
+        UserRepository users,
+        Clock clock,
+        @Value("${app.subscription.bootstrap-email:}") String bootstrapEmail) {
+
         this.users = users;
         this.clock = clock;
         this.bootstrapEmail = bootstrapEmail;
@@ -30,9 +33,7 @@ public class SubscriptionProvisioningRunner implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments arguments) {
-        if (bootstrapEmail.isBlank()) {
-            return;
-        }
+        if (bootstrapEmail.isBlank()) {return;}
 
         User user = users.findByEmail(User.normalizeEmail(bootstrapEmail))
                 .orElseThrow(() -> new IllegalStateException(

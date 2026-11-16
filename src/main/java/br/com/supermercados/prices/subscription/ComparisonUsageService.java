@@ -10,7 +10,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Counts the complete product comparisons a free account makes each day. */
 @Service
 public class ComparisonUsageService {
 
@@ -22,47 +21,35 @@ public class ComparisonUsageService {
         this.clock = clock;
     }
 
-    /**
-     * Registers a comparison of {@code subjectId} (a catalog item or a product) and returns what the caller may see.
-     * Comparing the same product again on the same day is free; a new product after the daily limit shows only
-     * the cheapest store.
-     */
     @Transactional
     public ComparisonAccess startComparison(AuthenticatedUser user, UUID subjectId) {
-        if (AuthenticatedUser.hasPremium(user)) {
-            return ComparisonAccess.premiumAccess();
-        }
-        if (user == null) {
-            return ComparisonAccess.uncountedFreeAccess();
-        }
+        if (AuthenticatedUser.hasPremium(user)) {return ComparisonAccess.premiumAccess();}
+
+        if (user == null) {return ComparisonAccess.uncountedFreeAccess();}
 
         Instant now = clock.instant();
         LocalDate today = LocalDate.ofInstant(now, FreePlan.USAGE_ZONE);
         int used = countUsage(user.id(), today);
-        if (wasCounted(user.id(), today, subjectId)) {
-            return ComparisonAccess.freeAccess(used);
-        }
-        if (used >= FreePlan.DAILY_COMPARISONS) {
-            return ComparisonAccess.dailyLimitReachedAccess(used);
-        }
+
+        if (wasCounted(user.id(), today, subjectId)) {return ComparisonAccess.freeAccess(used);}
+
+        if (used >= FreePlan.DAILY_COMPARISONS) {return ComparisonAccess.dailyLimitReachedAccess(used);}
 
         int inserted = jdbc.update("""
                 INSERT INTO comparison_usage (user_id, usage_date, subject_id, created_at)
                 VALUES (?, ?, ?, ?)
                 ON CONFLICT DO NOTHING
                 """, user.id(), today, subjectId, Timestamp.from(now));
+
         return ComparisonAccess.freeAccess(used + inserted);
     }
 
-    /** What the caller may see without registering a new comparison. */
     @Transactional(readOnly = true)
     public ComparisonAccess currentAccess(AuthenticatedUser user) {
-        if (AuthenticatedUser.hasPremium(user)) {
-            return ComparisonAccess.premiumAccess();
-        }
-        if (user == null) {
-            return ComparisonAccess.uncountedFreeAccess();
-        }
+        if (AuthenticatedUser.hasPremium(user)) {return ComparisonAccess.premiumAccess();}
+
+        if (user == null) {return ComparisonAccess.uncountedFreeAccess();}
+
         return ComparisonAccess.freeAccess(countToday(user.id()));
     }
 
@@ -73,8 +60,11 @@ public class ComparisonUsageService {
 
     private int countUsage(UUID userId, LocalDate day) {
         Integer count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM comparison_usage WHERE user_id = ? AND usage_date = ?",
-                Integer.class, userId, day);
+            "SELECT COUNT(*) FROM comparison_usage WHERE user_id = ? AND usage_date = ?",
+            Integer.class,
+            userId,
+            day);
+
         return count == null ? 0 : count;
     }
 
@@ -83,6 +73,7 @@ public class ComparisonUsageService {
                 SELECT EXISTS (
                     SELECT 1 FROM comparison_usage WHERE user_id = ? AND usage_date = ? AND subject_id = ?)
                 """, Boolean.class, userId, day, subjectId);
+
         return Boolean.TRUE.equals(exists);
     }
 }
