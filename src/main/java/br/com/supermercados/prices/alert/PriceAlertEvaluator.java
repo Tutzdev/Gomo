@@ -110,7 +110,12 @@ public class PriceAlertEvaluator {
         return threshold != null && price.compareTo(threshold) <= 0;
     }
 
-    private void sendNotification(PriceAlert alert, PriceRecord record, BigDecimal price, Instant now) {
+    private void sendNotification(
+        PriceAlert alert,
+        PriceRecord record,
+        BigDecimal price,
+        Instant now) {
+
         int inserted = notifications.insertIfAbsent(
             UUID.randomUUID(),
             alert.getUserId(),

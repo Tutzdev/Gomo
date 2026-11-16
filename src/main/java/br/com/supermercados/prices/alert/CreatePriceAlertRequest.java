@@ -20,7 +20,12 @@ public record CreatePriceAlertRequest(
     }
 
     public CreatePriceAlertRequest(UUID productId, UUID cityId, BigDecimal targetPrice) {
-        this(productId, cityId, PriceAlertKind.TARGET_PRICE, targetPrice, null);
+        this(
+            productId,
+            cityId,
+            PriceAlertKind.TARGET_PRICE,
+            targetPrice,
+            null);
     }
 
     public static CreatePriceAlertRequest belowAverage(UUID productId, UUID cityId, int discountPercent) {

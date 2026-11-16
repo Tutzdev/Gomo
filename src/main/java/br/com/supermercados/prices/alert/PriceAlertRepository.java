@@ -27,7 +27,5 @@ interface PriceAlertRepository extends JpaRepository<PriceAlert, UUID> {
               and alert.active = true
             order by alert.id
             """)
-    List<PriceAlert> findActiveForEvaluation(
-        @Param("productId") UUID productId,
-        @Param("cityId") UUID cityId);
+    List<PriceAlert> findActiveForEvaluation(@Param("productId") UUID productId, @Param("cityId") UUID cityId);
 }

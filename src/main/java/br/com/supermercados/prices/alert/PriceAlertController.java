@@ -52,10 +52,7 @@ public class PriceAlertController {
     }
 
     @PatchMapping("/alerts/{id}/deactivation")
-    public PriceAlertResponse deactivate(
-        @AuthenticationPrincipal AuthenticatedUser user,
-        @PathVariable UUID id) {
-
+    public PriceAlertResponse deactivate(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
         return alerts.deactivate(user.id(), id);
     }
 
@@ -74,10 +71,7 @@ public class PriceAlertController {
     }
 
     @PatchMapping("/notifications/{id}/read")
-    public AlertNotificationResponse markRead(
-        @AuthenticationPrincipal AuthenticatedUser user,
-        @PathVariable UUID id) {
-
+    public AlertNotificationResponse markRead(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
         return notifications.markRead(user.id(), id);
     }
 }

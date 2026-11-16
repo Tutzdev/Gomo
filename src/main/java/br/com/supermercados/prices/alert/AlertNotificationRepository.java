@@ -44,9 +44,7 @@ interface AlertNotificationRepository extends JpaRepository<AlertNotification, U
     Page<AlertNotificationResponse> findDetailedByUserId(@Param("userId") UUID userId, Pageable pageable);
 
     @Query(DETAILED + " where notification.id = :id and notification.userId = :userId")
-    Optional<AlertNotificationResponse> findDetailedByIdAndUserId(
-        @Param("id") UUID id,
-        @Param("userId") UUID userId);
+    Optional<AlertNotificationResponse> findDetailedByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
 
     Optional<AlertNotification> findByIdAndUserId(UUID id, UUID userId);
 

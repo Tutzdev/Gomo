@@ -81,7 +81,12 @@ class PriceAlert {
         updatedAt = now;
     }
 
-    boolean shouldNotify(BigDecimal price, Instant now, Duration minimumInterval, Duration reminder) {
+    boolean shouldNotify(
+        BigDecimal price,
+        Instant now,
+        Duration minimumInterval,
+        Duration reminder) {
+
         if (lastNotifiedAt == null) {return true;}
 
         if (wasNotifiedWithin(minimumInterval, now)) {return false;}
