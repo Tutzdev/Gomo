@@ -32,37 +32,52 @@ public class ProductSuggestionController {
     }
 
     @PostMapping("/product-suggestions")
-    public ResponseEntity<ProductSuggestionResponse> submit(@AuthenticationPrincipal AuthenticatedUser contributor,
-            @Valid @RequestBody SubmitProductSuggestionRequest request) {
+    public ResponseEntity<ProductSuggestionResponse> submit(
+        @AuthenticationPrincipal AuthenticatedUser contributor,
+        @Valid @RequestBody SubmitProductSuggestionRequest request) {
+
         abuseProtection.checkContribution(contributor.id());
         ProductSuggestionResponse response = suggestions.submit(contributor, request);
+
         return ResponseEntity.created(URI.create("/api/v1/product-suggestions/" + response.id())).body(response);
     }
 
     @GetMapping("/product-suggestions")
-    public PageResponse<ProductSuggestionResponse> findMine(@AuthenticationPrincipal AuthenticatedUser contributor,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return suggestions.findMine(contributor.id(),
-                PageRequests.create(page, size, Sort.by(Sort.Direction.DESC, "submittedAt", "id")));
+    public PageResponse<ProductSuggestionResponse> findMine(
+        @AuthenticationPrincipal AuthenticatedUser contributor,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
+        return suggestions.findMine(
+            contributor.id(),
+            PageRequests.create(page, size, Sort.by(Sort.Direction.DESC, "submittedAt", "id")));
     }
 
     @GetMapping("/admin/product-suggestions")
     public PageResponse<ProductSuggestionResponse> moderationQueue(
-            @RequestParam(defaultValue = "PENDING") ContributionStatus status,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return suggestions.findForModeration(status,
-                PageRequests.create(page, size, Sort.by(Sort.Direction.ASC, "submittedAt", "id")));
+        @RequestParam(defaultValue = "PENDING") ContributionStatus status,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
+        return suggestions.findForModeration(
+            status,
+            PageRequests.create(page, size, Sort.by(Sort.Direction.ASC, "submittedAt", "id")));
     }
 
     @PostMapping("/admin/product-suggestions/{id}/approval")
-    public ProductSuggestionResponse approve(@AuthenticationPrincipal AuthenticatedUser moderator,
-            @PathVariable UUID id) {
+    public ProductSuggestionResponse approve(
+        @AuthenticationPrincipal AuthenticatedUser moderator,
+        @PathVariable UUID id) {
+
         return suggestions.approve(moderator.id(), id);
     }
 
     @PostMapping("/admin/product-suggestions/{id}/rejection")
-    public ProductSuggestionResponse reject(@AuthenticationPrincipal AuthenticatedUser moderator,
-            @PathVariable UUID id, @Valid @RequestBody RejectProductSuggestionRequest request) {
+    public ProductSuggestionResponse reject(
+        @AuthenticationPrincipal AuthenticatedUser moderator,
+        @PathVariable UUID id,
+        @Valid @RequestBody RejectProductSuggestionRequest request) {
+
         return suggestions.reject(moderator.id(), id, request.reason());
     }
 }

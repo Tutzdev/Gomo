@@ -20,9 +20,18 @@ public record ProductSuggestionResponse(
         String rejectionReason) {
 
     static ProductSuggestionResponse from(ProductSuggestion suggestion) {
-        return new ProductSuggestionResponse(suggestion.getId(), suggestion.getName(), suggestion.getBrand(),
-                suggestion.getPackageSize(), suggestion.getBarcode(), suggestion.getStoreId(), suggestion.getPrice(),
-                suggestion.getNote(), suggestion.getSubmittedAt(), suggestion.getStatus(), suggestion.getDecidedAt(),
-                suggestion.getRejectionReason());
+        return new ProductSuggestionResponse(
+            suggestion.getId(),
+            suggestion.getName(),
+            suggestion.getBrand(),
+            suggestion.getPackageSize(),
+            suggestion.getBarcode(),
+            suggestion.getStoreId(),
+            suggestion.getPrice(),
+            suggestion.getNote(),
+            suggestion.getSubmittedAt(),
+            suggestion.getStatus(),
+            suggestion.getDecidedAt(),
+            suggestion.getRejectionReason());
     }
 }
