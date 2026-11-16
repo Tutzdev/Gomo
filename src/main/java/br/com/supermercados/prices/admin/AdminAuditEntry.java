@@ -34,10 +34,15 @@ class AdminAuditEntry {
     @Column(nullable = false)
     private Instant occurredAt;
 
-    protected AdminAuditEntry() {
-    }
+    protected AdminAuditEntry() {}
 
-    AdminAuditEntry(UUID actorUserId, AdminAction action, String resourceType, UUID resourceId, Instant occurredAt) {
+    AdminAuditEntry(
+        UUID actorUserId,
+        AdminAction action,
+        String resourceType,
+        UUID resourceId,
+        Instant occurredAt) {
+
         this.id = UUID.randomUUID();
         this.actorUserId = actorUserId;
         this.action = action;

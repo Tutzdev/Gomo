@@ -43,64 +43,74 @@ public class AdminController {
 
     @PostMapping("/sources")
     public ResponseEntity<DataSourceResponse> registerSource(
-            @AuthenticationPrincipal AuthenticatedUser actor,
-            @Valid @RequestBody SourceRegistration request) {
+        @AuthenticationPrincipal AuthenticatedUser actor,
+        @Valid @RequestBody SourceRegistration request) {
+
         DataSourceResponse response = catalog.registerSource(actor.id(), request);
-        
-        return ResponseEntity.created(URI.create("/api/v1/admin/sources/" + response.id())).body(response);
+
+        return created("/api/v1/admin/sources/", response.id(), response);
     }
 
     @PatchMapping("/sources/{id}")
     public DataSourceResponse changeSourceStatus(
-            @AuthenticationPrincipal AuthenticatedUser actor,
-            @PathVariable UUID id,
-            @RequestBody UpdateDataSourceRequest request) {
+        @AuthenticationPrincipal AuthenticatedUser actor,
+        @PathVariable UUID id,
+        @RequestBody UpdateDataSourceRequest request) {
 
         return catalog.changeSourceStatus(actor.id(), id, request);
     }
 
     @PostMapping("/chains")
     public ResponseEntity<ChainResponse> ingestChain(
-            @AuthenticationPrincipal AuthenticatedUser actor,
-            @Valid @RequestBody ChainObservation request) {
+        @AuthenticationPrincipal AuthenticatedUser actor,
+        @Valid @RequestBody ChainObservation request) {
+
         ChainResponse response = catalog.ingestChain(actor.id(), request);
 
-        return ResponseEntity.created(URI.create("/api/v1/chains/" + response.id())).body(response);
+        return created("/api/v1/chains/", response.id(), response);
     }
 
     @PostMapping("/stores")
     public ResponseEntity<StoreResponse> ingestStore(
-            @AuthenticationPrincipal AuthenticatedUser actor,
-            @Valid @RequestBody StoreObservation request) {
+        @AuthenticationPrincipal AuthenticatedUser actor,
+        @Valid @RequestBody StoreObservation request) {
+
         StoreResponse response = catalog.ingestStore(actor.id(), request);
 
-        return ResponseEntity.created(URI.create("/api/v1/stores/" + response.id())).body(response);
+        return created("/api/v1/stores/", response.id(), response);
     }
 
     @PostMapping("/products")
     public ResponseEntity<ProductResponse> ingestProduct(
-            @AuthenticationPrincipal AuthenticatedUser actor,
-            @Valid @RequestBody ProductObservation request) {
+        @AuthenticationPrincipal AuthenticatedUser actor,
+        @Valid @RequestBody ProductObservation request) {
+
         ProductResponse response = catalog.ingestProduct(actor.id(), request);
 
-        return ResponseEntity.created(URI.create("/api/v1/products/" + response.id())).body(response);
+        return created("/api/v1/products/", response.id(), response);
     }
 
     @PostMapping("/prices")
     public ResponseEntity<PriceRecordResponse> recordPrice(
-            @AuthenticationPrincipal AuthenticatedUser actor,
-            @Valid @RequestBody PriceObservation request) {
+        @AuthenticationPrincipal AuthenticatedUser actor,
+        @Valid @RequestBody PriceObservation request) {
+
         PriceRecordResponse response = catalog.recordPrice(actor.id(), request);
 
-        return ResponseEntity.created(URI.create("/api/v1/prices/" + response.id())).body(response);
+        return created("/api/v1/prices/", response.id(), response);
     }
 
     @GetMapping("/audit")
     public PageResponse<AdminAuditResponse> audit(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         Sort sort = Sort.by(Sort.Direction.DESC, "occurredAt", "id");
 
         return audit.findAll(PageRequests.create(page, size, sort));
+    }
+
+    private static <T> ResponseEntity<T> created(String path, UUID id, T body) {
+        return ResponseEntity.created(URI.create(path + id)).body(body);
     }
 }

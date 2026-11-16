@@ -13,11 +13,11 @@ public record AdminAuditResponse(
 
     static AdminAuditResponse from(AdminAuditEntry entry) {
         return new AdminAuditResponse(
-            entry.getId(), 
-            entry.getActorUserId(), 
+            entry.getId(),
+            entry.getActorUserId(),
             entry.getAction(),
-            entry.getResourceType(), 
-            entry.getResourceId(), 
+            entry.getResourceType(),
+            entry.getResourceId(),
             entry.getOccurredAt());
     }
 }

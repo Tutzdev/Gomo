@@ -20,7 +20,14 @@ public class AdminAuditService {
 
     @Transactional
     public void record(UUID actorUserId, AdminAction action, String resourceType, UUID resourceId) {
-        entries.save(new AdminAuditEntry(actorUserId, action, resourceType, resourceId, clock.instant()));
+        AdminAuditEntry entry = new AdminAuditEntry(
+            actorUserId,
+            action,
+            resourceType,
+            resourceId,
+            clock.instant());
+
+        entries.save(entry);
     }
 
     @Transactional(readOnly = true)

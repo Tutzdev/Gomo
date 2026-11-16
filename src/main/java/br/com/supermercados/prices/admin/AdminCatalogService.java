@@ -29,8 +29,13 @@ public class AdminCatalogService {
     private final PriceService prices;
     private final AdminAuditService audit;
 
-    public AdminCatalogService(DataSourceService sources, StoreIngestionService stores,
-            ProductIngestionService products, PriceService prices, AdminAuditService audit) {
+    public AdminCatalogService(
+        DataSourceService sources,
+        StoreIngestionService stores,
+        ProductIngestionService products,
+        PriceService prices,
+        AdminAuditService audit) {
+
         this.sources = sources;
         this.stores = stores;
         this.products = products;
@@ -48,7 +53,10 @@ public class AdminCatalogService {
 
     @Transactional
     public DataSourceResponse changeSourceStatus(
-            UUID actorUserId, UUID sourceId, UpdateDataSourceRequest request) {
+        UUID actorUserId,
+        UUID sourceId,
+        UpdateDataSourceRequest request) {
+
         DataSourceResponse response = sources.changeEnabled(sourceId, request.enabled());
         audit.record(actorUserId, AdminAction.SOURCE_STATUS_CHANGED, "DATA_SOURCE", response.id());
 
@@ -83,7 +91,7 @@ public class AdminCatalogService {
     public PriceRecordResponse recordPrice(UUID actorUserId, PriceObservation observation) {
         PriceRecordResponse response = prices.appendObservation(observation);
         audit.record(actorUserId, AdminAction.PRICE_RECORDED, "PRICE_RECORD", response.id());
-        
+
         return response;
     }
 }

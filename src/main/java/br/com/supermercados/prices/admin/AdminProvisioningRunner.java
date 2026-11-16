@@ -21,8 +21,11 @@ public class AdminProvisioningRunner implements ApplicationRunner {
     private final Clock clock;
     private final String bootstrapEmail;
 
-    public AdminProvisioningRunner(UserRepository users, Clock clock,
-            @Value("${app.admin.bootstrap-email:}") String bootstrapEmail) {
+    public AdminProvisioningRunner(
+        UserRepository users,
+        Clock clock,
+        @Value("${app.admin.bootstrap-email:}") String bootstrapEmail) {
+
         this.users = users;
         this.clock = clock;
         this.bootstrapEmail = bootstrapEmail;
@@ -31,10 +34,7 @@ public class AdminProvisioningRunner implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments arguments) {
-        if (bootstrapEmail.isBlank() || users.existsByRole(UserRole.ADMIN)) {
-
-            return;
-        }
+        if (bootstrapEmail.isBlank() || users.existsByRole(UserRole.ADMIN)) {return;}
 
         User user = users.findByEmail(User.normalizeEmail(bootstrapEmail))
                 .orElseThrow(() -> new IllegalStateException("The configured bootstrap administrator must be an existing account"));
@@ -44,7 +44,7 @@ public class AdminProvisioningRunner implements ApplicationRunner {
         }
 
         user.promoteToAdmin(clock.instant());
-        
+
         log.info("First administrator provisioned for user {}", user.getId());
     }
 }
