@@ -21,18 +21,21 @@ public class LocationController {
 
     @GetMapping("/states")
     public PageResponse<StateResponse> findStates(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         return PageResponse.from(locationService.findStates(
                 PageRequests.create(page, size, Sort.by("name", "id"))));
     }
 
     @GetMapping("/cities")
     public PageResponse<CityResponse> findCities(
-            @RequestParam(required = false) UUID stateId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(required = false) UUID stateId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         return PageResponse.from(locationService.findCities(
-                stateId, PageRequests.create(page, size, Sort.by("name", "id"))));
+            stateId,
+            PageRequests.create(page, size, Sort.by("name", "id"))));
     }
 }

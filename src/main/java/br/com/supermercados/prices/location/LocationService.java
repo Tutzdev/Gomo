@@ -24,12 +24,12 @@ public class LocationService {
     }
 
     public Page<CityResponse> findCities(UUID stateId, Pageable pageable) {
-        if (stateId == null) {
-            return cityRepository.findAll(pageable).map(CityResponse::from);
-        }
+        if (stateId == null) {return cityRepository.findAll(pageable).map(CityResponse::from);}
+
         if (!stateRepository.existsById(stateId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Estado não encontrado");
         }
+
         return cityRepository.findByStateId(stateId, pageable).map(CityResponse::from);
     }
 
