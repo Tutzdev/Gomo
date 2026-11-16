@@ -30,6 +30,7 @@ public class UserService {
     public UserResponse updateCurrentUser(UUID userId, UpdateUserRequest request) {
         User user = requireUser(userId);
         user.rename(request.name(), clock.instant());
+
         return UserResponse.from(user, premiumAccess, clock.instant());
     }
 

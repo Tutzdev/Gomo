@@ -24,8 +24,20 @@ public record UserResponse(
         PremiumSource premiumSource = access.sourceOf(user, now);
         Instant trialEndsAt = premiumSource == PremiumSource.TRIAL ? user.getPremiumTrialEndsAt() : null;
         Instant paidUntil = premiumSource == PremiumSource.SUBSCRIPTION ? user.getPremiumPaidUntil() : null;
-        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.isEmailVerified(),
-                user.isSubscriber(), premiumSource != PremiumSource.NONE, premiumSource, trialEndsAt,
-                access.trialAvailable(user, now), paidUntil, user.getCreatedAt(), user.getUpdatedAt());
+
+        return new UserResponse(
+            user.getId(),
+            user.getName(),
+            user.getEmail(),
+            user.getRole(),
+            user.isEmailVerified(),
+            user.isSubscriber(),
+            premiumSource != PremiumSource.NONE,
+            premiumSource,
+            trialEndsAt,
+            access.trialAvailable(user, now),
+            paidUntil,
+            user.getCreatedAt(),
+            user.getUpdatedAt());
     }
 }

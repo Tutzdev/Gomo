@@ -62,10 +62,14 @@ public class User {
     @Version
     private long version;
 
-    protected User() {
-    }
+    protected User() {}
 
-    public User(String name, String email, String passwordHash, Instant now) {
+    public User(
+        String name,
+        String email,
+        String passwordHash,
+        Instant now) {
+
         this.id = UUID.randomUUID();
         this.name = name.strip();
         this.email = normalizeEmail(email);
@@ -104,7 +108,6 @@ public class User {
         }
     }
 
-    /** A confirmed payment keeps Premium until {@code until}; a late or repeated event never shortens it. */
     public void extendPaidPremium(Instant until, Instant now) {
         if (premiumPaidUntil == null || until.isAfter(premiumPaidUntil)) {
             premiumPaidUntil = until;
@@ -112,7 +115,6 @@ public class User {
         }
     }
 
-    /** Ends paid access right away, when the provider gave up charging the renewal. */
     public void endPaidPremium(Instant now) {
         if (premiumPaidUntil != null && premiumPaidUntil.isAfter(now)) {
             premiumPaidUntil = now;
@@ -120,7 +122,6 @@ public class User {
         }
     }
 
-    /** The trial is offered once per account and never to someone who already has or had paid Premium. */
     public boolean isTrialAvailable(Instant now) {
         return premiumTrialStartedAt == null && premiumPaidUntil == null && premiumSource(now) == PremiumSource.NONE;
     }
@@ -129,13 +130,13 @@ public class User {
         if (!isTrialAvailable(now)) {
             throw new IllegalStateException("Premium trial is not available for this account");
         }
+
         premiumTrialStartedAt = now;
         premiumTrialEndsAt = now.plus(length);
         preferredBillingCycle = billingCycle;
         updatedAt = now;
     }
 
-    /** Ends an active trial right away; the account returns to the free plan. */
     public void cancelPremiumTrial(Instant now) {
         if (isTrialActive(now)) {
             premiumTrialEndsAt = now;
@@ -144,15 +145,14 @@ public class User {
     }
 
     public PremiumSource premiumSource(Instant now) {
-        if (role == UserRole.ADMIN) {
-            return PremiumSource.ADMIN;
-        }
+        if (role == UserRole.ADMIN) {return PremiumSource.ADMIN;}
+
         if (subscriber || (premiumPaidUntil != null && premiumPaidUntil.isAfter(now))) {
             return PremiumSource.SUBSCRIPTION;
         }
-        if (isTrialActive(now)) {
-            return PremiumSource.TRIAL;
-        }
+
+        if (isTrialActive(now)) {return PremiumSource.TRIAL;}
+
         return PremiumSource.NONE;
     }
 

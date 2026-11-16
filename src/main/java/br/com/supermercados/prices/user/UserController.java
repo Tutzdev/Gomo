@@ -30,7 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/users/me")
 public class UserController {
 
-    /** The day in the file name is the user's day, not the server's. */
     private static final ZoneId BRAZIL = ZoneId.of("America/Sao_Paulo");
 
     private final UserService users;
@@ -39,8 +38,13 @@ public class UserController {
     private final PaidSubscriptionService paidSubscriptions;
     private final SessionCookies cookies;
 
-    public UserController(UserService users, AccountDeletionService deletion, AccountDataExportService dataExport,
-            PaidSubscriptionService paidSubscriptions, SessionCookies cookies) {
+    public UserController(
+        UserService users,
+        AccountDeletionService deletion,
+        AccountDataExportService dataExport,
+        PaidSubscriptionService paidSubscriptions,
+        SessionCookies cookies) {
+
         this.users = users;
         this.deletion = deletion;
         this.dataExport = dataExport;
@@ -54,16 +58,18 @@ public class UserController {
     }
 
     @PatchMapping
-    public UserResponse updateCurrentUser(@AuthenticationPrincipal AuthenticatedUser principal,
-            @Valid @RequestBody UpdateUserRequest request) {
+    public UserResponse updateCurrentUser(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @Valid @RequestBody UpdateUserRequest request) {
+
         return users.updateCurrentUser(principal.id(), request);
     }
 
-    /** Everything the Gomo keeps about the account, as a JSON file to download (LGPD art. 18). */
     @GetMapping("/export")
     public ResponseEntity<Map<String, Object>> exportData(@AuthenticationPrincipal AuthenticatedUser principal) {
         Map<String, Object> data = dataExport.export(principal.id());
         String day = ((Instant) data.get("geradoEm")).atZone(BRAZIL).toLocalDate().toString();
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename("gomo-meus-dados-" + day + ".json").build().toString())
@@ -71,20 +77,18 @@ public class UserController {
                 .body(data);
     }
 
-    /**
-     * Deletes the account; the password confirms that its owner is asking. A paid subscription is cancelled with
-     * the provider first, so a deleted account is never charged again.
-     */
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteCurrentUser(@AuthenticationPrincipal AuthenticatedUser principal,
-            @Valid @RequestBody DeleteAccountRequest request, HttpServletResponse response) {
+    public void deleteCurrentUser(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @Valid @RequestBody DeleteAccountRequest request,
+        HttpServletResponse response) {
+
         deletion.verifyPassword(principal.id(), request.password());
         paidSubscriptions.cancelBeforeAccountDeletion(principal.id());
         deletion.delete(principal.id(), request.password());
         cookies.clear(response);
     }
 
-    public record DeleteAccountRequest(@NotBlank @Size(max = 72) String password) {
-    }
+    public record DeleteAccountRequest(@NotBlank @Size(max = 72) String password) {}
 }
