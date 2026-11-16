@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Once a day, after the morning collection, today's total of every weekly and monthly list. */
 @Component
 class RecurringListJob {
 

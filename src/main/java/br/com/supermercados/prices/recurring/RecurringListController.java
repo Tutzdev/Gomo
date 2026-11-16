@@ -18,8 +18,10 @@ public class RecurringListController {
     }
 
     @GetMapping("/api/v1/recurring-lists")
-    public List<RecurringListResponse> mine(@AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam UUID cityId) {
+    public List<RecurringListResponse> mine(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @RequestParam UUID cityId) {
+
         return recurringLists.mine(user.id(), cityId);
     }
 }
