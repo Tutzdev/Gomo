@@ -19,7 +19,12 @@ public class AdminAuditService {
     }
 
     @Transactional
-    public void record(UUID actorUserId, AdminAction action, String resourceType, UUID resourceId) {
+    public void record(
+        UUID actorUserId,
+        AdminAction action,
+        String resourceType,
+        UUID resourceId) {
+
         AdminAuditEntry entry = new AdminAuditEntry(
             actorUserId,
             action,

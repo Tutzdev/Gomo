@@ -52,11 +52,7 @@ public class AdminCatalogService {
     }
 
     @Transactional
-    public DataSourceResponse changeSourceStatus(
-        UUID actorUserId,
-        UUID sourceId,
-        UpdateDataSourceRequest request) {
-
+    public DataSourceResponse changeSourceStatus(UUID actorUserId, UUID sourceId, UpdateDataSourceRequest request) {
         DataSourceResponse response = sources.changeEnabled(sourceId, request.enabled());
         audit.record(actorUserId, AdminAction.SOURCE_STATUS_CHANGED, "DATA_SOURCE", response.id());
 
