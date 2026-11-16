@@ -10,5 +10,4 @@ import jakarta.validation.constraints.Size;
 public record SourceObservation(
         @NotNull UUID sourceId,
         @NotBlank @Size(max = 2048) String sourceReference,
-        @NotNull Instant collectedAt) {
-}
+        @NotNull Instant collectedAt) {}

@@ -14,6 +14,7 @@ public class ObservationValidator {
 
     public <T> void validate(T observation) {
         var violations = validator.validate(observation);
+
         if (!violations.isEmpty()) {
             throw new ConstraintViolationException(violations);
         }

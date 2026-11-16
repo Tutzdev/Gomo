@@ -13,7 +13,13 @@ public record DataSourceResponse(
         Instant createdAt) {
 
     public static DataSourceResponse from(DataSource source) {
-        return new DataSourceResponse(source.getId(), source.getCode(), source.getName(), source.getBaseUrl(),
-                source.isEnabled(), source.getVerifiedAt(), source.getCreatedAt());
+        return new DataSourceResponse(
+            source.getId(),
+            source.getCode(),
+            source.getName(),
+            source.getBaseUrl(),
+            source.isEnabled(),
+            source.getVerifiedAt(),
+            source.getCreatedAt());
     }
 }
