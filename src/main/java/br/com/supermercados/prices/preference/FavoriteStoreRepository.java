@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 
 interface FavoriteStoreRepository extends JpaRepository<FavoriteStore, UUID> {
 
-    /** A retired market keeps its favourite rows, so they come back if it returns, but is not listed. */
     @Query("""
             select f.storeId from FavoriteStore f where f.userId = :userId
             and exists (select 1 from Store s where s.id = f.storeId and s.active)

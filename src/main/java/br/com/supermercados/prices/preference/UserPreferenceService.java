@@ -17,8 +17,13 @@ public class UserPreferenceService {
     private final StoreService stores;
     private final Clock clock;
 
-    public UserPreferenceService(UserPreferenceRepository preferences, FavoriteStoreRepository favoriteStores,
-            LocationService locations, StoreService stores, Clock clock) {
+    public UserPreferenceService(
+        UserPreferenceRepository preferences,
+        FavoriteStoreRepository favoriteStores,
+        LocationService locations,
+        StoreService stores,
+        Clock clock) {
+
         this.preferences = preferences;
         this.favoriteStores = favoriteStores;
         this.locations = locations;
@@ -38,8 +43,10 @@ public class UserPreferenceService {
     @Transactional
     public UserPreferenceResponse changePreferredCity(UUID userId, UUID cityId) {
         locations.requireCity(cityId);
+
         UserPreference preference = preferences.findById(userId)
                 .orElseGet(() -> new UserPreference(userId, cityId, clock.instant()));
+
         preference.changePreferredCity(cityId, clock.instant());
         preferences.save(preference);
 
@@ -50,6 +57,7 @@ public class UserPreferenceService {
     public UserPreferenceResponse clearPreferredCity(UUID userId) {
         UserPreference preference = preferences.findById(userId)
                 .orElseGet(() -> new UserPreference(userId, null, clock.instant()));
+
         preference.changePreferredCity(null, clock.instant());
         preferences.save(preference);
 
@@ -59,9 +67,11 @@ public class UserPreferenceService {
     @Transactional
     public UserPreferenceResponse addFavoriteStore(UUID userId, UUID storeId) {
         stores.requireActiveStore(storeId);
+
         if (!favoriteStores.existsByUserIdAndStoreId(userId, storeId)) {
             favoriteStores.save(new FavoriteStore(userId, storeId, clock.instant()));
         }
+
         UUID preferredCityId = preferences.findById(userId)
                 .map(UserPreference::getPreferredCityId)
                 .orElse(null);
@@ -72,6 +82,7 @@ public class UserPreferenceService {
     @Transactional
     public UserPreferenceResponse removeFavoriteStore(UUID userId, UUID storeId) {
         favoriteStores.deleteByUserIdAndStoreId(userId, storeId);
+
         UUID preferredCityId = preferences.findById(userId)
                 .map(UserPreference::getPreferredCityId)
                 .orElse(null);
@@ -81,6 +92,7 @@ public class UserPreferenceService {
 
     private UserPreferenceResponse response(UUID userId, UUID preferredCityId) {
         List<UUID> storeIds = favoriteStores.findActiveStoreIds(userId);
+
         return new UserPreferenceResponse(preferredCityId, storeIds);
     }
 }

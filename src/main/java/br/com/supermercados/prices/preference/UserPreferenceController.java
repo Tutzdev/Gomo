@@ -27,19 +27,19 @@ public class UserPreferenceController {
 
     @PutMapping("/preferred-city")
     public UserPreferenceResponse changePreferredCity(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @Valid @RequestBody PreferredCityRequest request) {return preferences.changePreferredCity(user.id(), request.cityId());}
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @Valid @RequestBody PreferredCityRequest request) {return preferences.changePreferredCity(user.id(), request.cityId());}
 
     @DeleteMapping("/preferred-city")
     public UserPreferenceResponse clearPreferredCity(@AuthenticationPrincipal AuthenticatedUser user) {return preferences.clearPreferredCity(user.id());}
 
     @PutMapping("/favorite-stores/{storeId}")
     public UserPreferenceResponse addFavoriteStore(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID storeId) {return preferences.addFavoriteStore(user.id(), storeId);}
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID storeId) {return preferences.addFavoriteStore(user.id(), storeId);}
 
     @DeleteMapping("/favorite-stores/{storeId}")
     public UserPreferenceResponse removeFavoriteStore(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID storeId) {return preferences.removeFavoriteStore(user.id(), storeId);}
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID storeId) {return preferences.removeFavoriteStore(user.id(), storeId);}
 }

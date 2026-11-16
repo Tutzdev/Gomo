@@ -17,8 +17,7 @@ class UserPreference {
 
     private Instant updatedAt;
 
-    protected UserPreference() {
-    }
+    protected UserPreference() {}
 
     UserPreference(UUID userId, UUID preferredCityId, Instant updatedAt) {
         this.userId = userId;

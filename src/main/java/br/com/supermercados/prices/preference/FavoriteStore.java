@@ -19,8 +19,7 @@ class FavoriteStore {
 
     private Instant createdAt;
 
-    protected FavoriteStore() {
-    }
+    protected FavoriteStore() {}
 
     FavoriteStore(UUID userId, UUID storeId, Instant createdAt) {
         id = UUID.randomUUID();
