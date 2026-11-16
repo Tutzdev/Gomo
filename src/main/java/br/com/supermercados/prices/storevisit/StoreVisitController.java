@@ -22,16 +22,21 @@ public class StoreVisitController {
         this.visits = visits;
     }
 
-    /** {@code days} null goes back to the default (7 days). */
     @PutMapping("/{storeId}/visit-validity")
-    public StoreResponse changeValidity(@AuthenticationPrincipal AuthenticatedUser actor, @PathVariable UUID storeId,
-            @RequestBody StoreVisitValidityRequest request) {
+    public StoreResponse changeValidity(
+        @AuthenticationPrincipal AuthenticatedUser actor,
+        @PathVariable UUID storeId,
+        @RequestBody StoreVisitValidityRequest request) {
+
         return visits.changeValidity(actor.id(), storeId, request.days());
     }
 
     @PostMapping("/{storeId}/visits")
-    public StoreVisitResponse record(@AuthenticationPrincipal AuthenticatedUser actor, @PathVariable UUID storeId,
-            @Valid @RequestBody StoreVisitRequest visit) {
+    public StoreVisitResponse record(
+        @AuthenticationPrincipal AuthenticatedUser actor,
+        @PathVariable UUID storeId,
+        @Valid @RequestBody StoreVisitRequest visit) {
+
         return visits.record(actor.id(), storeId, visit);
     }
 }

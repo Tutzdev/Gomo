@@ -11,14 +11,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** One visit to a physical market: the shelf prices written down at {@code observedAt}. */
 public record StoreVisitRequest(
         @NotNull Instant observedAt,
         @NotEmpty @Size(max = 300) List<@Valid @NotNull Item> items) {
 
-    /** {@code price} is the one on the shelf tag. */
     public record Item(
             @NotNull UUID productId,
-            @NotNull @DecimalMin("0.01") @Digits(integer = 10, fraction = 2) BigDecimal price) {
-    }
+            @NotNull @DecimalMin("0.01") @Digits(integer = 10, fraction = 2) BigDecimal price) {}
 }

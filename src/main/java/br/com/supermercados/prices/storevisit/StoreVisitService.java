@@ -23,10 +23,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Records the shelf prices of a market without an online store. Only markets registered as
- * {@link StorePriceChannel#IN_STORE} accept them, so a scraped market never mixes in hand-written prices.
- */
 @Service
 public class StoreVisitService {
 
@@ -39,8 +35,14 @@ public class StoreVisitService {
     private final AdminAuditService audit;
     private final Clock clock;
 
-    public StoreVisitService(StoreRepository stores, DataSourceService sources, PriceService prices,
-            PricePolicy policy, AdminAuditService audit, Clock clock) {
+    public StoreVisitService(
+        StoreRepository stores,
+        DataSourceService sources,
+        PriceService prices,
+        PricePolicy policy,
+        AdminAuditService audit,
+        Clock clock) {
+
         this.stores = stores;
         this.sources = sources;
         this.prices = prices;
@@ -53,41 +55,56 @@ public class StoreVisitService {
     public StoreVisitResponse record(UUID actorUserId, UUID storeId, StoreVisitRequest visit) {
         Store store = stores.findById(storeId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Loja não encontrada."));
+
         if (!store.isActive() || store.getPriceChannel() != StorePriceChannel.IN_STORE) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Só mercados sem loja online recebem preço conferido na loja.");
+            throw new ApiException(HttpStatus.CONFLICT, "Só mercados sem loja online recebem preço conferido na loja.");
         }
+
         Instant now = clock.instant();
         Duration validity = validity(store);
         Instant currentUntil = visit.observedAt().plus(validity);
+
         if (!currentUntil.isAfter(now)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Essa visita é antiga demais: os preços já estariam vencidos.");
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "Essa visita é antiga demais: os preços já estariam vencidos.");
         }
+
         Set<UUID> seen = new HashSet<>();
+
         for (StoreVisitRequest.Item item : visit.items()) {
             if (!seen.add(item.productId())) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "O mesmo produto aparece duas vezes na visita.");
             }
         }
+
         DataSource source = sources.findByCode(SOURCE_CODE)
                 .orElseThrow(() -> new IllegalStateException("Fonte " + SOURCE_CODE + " ausente: rode as migrações"));
+
         for (StoreVisitRequest.Item item : visit.items()) {
-            prices.appendStoreVisit(new PriceObservation(item.productId(), storeId, source.getId(),
-                    reference(storeId, item.productId(), visit.observedAt()), item.price(), null, "BRL",
-                    // A validity shorter than the default goes on the price itself; queries already honor it.
-                    visit.observedAt(), validity.equals(policy.inStoreMaxAge()) ? null : currentUntil, null, null,
-                    StockAvailability.AVAILABLE));
+            prices.appendStoreVisit(new PriceObservation(
+                item.productId(),
+                storeId,
+                source.getId(),
+                reference(storeId, item.productId(), visit.observedAt()),
+                item.price(),
+                null,
+                "BRL",
+                visit.observedAt(),
+                validity.equals(policy.inStoreMaxAge()) ? null : currentUntil,
+                null,
+                null,
+                StockAvailability.AVAILABLE));
         }
+
         audit.record(actorUserId, AdminAction.STORE_VISIT_RECORDED, "STORE", storeId);
+
         return new StoreVisitResponse(storeId, visit.observedAt(), visit.items().size(), currentUntil);
     }
 
-    /**
-     * How long this market's shelf prices last: its own days, or the default. Never longer than the default,
-     * which every price query uses as the outer bound for store visits.
-     */
     Duration validity(Store store) {
         Integer days = store.getInStorePriceValidDays();
+
         return days == null ? policy.inStoreMaxAge() : Duration.ofDays(days);
     }
 
@@ -95,19 +112,23 @@ public class StoreVisitService {
     public StoreResponse changeValidity(UUID actorUserId, UUID storeId, Integer days) {
         Store store = stores.findById(storeId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Loja não encontrada."));
+
         if (store.getPriceChannel() != StorePriceChannel.IN_STORE) {
             throw new ApiException(HttpStatus.CONFLICT, "Só mercados sem loja online têm validade de preço anotado.");
         }
+
         long maximum = policy.inStoreMaxAge().toDays();
+
         if (days != null && (days < 1 || days > maximum)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "A validade vai de 1 a " + maximum + " dias.");
         }
+
         store.changeInStorePriceValidDays(days, clock.instant());
         audit.record(actorUserId, AdminAction.STORE_VISIT_VALIDITY_CHANGED, "STORE", storeId);
+
         return StoreResponse.from(store);
     }
 
-    /** One shelf reading per product and visit time: resending the same visit records nothing new. */
     static String reference(UUID storeId, UUID productId, Instant observedAt) {
         return "store-visit:" + storeId + ":" + productId + ":" + observedAt.getEpochSecond();
     }
