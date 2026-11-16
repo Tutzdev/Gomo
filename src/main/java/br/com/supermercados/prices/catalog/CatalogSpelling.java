@@ -6,10 +6,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Accents that ERP descriptions drop ("Oleo", "Pao", "Cafe 3 Coracoes"). Only words with a single reading are
- * listed: "Para" (for, or the state), "Maca" (apple, or a stretcher) and "Coco" stay as the store wrote them.
- */
 final class CatalogSpelling {
 
     private static final String ACCENTED = """
@@ -29,29 +25,35 @@ final class CatalogSpelling {
             Elegê Sazón Ômega Edição Coleção Ação Promoção Família Pré Pós Óculos Português Espécie Sandália Máscara
             Equilíbrio Pedaço Pedaços Raças Pérsia Hialurônico Hialurônica Lírio Lírios Herbíssimo
             """;
+
     private static final Map<String, String> SPELLINGS = new HashMap<>();
     private static final Pattern WORD = Pattern.compile("\\p{L}+");
 
     static {
         for (String word : ACCENTED.split("\\s+")) {
-            if (!word.isBlank()) SPELLINGS.put(CatalogKey.words(word), word);
+            if (!word.isBlank()) {SPELLINGS.put(CatalogKey.words(word), word);}
         }
     }
 
-    private CatalogSpelling() {
-    }
+    private CatalogSpelling() {}
 
-    /** "Oleo Liza Soja" → "Óleo Liza Soja", keeping each word's case; words already accented are left alone. */
     static String accented(String name) {
         Matcher matcher = WORD.matcher(name);
         StringBuilder result = new StringBuilder();
+
         while (matcher.find()) {
             String word = matcher.group();
+
             String spelled = word.chars().allMatch(character -> character < 128)
                     ? SPELLINGS.get(word.toUpperCase(Locale.ROOT)) : null;
-            matcher.appendReplacement(result, Matcher.quoteReplacement(spelled == null ? word : sameCase(word, spelled)));
+
+            matcher.appendReplacement(
+                result,
+                Matcher.quoteReplacement(spelled == null ? word : sameCase(word, spelled)));
         }
+
         matcher.appendTail(result);
+
         return result.toString();
     }
 
@@ -59,7 +61,9 @@ final class CatalogSpelling {
         if (original.length() > 1 && original.equals(original.toUpperCase(Locale.ROOT))) {
             return spelled.toUpperCase(Locale.ROOT);
         }
-        if (Character.isUpperCase(original.charAt(0))) return spelled;
+
+        if (Character.isUpperCase(original.charAt(0))) {return spelled;}
+
         return spelled.toLowerCase(Locale.ROOT);
     }
 }

@@ -4,10 +4,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * A generic product as the shopper sees it, with the price range among the selected stores.
- * {@code productId} is a representative SKU for screens that still work per product.
- */
 public record CatalogItemResponse(
         UUID id,
         String name,
@@ -21,5 +17,4 @@ public record CatalogItemResponse(
         BigDecimal lowestPrice,
         BigDecimal highestPrice,
         String lowestPriceStore,
-        Instant pricesCollectedAt) {
-}
+        Instant pricesCollectedAt) {}

@@ -11,7 +11,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** A real-world product sold by several stores. Written only by {@link CatalogBuilder}. */
 @Entity
 @Table(name = "catalog_items")
 @Getter

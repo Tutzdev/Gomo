@@ -38,14 +38,6 @@ import org.springframework.stereotype.Service;
 
 import br.com.supermercados.prices.collection.PublicCatalogHttp;
 
-/**
- * Product photos at the size the site shows them. Some markets publish only originals (Mercafacil: PNGs of up to
- * 220 KB for a 48 px thumbnail) and have no resizer of their own, unlike the VTEX stores. The first request of
- * a photo at a width downloads it, scales it down and keeps a JPEG on disk; every later one reads the file.
- * <p>
- * Only hosts listed in {@code app.images.resize-hosts} are fetched, so this is not an open proxy, and widths are
- * snapped to a few sizes so the cache cannot be filled with arbitrary variants.
- */
 @Service
 public class ProductImageService {
 
@@ -55,42 +47,48 @@ public class ProductImageService {
 
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5))
             .followRedirects(HttpClient.Redirect.NEVER).build();
+
     private final Set<String> hosts;
     private final Path directory;
 
     public ProductImageService(
-            @Value("${app.images.resize-hosts:phygital-files.mercafacil.com}") String hosts,
-            @Value("${app.images.cache-directory:.local/image-cache}") Path directory) {
+        @Value("${app.images.resize-hosts:phygital-files.mercafacil.com}") String hosts,
+        @Value("${app.images.cache-directory:.local/image-cache}") Path directory) {
+
         this.hosts = Arrays.stream(hosts.split(",")).map(String::strip).filter(host -> !host.isEmpty())
                 .map(host -> host.toLowerCase(Locale.ROOT)).collect(Collectors.toUnmodifiableSet());
+
         this.directory = directory;
     }
 
-    /** Whether {@code source} is an https photo on one of the hosts this service resizes. */
     public boolean accepts(URI source) {
         return "https".equalsIgnoreCase(source.getScheme()) && source.getHost() != null
                 && hosts.contains(source.getHost().toLowerCase(Locale.ROOT)) && source.getUserInfo() == null
                 && (source.getPort() == -1 || source.getPort() == 443);
     }
 
-    /** The smallest cached width that covers the request, so a few sizes serve every screen. */
     static int snap(int requested) {
         return WIDTHS.stream().filter(width -> width >= requested).findFirst().orElse(WIDTHS.getLast());
     }
 
-    /** The JPEG at {@code width}, or empty when the original could not be read (the caller sends the original). */
     public Optional<byte[]> thumbnail(URI source, int width) {
-        if (!accepts(source)) throw new IllegalArgumentException("host not allowed");
+        if (!accepts(source)) {throw new IllegalArgumentException("host not allowed");}
+
         Path cached = directory.resolve(key(source) + "-" + width + ".jpg");
+
         try {
-            if (Files.exists(cached)) return Optional.of(Files.readAllBytes(cached));
+            if (Files.exists(cached)) {return Optional.of(Files.readAllBytes(cached));}
+
             Optional<BufferedImage> original = download(source);
-            if (original.isEmpty()) return Optional.empty();
+
+            if (original.isEmpty()) {return Optional.empty();}
+
             byte[] jpeg = jpeg(scale(original.get(), width));
             Files.createDirectories(directory);
             Path partial = Files.createTempFile(directory, "thumb-", ".partial");
             Files.write(partial, jpeg);
             Files.move(partial, cached, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+
             return Optional.of(jpeg);
         } catch (IOException exception) {
             log.warn("Product photo not resized ({}): {}", source.getHost(), exception.getMessage());
@@ -104,31 +102,43 @@ public class ProductImageService {
     private Optional<BufferedImage> download(URI source) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(source).timeout(Duration.ofSeconds(15))
                 .header("User-Agent", PublicCatalogHttp.USER_AGENT).GET().build();
+
         HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
         try (InputStream body = response.body()) {
-            if (response.statusCode() != 200) return Optional.empty();
+            if (response.statusCode() != 200) {return Optional.empty();}
+
             byte[] bytes = body.readNBytes((int) MAX_ORIGINAL_BYTES + 1);
-            if (bytes.length > MAX_ORIGINAL_BYTES) return Optional.empty();
-            // ImageIO reads JPEG, PNG, GIF and BMP; anything else (WebP) stays with the original.
+
+            if (bytes.length > MAX_ORIGINAL_BYTES) {return Optional.empty();}
+
             return Optional.ofNullable(ImageIO.read(new ByteArrayInputStream(bytes)));
         }
     }
 
-    /** Never scales up; transparent areas (PNG cut-outs) become white, like the cards behind the photos. */
     static BufferedImage scale(BufferedImage original, int width) {
         int targetWidth = Math.min(width, original.getWidth());
         int targetHeight = Math.max(1, Math.round(original.getHeight() * (targetWidth / (float) original.getWidth())));
         BufferedImage scaled = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = scaled.createGraphics();
+
         try {
             graphics.setColor(Color.WHITE);
             graphics.fillRect(0, 0, targetWidth, targetHeight);
             graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            graphics.drawImage(original, 0, 0, targetWidth, targetHeight, null);
+
+            graphics.drawImage(
+                original,
+                0,
+                0,
+                targetWidth,
+                targetHeight,
+                null);
         } finally {
             graphics.dispose();
         }
+
         return scaled;
     }
 
@@ -138,12 +148,14 @@ public class ProductImageService {
         parameters.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
         parameters.setCompressionQuality(0.82f);
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+
         try (ImageOutputStream output = ImageIO.createImageOutputStream(bytes)) {
             writer.setOutput(output);
             writer.write(null, new IIOImage(image, null, null), parameters);
         } finally {
             writer.dispose();
         }
+
         return bytes.toByteArray();
     }
 

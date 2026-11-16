@@ -6,11 +6,11 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Lowest price of the item per store and day since {@code since}; days without a collection have no point.
- * {@code verdict} reads the same series as "is today's price a good one".
- */
-public record CatalogItemHistoryResponse(UUID itemId, Instant since, List<StoreSeries> stores, PriceVerdict verdict) {
+public record CatalogItemHistoryResponse(
+        UUID itemId,
+        Instant since,
+        List<StoreSeries> stores,
+        PriceVerdict verdict) {
 
     public CatalogItemHistoryResponse {
         stores = List.copyOf(stores);
@@ -23,6 +23,5 @@ public record CatalogItemHistoryResponse(UUID itemId, Instant since, List<StoreS
         }
     }
 
-    public record PricePoint(LocalDate day, BigDecimal price) {
-    }
+    public record PricePoint(LocalDate day, BigDecimal price) {}
 }

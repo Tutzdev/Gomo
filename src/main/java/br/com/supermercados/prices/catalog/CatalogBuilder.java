@@ -1,18 +1,24 @@
 package br.com.supermercados.prices.catalog;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -22,20 +28,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Groups every collected retailer SKU into generic catalog items and keeps only the items sold by at least
- * {@code app.catalog.min-stores} stores. Item IDs are stable per key, so shopping lists survive rebuilds.
- */
 @Service
 public class CatalogBuilder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogBuilder.class);
-    /** Sizes and pack counts as retailers write them ("2lt", "1,5 L", "C/6", "6x350ml", "30 unidades"). */
-    private static final java.util.regex.Pattern SIZE_TEXT = java.util.regex.Pattern.compile(
+
+    private static final Pattern SIZE_TEXT = Pattern.compile(
             "(?iu)\\b\\d+\\s*x\\s*(?=\\d)|\\b(?:c/|com|pack)\\s*\\d+\\s*(?:unidades?|unids?\\.?|un\\.?|und)?(?![\\p{L}\\d])"
                     + "|\\b\\d+(?:[.,]\\d+)?\\s*(?:mililitros?|ml|litros?|lts?|l|quilos?|kg|gramas?|grs?|g|unidades?"
                     + "|unids?\\.?|un\\.?|und)(?![\\p{L}\\d])");
-    /** Retailer abbreviations spelled out in generic names ("Leite Po" → "Leite em Pó", "Tp 1" → "Tipo 1"). */
+
     private static final String[][] ABBREVIATIONS = {
             {"(?iu)\\bleite\\s+(?:em\\s+)?p[oó]\\b", "Leite em Pó"},
             {"(?iu)\\btp\\.?\\s*(?=\\d)", "Tipo "},
@@ -43,7 +45,6 @@ public class CatalogBuilder {
             {"(?iu)\\bdesn\\.?(?!\\p{L})", "Desnatado"},
             {"(?iu)\\bsemidesnatad(?!o)", "Semidesnatado"},
             {"(?iu)\\bjoao\\b", "João"},
-            // ERP abbreviations of the VIP stores ("Amac. Roupa Conc. Baby Soft", "Bisc. Rech. Piraque").
             {"(?iu)\\bcreme\\s+dent\\.?(?!\\p{L})", "Creme Dental"},
             {"(?iu)\\bapar\\.?\\s+barb\\.?(?!\\p{L})", "Aparelho de Barbear"},
             {"(?iu)\\banti?\\.?\\s+bucal\\b", "Antisséptico Bucal"},
@@ -81,10 +82,9 @@ public class CatalogBuilder {
             {"(?iu)\\bapar\\.(?!\\p{L})", "Aparelho"},
             {"(?iu)\\bshampo(?!\\p{L})", "Shampoo"},
     };
-    /** A number left before the size by a description cut short: "Geleia Queensberry Classic 320" + "320 g". */
-    private static final java.util.regex.Pattern TRAILING_NUMBER = java.util.regex.Pattern.compile("^(.*\\S)\\s+(\\d+(?:[.,]\\d+)?)$");
-    /** Product-type and packaging words that the generic name does not need. */
-    private static final java.util.regex.Pattern GENERIC_WORDS = java.util.regex.Pattern.compile(
+    private static final Pattern TRAILING_NUMBER = Pattern.compile("^(.*\\S)\\s+(\\d+(?:[.,]\\d+)?)$");
+
+    private static final Pattern GENERIC_WORDS = Pattern.compile(
             "(?iu)(?<!\\p{L})(?:refrigerante|refrig\\.?|refri|refr\\.?|ref\\.?|(?:bebida|beb\\.?)(?!\\s*l[aá]ctea)|energ[ée]tic[oa]|energ\\.?"
                     + "|ener|repositor|lv|uht|lata|lt|pet|garrafa|gfa|vidro|descart[áa]vel|original|tradicional|tradic\\.?"
                     + "|trad\\.?|gelad[oa]|pct|pacote)(?!\\p{L})");
@@ -94,7 +94,8 @@ public class CatalogBuilder {
     private final int minimumStores;
 
     public CatalogBuilder(JdbcTemplate jdbc, Clock clock, @Value("${app.catalog.min-stores:2}") int minimumStores) {
-        if (minimumStores < 1) throw new IllegalArgumentException("app.catalog.min-stores must be positive");
+        if (minimumStores < 1) {throw new IllegalArgumentException("app.catalog.min-stores must be positive");}
+
         this.jdbc = jdbc;
         this.clock = clock;
         this.minimumStores = minimumStores;
@@ -103,8 +104,7 @@ public class CatalogBuilder {
     @Transactional
     public synchronized Summary rebuild() {
         Instant startedAt = clock.instant();
-        // Each store's latest description of the SKU: older ones may describe a product the code no longer sells.
-        // latest_prices points at that observation (V54), so the history is not sorted on every rebuild.
+
         List<Offer> offers = jdbc.query("""
                 SELECT p.id, p.name, p.brand, p.category, p.image_url, latest.store_id, latest.source_product_name
                 FROM (SELECT l.product_id, l.store_id, r.source_product_name
@@ -113,25 +113,33 @@ public class CatalogBuilder {
                 JOIN stores s ON s.id = latest.store_id AND s.active
                 """, (row, index) -> new Offer(row.getObject(1, UUID.class), row.getString(2), row.getString(3),
                 row.getString(4), row.getString(5), row.getObject(6, UUID.class), row.getString(7)));
-        CatalogKey keys = CatalogKey.learn(offers.stream().map(Offer::brand).toList(),
-                offers.stream().map(Offer::name).distinct().toList());
+
+        CatalogKey keys = CatalogKey.learn(
+            offers.stream().map(Offer::brand).toList(),
+            offers.stream().map(Offer::name).distinct().toList());
 
         Map<UUID, CatalogKey.Identity> identities = new CatalogMatcher(keys).match(offers.stream()
                 .map(offer -> new CatalogMatcher.Listing(offer.productId(), offer.storeId(), offer.name(),
                         offer.storeDescription()))
                 .toList());
+
         Map<String, Group> groups = new LinkedHashMap<>();
+
         for (Offer offer : offers) {
             CatalogKey.Identity identity = identities.get(offer.productId());
-            if (identity == null) continue;
+
+            if (identity == null) {continue;}
+
             groups.computeIfAbsent(identity.key(), key -> new Group(identity)).add(offer);
         }
+
         List<Group> published = groups.values().stream().filter(group -> group.stores.size() >= minimumStores).toList();
         Map<String, String> spellings = Group.spellings(offers.stream().map(Offer::name).distinct().toList());
         Map<Group, String> names = Group.distinctNames(published, spellings);
         Map<String, String> brandSpellings = Group.brandSpellings(offers.stream().map(Offer::brand).toList());
 
         Timestamp now = Timestamp.from(startedAt);
+
         jdbc.batchUpdate("""
                 INSERT INTO catalog_items (id, catalog_key, display_name, brand, size_label, category, image_url,
                     representative_product_id, search_text, store_count, active, updated_at)
@@ -152,36 +160,41 @@ public class CatalogBuilder {
             statement.setString(6, CatalogCategory.of(displayName, group.retailerCategories()));
             statement.setString(7, representative.imageUrl());
             statement.setObject(8, representative.productId());
+
             statement.setString(9, truncate(CatalogKey.words(displayName) + " "
                     + group.identity.key().substring(0, group.identity.key().indexOf('|')), 1200));
+
             statement.setInt(10, group.stores.size());
             statement.setTimestamp(11, now);
         });
+
         int deactivated = jdbc.update("UPDATE catalog_items SET active = FALSE WHERE active AND updated_at < ?", now);
 
         Map<String, UUID> ids = new HashMap<>();
+
         jdbc.query("SELECT catalog_key, id FROM catalog_items WHERE active",
                 row -> { ids.put(row.getString(1), row.getObject(2, UUID.class)); });
+
         jdbc.update("DELETE FROM catalog_item_products");
         List<Object[]> links = new ArrayList<>();
+
         for (Group group : published) {
             UUID itemId = ids.get(group.identity.key());
             group.products.keySet().forEach(productId -> links.add(new Object[] {productId, itemId}));
         }
+
         jdbc.batchUpdate("INSERT INTO catalog_item_products (product_id, catalog_item_id) VALUES (?, ?)", links);
         int relinked = relinkShoppingListItems();
 
         Summary summary = new Summary(offers.size(), published.size(), links.size(), deactivated);
+
         LOGGER.info("Catálogo genérico reconstruído: {} itens em {}+ mercados, {} SKUs vinculados, {} desativados, "
                 + "{} itens de lista religados", summary.items(), minimumStores, summary.linkedProducts(),
                 summary.deactivated(), relinked);
+
         return summary;
     }
 
-    /**
-     * When better matching changes an item's key, the old item is deactivated. Lists that saved it move to the
-     * item that now holds the same SKU, unless the list already has that item.
-     */
     private int relinkShoppingListItems() {
         return jdbc.update("""
                 UPDATE shopping_list_items item SET catalog_item_id = link.catalog_item_id
@@ -200,22 +213,34 @@ public class CatalogBuilder {
 
     static String titleCase(String value) {
         StringBuilder result = new StringBuilder();
-        for (String word : value.toLowerCase(java.util.Locale.ROOT).split(" ")) {
-            if (word.isEmpty()) continue;
-            if (!result.isEmpty()) result.append(' ');
+
+        for (String word : value.toLowerCase(Locale.ROOT).split(" ")) {
+            if (word.isEmpty()) {continue;}
+
+            if (!result.isEmpty()) {result.append(' ');}
+
             boolean keepLower = word.length() <= 2 && Set.of("de", "da", "do", "e", "em", "c/").contains(word);
             boolean measure = word.matches("\\d.*");
             result.append(keepLower || measure ? word : Character.toUpperCase(word.charAt(0)) + word.substring(1));
         }
+
         return result.toString();
     }
 
-    public record Summary(int offers, int items, int linkedProducts, int deactivated) {
-    }
+    public record Summary(
+            int offers,
+            int items,
+            int linkedProducts,
+            int deactivated) {}
 
-    private record Offer(UUID productId, String name, String brand, String category, String imageUrl, UUID storeId,
-            String storeDescription) {
-    }
+    private record Offer(
+            UUID productId,
+            String name,
+            String brand,
+            String category,
+            String imageUrl,
+            UUID storeId,
+            String storeDescription) {}
 
     static final class Group {
         private final CatalogKey.Identity identity;
@@ -231,188 +256,204 @@ public class CatalogBuilder {
             stores.add(offer.storeId());
         }
 
-        /** The cleanest retailer description: complete, mixed case, few abbreviations, short. */
         Offer representative() {
             Comparator<Offer> quality = Comparator
                     .comparing((Offer offer) -> CatalogMatcher.cutAtErpLimit(offer.name()))
-                    .thenComparing(offer -> offer.name().equals(offer.name().toUpperCase(java.util.Locale.ROOT)))
+                    .thenComparing(offer -> offer.name().equals(offer.name().toUpperCase(Locale.ROOT)))
                     .thenComparing(offer -> offer.imageUrl() == null)
                     .thenComparingLong(offer -> offer.name().chars().filter(character -> character == '.').count())
                     .thenComparingInt(offer -> cleanName(offer.name()).length())
                     .thenComparing(Offer::name);
+
             return products.values().stream().min(quality).orElseThrow();
         }
 
-        /** "Refr. Coca-cola 2lt Pet" → "Coca-Cola 2 L": retailer noise removed, standard size appended. */
         String displayName(Map<String, String> spellings) {
             if (identity.genericName() != null) {
                 return accented(identity.genericName(), spellings) + " " + CatalogKey.sizeLabel(identity.size());
             }
+
             return CatalogSpelling.accented(genericName(displaySource(), identity));
         }
 
-        /**
-         * The text the name is made from. VIP stores cut the SKU name at 30 characters ("Geleia Queensberry Classic
-         * 320") but describe it in full on the shelf ("Geleia Queensberry Clássica 320g Morango"): the full
-         * description is preferred, then mixed case, accents and few abbreviations.
-         */
         String displaySource() {
             Comparator<String> quality = Comparator
                     .<String, Boolean>comparing(CatalogMatcher::cutAtErpLimit)
-                    .thenComparing(text -> text.equals(text.toUpperCase(java.util.Locale.ROOT)))
+                    .thenComparing(text -> text.equals(text.toUpperCase(Locale.ROOT)))
                     .thenComparing(text -> text.chars().allMatch(character -> character < 128))
                     .thenComparingLong(text -> text.chars().filter(character -> character == '.').count())
                     .thenComparingInt(text -> cleanName(text).length())
                     .thenComparing(Comparator.naturalOrder());
+
             return products.values().stream().map(offer -> {
                 String description = offer.storeDescription();
+
                 boolean better = CatalogMatcher.cutAtErpLimit(offer.name()) && description != null
                         && !description.isBlank() && !CatalogMatcher.cutAtErpLimit(description)
                         && !CatalogKey.isBundle(description);
+
                 return better ? description.strip() : offer.name();
             }).min(quality).orElseThrow();
         }
 
-        /**
-         * Two items must not look the same in a list. When their names collide (a flavour the chosen description
-         * leaves out), each gets the words of its own key that the name lacks: "… Morango 320 g", "… Amora 320 g".
-         */
         static Map<Group, String> distinctNames(List<Group> groups, Map<String, String> spellings) {
             Map<Group, String> names = new HashMap<>();
             groups.forEach(group -> names.put(group, group.displayName(spellings)));
             Map<String, List<Group>> sameName = groups.stream().collect(Collectors.groupingBy(names::get));
+
             for (List<Group> colliding : sameName.values()) {
-                if (colliding.size() < 2) continue;
+                if (colliding.size() < 2) {continue;}
+
                 for (Group group : colliding) {
                     String name = names.get(group);
                     String size = CatalogKey.sizeLabel(group.identity.size());
                     List<String> nameWords = List.of(CatalogKey.words(name).split(" "));
-                    List<String> missing = java.util.Arrays.stream(group.identity.key()
+
+                    List<String> missing = Arrays.stream(group.identity.key()
                                     .substring(0, group.identity.key().indexOf('|')).split(" "))
                             .filter(word -> word.length() >= 2 && nameWords.stream().noneMatch(
                                     present -> present.equals(word) || (present.length() >= 3 && word.startsWith(present))))
                             .map(word -> CatalogSpelling.accented(spellings.getOrDefault(word, titleCase(word))))
                             .toList();
-                    if (missing.isEmpty() || !name.endsWith(size)) continue;
+
+                    if (missing.isEmpty() || !name.endsWith(size)) {continue;}
+
                     String base = name.substring(0, name.length() - size.length()).strip();
                     names.put(group, truncate(base + " " + String.join(" ", missing) + " " + size, 200));
                 }
             }
+
             return names;
         }
 
-        /**
-         * How each declared brand is best written, by its words: with accents and in mixed case when some store
-         * writes it so ("Nestlé", "Ypê", "3 Corações"), otherwise the most common spelling.
-         */
-        static Map<String, String> brandSpellings(java.util.Collection<String> declaredBrands) {
+        static Map<String, String> brandSpellings(Collection<String> declaredBrands) {
             Map<String, Map<String, Integer>> counts = new HashMap<>();
+
             for (String declared : declaredBrands) {
-                if (declared == null || declared.isBlank()) continue;
+                if (declared == null || declared.isBlank()) {continue;}
+
                 counts.computeIfAbsent(CatalogKey.words(declared), ignored -> new HashMap<>())
                         .merge(declared.strip().replaceAll("\\s+", " "), 1, Integer::sum);
             }
+
             Map<String, String> spellings = new HashMap<>();
+
             counts.forEach((brand, spelled) -> spellings.put(brand, spelled.entrySet().stream()
                     .max(Comparator.comparing((Map.Entry<String, Integer> entry) -> !entry.getKey().chars()
                                     .allMatch(character -> character < 128))
-                            .thenComparing(entry -> !entry.getKey().equals(entry.getKey().toUpperCase(java.util.Locale.ROOT)))
+                            .thenComparing(entry -> !entry.getKey().equals(entry.getKey().toUpperCase(Locale.ROOT)))
                             .thenComparing(Map.Entry::getValue)
                             .thenComparing(Map.Entry::getKey, Comparator.reverseOrder()))
                     .orElseThrow().getKey()));
+
             return spellings;
         }
 
-        /**
-         * The brand found in the description, or else the one the stores declare for these SKUs (VIP stores
-         * declare none, and a description may not name it). A product word declared as brand ("Óleo") is not one.
-         */
         String brandLabel(CatalogKey keys, Map<String, String> brandSpellings) {
             String brand = identity.brand();
+
             if (brand == null && identity.genericName() == null) {
                 brand = products.values().stream().map(Offer::brand).filter(keys::knownBrand)
                         .collect(Collectors.groupingBy(CatalogKey::words, Collectors.counting())).entrySet().stream()
                         .max(Map.Entry.<String, Long>comparingByValue().thenComparing(Map.Entry::getKey))
                         .map(Map.Entry::getKey).orElse(null);
             }
-            if (brand == null) return null;
+
+            if (brand == null) {return null;}
+
             String spelled = brandSpellings.getOrDefault(CatalogKey.words(brand), brand);
-            boolean oneCase = spelled.equals(spelled.toUpperCase(java.util.Locale.ROOT))
-                    || spelled.equals(spelled.toLowerCase(java.util.Locale.ROOT));
+
+            boolean oneCase = spelled.equals(spelled.toUpperCase(Locale.ROOT))
+                    || spelled.equals(spelled.toLowerCase(Locale.ROOT));
+
             return CatalogSpelling.accented(oneCase ? titleCase(spelled) : spelled);
         }
 
-        /**
-         * How the markets spell each word, for generic names: the most common accented spelling ("Maçã"
-         * beats a rarer "Maça"), or the most common plain one when no market writes the accents.
-         */
-        static Map<String, String> spellings(java.util.Collection<String> retailerNames) {
+        static Map<String, String> spellings(Collection<String> retailerNames) {
             Map<String, Map<String, Integer>> counts = new HashMap<>();
+
             for (String retailerName : retailerNames) {
                 for (String word : retailerName.split("[\\s/()-]+")) {
                     String key = CatalogKey.words(word);
-                    if (key.isEmpty() || key.contains(" ")) continue;
+
+                    if (key.isEmpty() || key.contains(" ")) {continue;}
+
                     counts.computeIfAbsent(key, ignored -> new HashMap<>()).merge(titleCase(word), 1, Integer::sum);
                 }
             }
+
             Map<String, String> spellings = new HashMap<>();
+
             counts.forEach((key, spelled) -> spellings.put(key, spelled.entrySet().stream()
                     .max(Comparator.comparing((Map.Entry<String, Integer> entry) -> !entry.getKey().chars()
                                     .allMatch(character -> character < 128))
                             .thenComparing(Map.Entry::getValue).thenComparing(Map.Entry::getKey, Comparator.reverseOrder()))
                     .orElseThrow().getKey()));
+
             return spellings;
         }
 
-        /** "BANANA MACA" → "Banana Maçã": each key word as the markets spell it. */
         static String accented(String genericName, Map<String, String> spellings) {
             StringBuilder name = new StringBuilder();
+
             for (String word : genericName.split(" ")) {
-                if (!name.isEmpty()) name.append(' ');
+                if (!name.isEmpty()) {name.append(' ');}
+
                 boolean keyWord = word.equals(CatalogKey.words(word));
                 name.append(keyWord ? spellings.getOrDefault(word, titleCase(word)) : word);
             }
+
             return name.toString();
         }
 
         static String genericName(String retailerName, CatalogKey.Identity identity) {
             String name = SIZE_TEXT.matcher(cleanName(retailerName)).replaceAll(" ");
-            // Checked after removing sizes: "ARROZ TIO JOAO 5kg" is all caps despite its lowercase unit.
-            if (name.equals(name.toUpperCase(java.util.Locale.ROOT))) name = titleCase(name);
+
+            if (name.equals(name.toUpperCase(Locale.ROOT))) {name = titleCase(name);}
+
             name = GENERIC_WORDS.matcher(name).replaceAll(" ");
+
             for (String[] abbreviation : ABBREVIATIONS) {
                 name = name.replaceAll(abbreviation[0], abbreviation[1]);
             }
+
             name = name.replaceAll("(?i)\\bcoca[\\s-]*cola\\b", "Coca-Cola")
                     .replaceAll("\\s+", " ").replaceAll("^[\\s.,/-]+|[\\s.,/(-]+$", "").strip();
+
             name = withoutCutSize(name, identity.size());
-            if (name.isBlank()) name = titleCase(identity.key().substring(0, identity.key().indexOf('|')));
+
+            if (name.isBlank()) {name = titleCase(identity.key().substring(0, identity.key().indexOf('|')));}
+
             return truncate(name + " " + CatalogKey.sizeLabel(identity.size()), 200);
         }
 
-        /** "Gatorade Limão 5" + 500 ml, "Leite Cond Itambé 39" + 395 g: the cut number goes, the size stays. */
         static String withoutCutSize(String name, String size) {
             int separator = size.indexOf('x');
             String measure = size.substring(separator + 1);
             Set<String> forms = new HashSet<>();
+
             if (measure.equals("UN")) {
                 forms.add(size.substring(0, separator));
             } else {
-                java.math.BigDecimal amount = new java.math.BigDecimal(measure.replaceAll("[A-Z]+$", ""));
+                BigDecimal amount = new BigDecimal(measure.replaceAll("[A-Z]+$", ""));
                 forms.add(amount.stripTrailingZeros().toPlainString());
                 forms.add(amount.movePointLeft(3).stripTrailingZeros().toPlainString());
             }
-            java.util.regex.Matcher trailing = TRAILING_NUMBER.matcher(name);
+
+            Matcher trailing = TRAILING_NUMBER.matcher(name);
+
             while (trailing.matches()) {
                 String number = trailing.group(2).replace(',', '.');
-                if (forms.stream().noneMatch(form -> form.startsWith(number))) break;
+
+                if (forms.stream().noneMatch(form -> form.startsWith(number))) {break;}
+
                 name = trailing.group(1);
                 trailing = TRAILING_NUMBER.matcher(name);
             }
+
             return name;
         }
 
-        /** The stores' own categories for these SKUs, most used first. */
         List<String> retailerCategories() {
             return products.values().stream().map(Offer::category).filter(category -> category != null && !category.isBlank())
                     .collect(Collectors.groupingBy(Function.identity(), Collectors.counting())).entrySet().stream()
@@ -422,7 +463,6 @@ public class CatalogBuilder {
 
         private static String cleanName(String name) {
             return name.replaceAll("(?i)\\(pre[çc]o de 1 kg\\)", "1 kg")
-                    // "CAFE FARAO VACUO 500 (s)": the plural marker of a cut "Grama(s)".
                     .replaceAll("(?i)\\s*\\(s\\)", " ")
                     .replaceAll("(?i)\\b(gelad[oa]|geladinho)\\b", " ")
                     .replaceAll("\\s+", " ").strip();

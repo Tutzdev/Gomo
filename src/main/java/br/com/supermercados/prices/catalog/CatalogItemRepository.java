@@ -2,6 +2,7 @@ package br.com.supermercados.prices.catalog;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +16,7 @@ public interface CatalogItemRepository extends JpaRepository<CatalogItem, UUID> 
             JOIN catalog_item_products link ON link.catalog_item_id = item.id
             WHERE link.product_id = :productId AND item.active
             """, nativeQuery = true)
-    java.util.Optional<CatalogItem> findActiveByProductId(@Param("productId") UUID productId);
+    Optional<CatalogItem> findActiveByProductId(@Param("productId") UUID productId);
 
     List<CatalogItem> findByActiveTrueAndCategoryIn(Collection<String> categories);
 

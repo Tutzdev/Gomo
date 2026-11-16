@@ -28,24 +28,38 @@ public class CatalogController {
 
     @GetMapping("/api/v1/catalog/items")
     public PageResponse<CatalogItemResponse> search(
-            @RequestParam(required = false) String query,
-            @RequestParam(required = false) UUID cityId,
-            @RequestParam(required = false) List<UUID> storeIds,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return PageResponse.from(catalog.search(query, cityId, storeIds, PageRequests.create(page, size, Sort.unsorted())));
+        @RequestParam(required = false) String query,
+        @RequestParam(required = false) UUID cityId,
+        @RequestParam(required = false) List<UUID> storeIds,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
+        return PageResponse.from(catalog.search(
+            query,
+            cityId,
+            storeIds,
+            PageRequests.create(page, size, Sort.unsorted())));
     }
 
     @GetMapping("/api/v1/catalog/items/{id}")
-    public CatalogItemDetailResponse find(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id,
-            @RequestParam(required = false) UUID cityId, @RequestParam(required = false) List<UUID> storeIds) {
+    public CatalogItemDetailResponse find(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id,
+        @RequestParam(required = false) UUID cityId,
+        @RequestParam(required = false) List<UUID> storeIds) {
+
         ComparisonAccess access = cityId == null ? usage.currentAccess(user) : usage.startComparison(user, id);
+
         return catalog.find(id, cityId, storeIds, access);
     }
 
     @GetMapping("/api/v1/catalog/items/{id}/history")
-    public CatalogItemHistoryResponse history(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id,
-            @RequestParam UUID cityId, @RequestParam(required = false) List<UUID> storeIds) {
+    public CatalogItemHistoryResponse history(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id,
+        @RequestParam UUID cityId,
+        @RequestParam(required = false) List<UUID> storeIds) {
+
         return catalog.history(id, cityId, storeIds, AuthenticatedUser.hasPremium(user));
     }
 

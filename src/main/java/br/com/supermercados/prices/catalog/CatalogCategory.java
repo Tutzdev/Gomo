@@ -4,12 +4,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
-/**
- * Gomo's own aisles. Retailers publish about 180 categories of their own ("MERCEARIA DOCE", "BOMBONIERE ok",
- * "Higiene e perfumaria"), and most SKUs come with none, so an item is placed by what it is: the first word of
- * its name ("Leite Condensado" is groceries, "Leite Integral" dairy), then the stores' categories, then any word
- * of the name.
- */
 final class CatalogCategory {
 
     static final String PRODUCE = "Hortifrúti";
@@ -28,17 +22,14 @@ final class CatalogCategory {
     static final String PET = "Pet";
     static final String HOUSEHOLD = "Utilidades";
 
-    /**
-     * Words that decide the aisle wherever they appear: "Biscoito Biscrok Pedigree" is for dogs, "Gelatina
-     * Kolene Cap" for hair, "Batata Uai Pré-frita Cong" frozen and "Batata Pringles" a snack.
-     */
     private static final List<Rule> DECISIVE_RULES = List.of(
             new Rule(PET, "PEDIGREE|WHISKAS|FRISKIES|BISCROK|DOGUITOS|KITEKAT|PURINA|DOG CHOW|CAT CHOW|SPECIAL DOG"
                     + "|SPECIAL CAT|GOLDEN FORMULA|PREMIER PET|MAGNUS|FELIX"),
             new Rule(PERSONAL_CARE, "CAPILAR|CABELOS?|CACHOS|ALISAMENTO"),
             new Rule(FROZEN, "PRE FRITA|CONG|CONGELAD[OA]S?"),
             new Rule(SWEETS, "PRINGLES|RUFFLES|LAYS|ELMA CHIPS|DORITOS|CHEETOS|FANDANGOS|BACONZITOS"));
-    /** Checked in order: a more specific rule ("AGUA SANITARIA", "LEITE CONDENSADO") comes before a broader one. */
+
+    // A ordem importa: a regra mais específica ("AGUA SANITARIA") vem antes da mais ampla ("AGUA").
     private static final List<Rule> NAME_RULES = List.of(
             new Rule(BABY, "FRALDAS?|LENCOS? UMEDECIDOS?|MAMADEIRA|CHUPETA|PAPINHA|FORMULA INFANTIL|MUCILON|NESTOGENO"
                     + "|APTAMIL|ALIMENTO INFANTIL"),
@@ -99,12 +90,11 @@ final class CatalogCategory {
                     + "|ABOBRINHA|CHUCHU|PEPINO|PIMENTAO|BROCOLIS|COUVE|REPOLHO|RUCULA|AGRIAO|ESPINAFRE|BETERRABA|INHAME"
                     + "|AIPIM|MANDIOCA|MANDIOQUINHA|JILO|QUIABO|VAGEM|BERINJELA|GENGIBRE|COENTRO|SALSA|CEBOLINHA|HORTELA"
                     + "|MANJERICAO|LEGUMES?|FRUTAS?|VERDURAS?|OVOS?|CAQUI|LIMA|NECTARINA|AMEIXA|PESSEGO|ACEROLA"));
-    /** Ready-to-eat or preserved: a fruit or vegetable word does not make these produce. */
+
     private static final Pattern PRESERVED = Pattern.compile(
             "\\b(?:CALDA|CONSERVA|SECA|SECO|SECAS|SECOS|DESIDRATAD[OA]S?|POLPA|LATA|EXTRATO|MOLHO|PASSATA|PURE|SUCO"
                     + "|NECTAR|GELEIA|CHIPS|PALHA|CREME|PELADO|CRISTALIZAD[OA]S?|FARINHA|BISCOITO|IOGURTE|SABOR)\\b");
 
-    /** Retailer categories, matched as words: the order puts "PEIXE ENLATADO" in groceries, "FRUTAS SECAS" too. */
     private static final List<Rule> RETAILER_RULES = List.of(
             new Rule(PET, "PET|PET SHOP|RACAO|RACOES|CAES|PASSARO"),
             new Rule(BABY, "INFANTIL|BEBE|ALIMENTO INFANTIL"),
@@ -135,37 +125,45 @@ final class CatalogCategory {
                     + "|ACUCAR|SAL|GRAOS|GRAO|CONSERVAS?|PRATOS PRONTOS|SOPAS|CULINARIA|MISTURAS?|ADOCANTES|FERMENTOS"
                     + "|TAPIOCA|MILHO|AZEITONA|PALMITO|ERVILHA|CANJICA|EXTRATO|GORDURA|NATURAIS|YOKI|JAPONES|PIMENTAS"));
 
-    private CatalogCategory() {
-    }
+    private CatalogCategory() {}
 
-    /** The aisle for an item named {@code name} that stores file under {@code retailerCategories}, or null. */
     static String of(String name, Collection<String> retailerCategories) {
         String words = " " + CatalogKey.words(name) + " ";
         boolean preserved = PRESERVED.matcher(words).find();
+
         for (Rule rule : DECISIVE_RULES) {
-            if (rule.anywhere().matcher(words).find()) return rule.category();
+            if (rule.anywhere().matcher(words).find()) {return rule.category();}
         }
+
         for (Rule rule : NAME_RULES) {
-            if (rule.category().equals(PRODUCE) && preserved) continue;
-            if (rule.first().matcher(words).find()) return rule.category();
+            if (rule.category().equals(PRODUCE) && preserved) {continue;}
+
+            if (rule.first().matcher(words).find()) {return rule.category();}
         }
+
         for (String retailerCategory : retailerCategories) {
             String category = " " + CatalogKey.words(retailerCategory) + " ";
+
             for (Rule rule : RETAILER_RULES) {
-                if (rule.anywhere().matcher(category).find()) return rule.category();
+                if (rule.anywhere().matcher(category).find()) {return rule.category();}
             }
         }
+
         for (Rule rule : NAME_RULES) {
-            if (rule.category().equals(PRODUCE) && preserved) continue;
-            if (rule.anywhere().matcher(words).find()) return rule.category();
+            if (rule.category().equals(PRODUCE) && preserved) {continue;}
+
+            if (rule.anywhere().matcher(words).find()) {return rule.category();}
         }
+
         return null;
     }
 
     private record Rule(String category, Pattern first, Pattern anywhere) {
         Rule(String category, String alternatives) {
-            this(category, Pattern.compile("^ (?:" + alternatives + ") "),
-                    Pattern.compile(" (?:" + alternatives + ") "));
+            this(
+                category,
+                Pattern.compile("^ (?:" + alternatives + ") "),
+                Pattern.compile(" (?:" + alternatives + ") "));
         }
     }
 }
