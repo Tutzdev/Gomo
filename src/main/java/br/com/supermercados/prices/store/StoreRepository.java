@@ -14,7 +14,6 @@ public interface StoreRepository extends JpaRepository<Store, UUID> {
 
     Page<Store> findByCityIdAndActiveTrue(UUID cityId, Pageable pageable);
 
-    /** Active stores that have published at least one price; an empty store cannot be compared. */
     @Query("""
             select s from Store s where s.cityId = :cityId and s.active
             and exists (select 1 from PriceRecord r where r.storeId = s.id)

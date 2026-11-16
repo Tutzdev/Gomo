@@ -35,13 +35,16 @@ public class StoreCatalogService {
     public Page<StoreProductResponse> findProducts(UUID storeId, ProductSearch search, Pageable pageable) {
         stores.requireStore(storeId);
         Page<ProductResponse> page = products.searchInStore(storeId, search, pageable);
-        if (page.isEmpty()) {
-            return page.map(product -> new StoreProductResponse(product, null));
-        }
+
+        if (page.isEmpty()) {return page.map(product -> new StoreProductResponse(product, null));}
+
         List<UUID> productIds = page.stream().map(ProductResponse::id).toList();
+
         Map<UUID, PriceRecord> observations = prices.findLatestForStoresAndProducts(List.of(storeId), productIds)
                 .stream().collect(Collectors.toMap(PriceRecord::getProductId, Function.identity()));
+
         Instant now = clock.instant();
+
         return page.map(product -> new StoreProductResponse(product,
                 pricePolicy.quote(observations.get(product.id()), now)));
     }

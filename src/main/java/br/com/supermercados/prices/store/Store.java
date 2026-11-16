@@ -52,7 +52,6 @@ public class Store {
     @Column(nullable = false, length = 16)
     private StorePriceChannel priceChannel = StorePriceChannel.ONLINE;
 
-    /** Days the shelf prices of an IN_STORE market stay current; null uses app.prices.in-store-max-age. */
     @Column(name = "in_store_price_valid_days")
     private Integer inStorePriceValidDays;
 
@@ -78,7 +77,6 @@ public class Store {
         update(observation, now);
     }
 
-    /** Null goes back to the default validity. */
     public void changeInStorePriceValidDays(Integer days, Instant now) {
         this.inStorePriceValidDays = days;
         this.updatedAt = now;
@@ -88,8 +86,10 @@ public class Store {
         supermarketChainId = observation.supermarketChainId();
         cityId = observation.cityId();
         name = observation.name().strip();
+
         address = observation.address() == null || observation.address().isBlank()
                 ? null : observation.address().strip();
+
         latitude = observation.latitude();
         longitude = observation.longitude();
         active = observation.active();

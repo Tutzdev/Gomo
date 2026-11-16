@@ -12,7 +12,6 @@ import br.com.supermercados.prices.datasource.ObservationValidator;
 import br.com.supermercados.prices.location.LocationService;
 import lombok.RequiredArgsConstructor;
 
-/** Persistence entry point for verified source adapters, deliberately not exposed over HTTP. */
 @Service
 @RequiredArgsConstructor
 public class StoreIngestionService {
@@ -28,15 +27,21 @@ public class StoreIngestionService {
     public ChainResponse ingestChain(ChainObservation observation) {
         validator.validate(observation);
         dataSourceService.verifyObservation(observation.source());
+
         var existing = chainRepository.findBySourceIdAndSourceReference(
-                observation.source().sourceId(), observation.source().sourceReference());
+            observation.source().sourceId(),
+            observation.source().sourceReference());
+
         if (existing.isEmpty()) {
             return ChainResponse.from(chainRepository.save(new SupermarketChain(observation, clock.instant())));
         }
+
         SupermarketChain chain = existing.orElseThrow();
+
         if (observation.source().collectedAt().isAfter(chain.getCollectedAt())) {
             chain.update(observation, clock.instant());
         }
+
         return ChainResponse.from(chain);
     }
 
@@ -45,23 +50,31 @@ public class StoreIngestionService {
         validator.validate(observation);
         dataSourceService.verifyObservation(observation.source());
         validateLocation(observation);
+
         var existing = storeRepository.findBySourceIdAndSourceReference(
-                observation.source().sourceId(), observation.source().sourceReference());
+            observation.source().sourceId(),
+            observation.source().sourceReference());
+
         if (existing.isEmpty()) {
             return StoreResponse.from(storeRepository.save(new Store(observation, clock.instant())));
         }
+
         Store store = existing.orElseThrow();
+
         if (observation.source().collectedAt().isAfter(store.getCollectedAt())) {
             store.update(observation, clock.instant());
         }
+
         return StoreResponse.from(store);
     }
 
     private void validateLocation(StoreObservation observation) {
         locationService.requireCity(observation.cityId());
+
         if (!chainRepository.existsById(observation.supermarketChainId())) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Rede de supermercados não encontrada");
         }
+
         if ((observation.latitude() == null) != (observation.longitude() == null)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Latitude e longitude devem ser informadas juntas");
         }

@@ -24,19 +24,22 @@ public class StoreController {
 
     @GetMapping("/chains")
     public PageResponse<ChainResponse> findChains(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         return PageResponse.from(storeService.findChains(
                 PageRequests.create(page, size, Sort.by("name", "id"))));
     }
 
     @GetMapping("/stores")
     public PageResponse<StoreResponse> findStores(
-            @RequestParam(required = false) UUID cityId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(required = false) UUID cityId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
         return PageResponse.from(storeService.findListedStores(
-                cityId, PageRequests.create(page, size, Sort.by("name", "id"))));
+            cityId,
+            PageRequests.create(page, size, Sort.by("name", "id"))));
     }
 
     @GetMapping("/stores/{id}")
@@ -45,11 +48,15 @@ public class StoreController {
     }
 
     @GetMapping("/stores/{id}/products")
-    public PageResponse<StoreProductResponse> findProducts(@PathVariable UUID id,
-            @RequestParam(required = false) String query,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "30") int size) {
-        return PageResponse.from(catalog.findProducts(id, new ProductSearch(query, null, null, null),
-                PageRequests.create(page, size, Sort.by("name", "id"))));
+    public PageResponse<StoreProductResponse> findProducts(
+        @PathVariable UUID id,
+        @RequestParam(required = false) String query,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "30") int size) {
+
+        return PageResponse.from(catalog.findProducts(
+            id,
+            new ProductSearch(query, null, null, null),
+            PageRequests.create(page, size, Sort.by("name", "id"))));
     }
 }
