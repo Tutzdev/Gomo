@@ -11,7 +11,6 @@ interface ShoppingListInviteRepository extends JpaRepository<ShoppingListInvite,
 
     Optional<ShoppingListInvite> findByTokenHash(String tokenHash);
 
-    /** A new link replaces the old ones; "stop sharing" ends them all. */
     @Modifying(flushAutomatically = true)
     @Query("""
             update ShoppingListInvite invite set invite.revokedAt = :now

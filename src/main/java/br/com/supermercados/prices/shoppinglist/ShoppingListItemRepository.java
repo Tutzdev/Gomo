@@ -37,7 +37,6 @@ public interface ShoppingListItemRepository extends JpaRepository<ShoppingListIt
     @Query("update ShoppingListItem item set item.checkedAt = null, item.checkedBy = null where item.shoppingListId = :listId")
     int clearChecks(UUID listId);
 
-    /** In the person's own lists and in the ones shared with them. */
     @Query("""
             select distinct item.catalogItemId from ShoppingListItem item, ShoppingList list
             where list.id = item.shoppingListId and item.catalogItemId is not null and

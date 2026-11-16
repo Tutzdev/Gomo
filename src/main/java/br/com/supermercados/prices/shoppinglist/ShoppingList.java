@@ -41,7 +41,12 @@ public class ShoppingList {
     @Version
     private long version;
 
-    ShoppingList(UUID userId, String name, ShoppingType shoppingType, Instant now) {
+    ShoppingList(
+        UUID userId,
+        String name,
+        ShoppingType shoppingType,
+        Instant now) {
+
         this.id = UUID.randomUUID();
         this.userId = userId;
         this.name = name.strip();

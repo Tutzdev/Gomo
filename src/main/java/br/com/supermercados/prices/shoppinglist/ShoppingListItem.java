@@ -27,7 +27,6 @@ public class ShoppingListItem {
     @Column(nullable = false, updatable = false)
     private UUID productId;
 
-    /** Generic product chosen by the shopper; null for items added by a specific retailer SKU. */
     @Column(updatable = false)
     private UUID catalogItemId;
 
@@ -42,7 +41,12 @@ public class ShoppingListItem {
         this(shoppingListId, productId, null, quantity);
     }
 
-    ShoppingListItem(UUID shoppingListId, UUID productId, UUID catalogItemId, BigDecimal quantity) {
+    ShoppingListItem(
+        UUID shoppingListId,
+        UUID productId,
+        UUID catalogItemId,
+        BigDecimal quantity) {
+
         this.id = UUID.randomUUID();
         this.shoppingListId = shoppingListId;
         this.productId = productId;
@@ -54,10 +58,8 @@ public class ShoppingListItem {
         this.quantity = quantity;
     }
 
-    /** Into the cart. Checking again keeps the first time and who did it: a retried request changes nothing. */
     void check(UUID userId, Instant now) {
         if (checkedAt == null) {
-            // The precision PostgreSQL keeps, so the answer to this request and every later read say the same time.
             checkedAt = now.truncatedTo(ChronoUnit.MICROS);
             checkedBy = userId;
         }

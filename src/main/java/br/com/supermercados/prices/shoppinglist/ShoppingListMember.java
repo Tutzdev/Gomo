@@ -12,7 +12,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** Someone the owner shared the list with. The owner is not a member: they are {@code shopping_lists.user_id}. */
 @Entity
 @Table(name = "shopping_list_members")
 @IdClass(ShoppingListMember.Key.class)

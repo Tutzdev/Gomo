@@ -8,7 +8,6 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/** Adds either a generic catalog item ("Coca-Cola 2 L") or a specific retailer product. */
 public record AddItemRequest(
         UUID productId,
         UUID catalogItemId,

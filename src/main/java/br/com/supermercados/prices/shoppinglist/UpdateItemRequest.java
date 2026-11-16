@@ -7,5 +7,4 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
 public record UpdateItemRequest(
-        @NotNull @Positive @DecimalMax("999999") @Digits(integer = 6, fraction = 3) BigDecimal quantity) {
-}
+        @NotNull @Positive @DecimalMax("999999") @Digits(integer = 6, fraction = 3) BigDecimal quantity) {}

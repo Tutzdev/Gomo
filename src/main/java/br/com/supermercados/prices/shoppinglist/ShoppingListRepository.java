@@ -13,7 +13,6 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface ShoppingListRepository extends JpaRepository<ShoppingList, UUID> {
 
-    /** The person's own lists and the ones shared with them. */
     String ACCESSIBLE = """
             (list.userId = :userId or exists (
                 select member.userId from ShoppingListMember member
@@ -30,7 +29,6 @@ public interface ShoppingListRepository extends JpaRepository<ShoppingList, UUID
     @Query("select list from ShoppingList list where list.id = :id and list.userId = :userId")
     Optional<ShoppingList> lockOwnedList(UUID id, UUID userId);
 
-    /** Serialises the people joining a list at the same moment, so the member limit holds. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select list from ShoppingList list where list.id = :id")
     Optional<ShoppingList> lockById(UUID id);

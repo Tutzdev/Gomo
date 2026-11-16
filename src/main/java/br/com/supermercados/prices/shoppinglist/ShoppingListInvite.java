@@ -10,7 +10,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** An invite link to a list. Only the hash of its token is kept; the link itself is shown once, to the owner. */
 @Entity
 @Table(name = "shopping_list_invites")
 @Getter
@@ -37,7 +36,13 @@ class ShoppingListInvite {
 
     private Instant revokedAt;
 
-    ShoppingListInvite(UUID shoppingListId, String tokenHash, UUID createdBy, Instant now, Instant expiresAt) {
+    ShoppingListInvite(
+        UUID shoppingListId,
+        String tokenHash,
+        UUID createdBy,
+        Instant now,
+        Instant expiresAt) {
+
         this.id = UUID.randomUUID();
         this.shoppingListId = shoppingListId;
         this.tokenHash = tokenHash;
