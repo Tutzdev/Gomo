@@ -25,6 +25,7 @@ import { SubstitutesCard } from "@/features/shopping-lists/substitutes-card";
 import { formatDate } from "@/lib/brand";
 import { catalogApi, sharingApi, shoppingListApi } from "@/services/gomo-api";
 import type {
+  BasicItem,
   CatalogItem,
   ShoppingList,
   ShoppingListItem,
@@ -93,11 +94,13 @@ export function ShoppingListDetailPage() {
   const { premium } = usePlan();
   const itemLimit = useLimitUpsell();
   const addItem = useMutation({
-    mutationFn: () =>
-      shoppingListApi.addItem(id, {
-        catalogItemId: catalogItem?.id,
-        quantity: Number(quantity),
-      }),
+    mutationFn: (basicItem?: BasicItem) =>
+      shoppingListApi.addItem(
+        id,
+        basicItem
+          ? { basicItem: basicItem.slug, quantity: Number(quantity) || 1 }
+          : { catalogItemId: catalogItem?.id, quantity: Number(quantity) },
+      ),
     onMutate: () => itemLimit.clear(),
     onError: (error) => {
       if (planLimitOf(error) === "LIST_ITEMS") itemLimit.block("LIST_ITEMS");
@@ -173,28 +176,42 @@ export function ShoppingListDetailPage() {
           }}
         />
       ) : null}
-      {selectedCity && list.data.items.length ? (
-        <>
-          <GoodPricesCard listId={id} cityId={selectedCity} onChanged={invalidate} />
-          <SubstitutesCard listId={id} cityId={selectedCity} onChanged={invalidate} />
-        </>
-      ) : null}
       <div className="grid items-start gap-6 xl:grid-cols-[1fr_0.65fr]">
         <section className="surface min-w-0">
-          <div className="border-b border-border p-5">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-bold">Itens da lista</h2>
-              {!premium ? (
-                <p className="text-xs text-muted">
-                  {Math.min(list.data.items.length, FREE_LIST_ITEMS)} de {FREE_LIST_ITEMS} produtos no plano grátis
-                </p>
-              ) : null}
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border p-5">
+            <h2 className="font-bold">Itens da lista</h2>
+            {!premium ? (
+              <p className="text-xs text-muted">
+                {Math.min(list.data.items.length, FREE_LIST_ITEMS)} de {FREE_LIST_ITEMS} produtos no plano grátis
+              </p>
+            ) : null}
+          </div>
+          {!list.data.items.length ? (
+            <div className="p-5">
+              <EmptyState
+                title="Lista vazia"
+                description="Busque abaixo pelo nome do produto. Para o básico, como pão de hambúrguer ou arroz, escolha “qualquer marca”: cada mercado entra com a opção mais barata."
+              />
             </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {list.data.items.map((item) => (
+                <ListItemRow
+                  key={`${item.id}-${item.quantity}`}
+                  listId={id}
+                  item={item}
+                  onSaved={invalidate}
+                />
+              ))}
+            </ul>
+          )}
+          <div className="border-t border-border bg-surface-strong/40 p-5">
+            <h3 className="font-bold">Adicionar produto</h3>
             <form
-              className="mt-4 space-y-4"
+              className="mt-3 space-y-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (catalogItem && Number(quantity) > 0) addItem.mutate();
+                if (catalogItem && Number(quantity) > 0) addItem.mutate(undefined);
               }}
             >
               <CatalogItemPicker
@@ -206,6 +223,10 @@ export function ShoppingListDetailPage() {
                 excludedIds={list.data.items.flatMap((item) =>
                   item.catalogItemId ? [item.catalogItemId] : [],
                 )}
+                anyBrand={{
+                  onChoose: (basicItem) => addItem.mutate(basicItem),
+                  excludedSlugs: list.data.items.flatMap((item) => (item.basicItem ? [item.basicItem] : [])),
+                }}
               />
               <div className="flex items-end gap-3">
                 <TextField
@@ -235,25 +256,6 @@ export function ShoppingListDetailPage() {
             <InlineError>{planLimitOf(addItem.error) ? null : addItem.error?.message}</InlineError>
             {itemLimit.notice ? <PlanLimitNotice>{itemLimit.notice}</PlanLimitNotice> : null}
           </div>
-          {!list.data.items.length ? (
-            <div className="p-5">
-              <EmptyState
-                title="Lista vazia"
-                description="Busque pelo nome do produto, como “coca cola 2 litros”. Comparamos o mesmo item em todos os mercados."
-              />
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {list.data.items.map((item) => (
-                <ListItemRow
-                  key={`${item.id}-${item.quantity}`}
-                  listId={id}
-                  item={item}
-                  onSaved={invalidate}
-                />
-              ))}
-            </ul>
-          )}
         </section>
         <section className="surface p-5">
           <h2 className="font-bold">Comparar a lista</h2>
@@ -318,6 +320,12 @@ export function ShoppingListDetailPage() {
           </p>
         </section>
       </div>
+      {selectedCity && list.data.items.length ? (
+        <div className="mt-6">
+          <GoodPricesCard listId={id} cityId={selectedCity} onChanged={invalidate} />
+          <SubstitutesCard listId={id} cityId={selectedCity} onChanged={invalidate} />
+        </div>
+      ) : null}
       {compareCityId && list.data.items.length ? (
         <section className="mt-8">
           <h2 className="mb-4 text-xl font-extrabold">
@@ -355,38 +363,39 @@ function ListItemRow({
     mutationFn: () => shoppingListApi.removeItem(listId, item.id),
     onSuccess: onSaved,
   });
+  const changed = Number(quantity) !== item.quantity;
+  const link = item.basicItem
+    ? `/app/basicos/${item.basicItem}`
+    : item.catalogItemId
+      ? `/app/comparar/${item.catalogItemId}`
+      : `/app/produtos/${item.productId}`;
   return (
-    <li className="p-5">
-      <div className="flex items-center gap-3">
-        <CatalogItemThumbnail imageUrl={item.imageUrl} size="sm" />
-        <Link
-          to={
-            item.catalogItemId
-              ? `/app/comparar/${item.catalogItemId}`
-              : `/app/produtos/${item.productId}`
-          }
-          className="min-w-0 font-semibold hover:text-primary"
-        >
-          {item.productName}
-        </Link>
-        {item.checkedAt ? (
-          <span className="ml-auto shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success">
-            No carrinho{item.checkedByName ? ` · ${item.checkedByName}` : ""}
-          </span>
-        ) : null}
-      </div>
+    <li className="px-4 py-3 sm:px-5">
       <form
-        className="mt-3 flex flex-wrap items-end gap-3"
+        className="flex items-center gap-3"
         onSubmit={(event) => {
           event.preventDefault();
-          update.mutate();
+          if (changed) update.mutate();
         }}
       >
-        <div className="w-24 sm:w-28">
-          <TextField
+        <CatalogItemThumbnail imageUrl={item.imageUrl} size="sm" />
+        <div className="min-w-0 flex-1">
+          <Link to={link} className="block font-semibold leading-5 hover:text-primary">
+            {item.productName}
+          </Link>
+          {item.checkedAt ? (
+            <span className="mt-1 inline-block rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success">
+              No carrinho{item.checkedByName ? ` · ${item.checkedByName}` : ""}
+            </span>
+          ) : null}
+        </div>
+        <label htmlFor={`quantity-${item.id}`} className="sr-only">
+          Quantidade de {item.productName}
+        </label>
+        <div className="w-16 shrink-0">
+          <input
             id={`quantity-${item.id}`}
-            label="Quantidade"
-            aria-label={`Quantidade de ${item.productName}`}
+            className="field-control text-center tabular-nums"
             type="number"
             min="1"
             max="999999"
@@ -396,16 +405,11 @@ function ListItemRow({
             onChange={(event) => setQuantity(event.target.value)}
           />
         </div>
-        <NativeButton
-          type="submit"
-          variant="secondary"
-          size="sm"
-          loading={update.isPending}
-          disabled={Number(quantity) === item.quantity || remove.isPending}
-        >
-          {/* No celular a lixeira cabe na mesma linha; o leitor de tela ouve sempre "Salvar quantidade". */}
-          Salvar<span className="sr-only sm:not-sr-only">&nbsp;quantidade</span>
-        </NativeButton>
+        {changed ? (
+          <NativeButton type="submit" variant="secondary" size="sm" loading={update.isPending} disabled={remove.isPending}>
+            Salvar
+          </NativeButton>
+        ) : null}
         <NativeButton
           variant="ghost"
           size="icon"
