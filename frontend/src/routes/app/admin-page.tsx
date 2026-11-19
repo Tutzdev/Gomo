@@ -9,12 +9,13 @@ import { ApiError } from "@/lib/api";
 import { formatDate } from "@/lib/brand";
 import { adminApi, contributionApi } from "@/services/gomo-api";
 import { ProductSuggestionsQueue } from "@/features/admin/product-suggestions-queue";
+import { BasicItemCoveragePanel } from "@/features/admin/basic-item-coverage-panel";
 import { StoreVisitPanel } from "@/features/admin/store-visit-panel";
 import type { MarketHealth, MarketStatus } from "@/types/api";
 
 export function AdminPage() {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"collections" | "visits" | "moderation" | "sources" | "ingestion" | "audit">("collections");
+  const [tab, setTab] = useState<"collections" | "coverage" | "visits" | "moderation" | "sources" | "ingestion" | "audit">("collections");
   const audit = useQuery({ queryKey: ["admin-audit"], queryFn: () => adminApi.audit(0, 100), enabled: tab === "audit" });
   const queue = useQuery({ queryKey: ["admin-contributions", "PENDING"], queryFn: () => contributionApi.moderation("PENDING"), enabled: tab === "moderation" });
   const approve = useMutation({ mutationFn: contributionApi.approve, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-contributions"] }) });
@@ -24,9 +25,10 @@ export function AdminPage() {
     <>
       <PageHeading title="Administração" description="Acompanhe as coletas, modere contribuições, registre fontes e consulte a auditoria." />
       <div className="mb-6 flex gap-2 overflow-x-auto border-b border-border" role="tablist" aria-label="Áreas administrativas">
-        {[{ id: "collections", label: "Coletas" }, { id: "visits", label: "Preço na loja" }, { id: "moderation", label: "Moderação" }, { id: "sources", label: "Fontes" }, { id: "ingestion", label: "Ingestão" }, { id: "audit", label: "Auditoria" }].map((item) => <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} className={`dashboard-tab min-h-11 shrink-0 border-b-2 px-3 text-sm font-bold ${tab === item.id ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground"}`} onClick={() => setTab(item.id as typeof tab)}>{item.label}</button>)}
+        {[{ id: "collections", label: "Coletas" }, { id: "coverage", label: "Cesta básica" }, { id: "visits", label: "Preço na loja" }, { id: "moderation", label: "Moderação" }, { id: "sources", label: "Fontes" }, { id: "ingestion", label: "Ingestão" }, { id: "audit", label: "Auditoria" }].map((item) => <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} className={`dashboard-tab min-h-11 shrink-0 border-b-2 px-3 text-sm font-bold ${tab === item.id ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground"}`} onClick={() => setTab(item.id as typeof tab)}>{item.label}</button>)}
       </div>
       {tab === "collections" ? <CollectionsPanel /> : null}
+      {tab === "coverage" ? <BasicItemCoveragePanel /> : null}
       {tab === "visits" ? <StoreVisitPanel /> : null}
       {tab === "moderation" ? <><section className="surface overflow-hidden"><SurfaceTitle title="Contribuições pendentes" description="Aprovação gera um registro de preço; rejeição mantém o motivo no histórico." />{queue.isLoading ? <div className="p-5"><SkeletonRows rows={5} /></div> : queue.isError ? <div className="p-5"><ErrorState retry={() => void queue.refetch()} /></div> : !queue.data?.content.length ? <div className="p-8 text-center text-sm text-muted">Não há contribuições pendentes.</div> : <div className="overflow-x-auto"><table className="data-table min-w-[56rem]"><caption className="sr-only">Fila de moderação</caption><thead><tr><th>Enviada</th><th>Produto</th><th>Loja</th><th>Preço</th><th>Ações</th></tr></thead><tbody>{queue.data.content.map((item) => <tr key={item.id}><td>{formatDate(item.submittedAt)}</td><td className="font-mono text-xs">{item.productId}</td><td className="font-mono text-xs">{item.storeId}</td><td>R$ {Number(item.promotionalPrice ?? item.regularPrice).toFixed(2).replace(".", ",")}</td><td><div className="flex gap-2"><NativeButton size="sm" loading={approve.isPending && approve.variables === item.id} onClick={() => approve.mutate(item.id)}><Check className="size-4" aria-hidden />Aprovar</NativeButton><NativeButton size="sm" variant="danger" loading={reject.isPending && reject.variables === item.id} onClick={() => reject.mutate(item.id)}><X className="size-4" aria-hidden />Rejeitar</NativeButton></div></td></tr>)}</tbody></table></div>}</section><ProductSuggestionsQueue /></> : null}
       {tab === "sources" ? <SourceRegistrationForm /> : null}
