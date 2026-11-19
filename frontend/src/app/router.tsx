@@ -87,6 +87,12 @@ export const router = createBrowserRouter([
         })),
       },
       {
+        path: "basicos/:slug",
+        lazy: () => import("@/routes/app/basic-item-page").then(({ BasicItemPage }) => ({
+          Component: BasicItemPage,
+        })),
+      },
+      {
         path: "produtos",
         lazy: () => import("@/routes/app/products-page").then(({ ProductsPage }) => ({ Component: ProductsPage })),
       },

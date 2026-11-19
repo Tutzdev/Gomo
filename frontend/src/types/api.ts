@@ -307,6 +307,8 @@ export interface ShoppingListItem {
   checkedBy: string | null;
   /** Who put it in the cart: on a shared list, someone else may be at the market. */
   checkedByName: string | null;
+  /** Set when the item is "qualquer marca": each market gets its cheapest pack per kg of this basic item. */
+  basicItem: string | null;
 }
 
 /** A real-world product ("Coca-Cola 2 L") grouped across every store that sells it. */
@@ -338,7 +340,56 @@ export interface CatalogItemDetail {
   }[];
   /** Stores in the comparison without a current price for this item. */
   storesWithoutPrice: number;
+  missingStores: MissingStore[];
   access: ComparisonAccess;
+}
+
+export type MissingPriceReason = "NOT_SOLD_ONLINE" | "OUTDATED_PRICES" | "NOT_CHECKED_IN_STORE";
+
+export interface MissingStore {
+  storeId: string;
+  storeName: string;
+  reason: MissingPriceReason;
+  lastPriceCollectedAt: string | null;
+}
+
+/** An everyday item of any brand ("pão de hambúrguer"), compared by price per kg, L or unit. */
+export interface BasicItem {
+  slug: string;
+  name: string;
+  aisle: string;
+  measure: string;
+  typicalPackage: string;
+  pricedStores: number;
+  comparedStores: number;
+  lowestPricePerMeasure: number | null;
+  lowestPriceStore: string | null;
+}
+
+export interface BasicItemOffer {
+  storeId: string;
+  storeName: string;
+  productId: string;
+  catalogItemId: string | null;
+  productName: string | null;
+  packageLabel: string | null;
+  pricePerMeasure: number | null;
+  typicalPackage: boolean;
+  originUrl: string | null;
+  price: PriceQuote;
+}
+
+export interface BasicItemComparison {
+  item: BasicItem;
+  comparedAt: string;
+  offers: BasicItemOffer[];
+  missingStores: MissingStore[];
+  access: ComparisonAccess;
+}
+
+export interface BasicItemCoverage {
+  stores: { id: string; name: string; pricedItems: number }[];
+  items: { slug: string; name: string; aisle: string; pricedStoreIds: string[] }[];
 }
 
 export interface ShoppingList extends Omit<ShoppingListSummary, "memberCount"> {

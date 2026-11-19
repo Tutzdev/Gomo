@@ -52,6 +52,9 @@ export function ComparisonPage() {
             setPicked(item);
             if (item) navigate(`/app/comparar/${item.id}`, { replace: Boolean(itemId) });
           }}
+          anyBrand={{
+            onChoose: (item) => navigate(`/app/basicos/${item.slug}${selectedCity ? `?cityId=${selectedCity}` : ""}`),
+          }}
         />
         <SelectField
           id="comparison-city"

@@ -4,6 +4,9 @@ import type {
   AdminAudit,
   AlertNotification,
   AuthResponse,
+  BasicItem,
+  BasicItemComparison,
+  BasicItemCoverage,
   BillingCycle,
   CatalogItem,
   CatalogItemDetail,
@@ -113,6 +116,20 @@ export const authApi = {
       body: { token, password },
       authenticated: false,
     }),
+};
+
+export const basicItemApi = {
+  search: (query: string | undefined, cityId: string | undefined, signal?: AbortSignal) =>
+    apiRequest<BasicItem[]>(`/basic-items?${queryString({ query, cityId })}`, { anonymous: true, signal }),
+  compare: (slug: string, cityId: string, storeIds?: string[]) =>
+    apiRequest<BasicItemComparison>(
+      `/basic-items/${slug}?${queryString({ cityId, storeIds: storeIds?.join(",") })}`,
+    ),
+  ofCatalogItem: (catalogItemId: string, cityId: string) =>
+    apiRequest<BasicItem | undefined>(
+      `/basic-items/of-catalog-item/${catalogItemId}?${queryString({ cityId })}`,
+      { anonymous: true },
+    ).then((item) => item ?? null),
 };
 
 export const catalogApi = {
@@ -297,7 +314,7 @@ export const shoppingListApi = {
     apiRequest<void>(`/shopping-lists/${id}`, { method: "DELETE" }),
   addItem: (
     id: string,
-    input: { productId?: string; catalogItemId?: string; quantity: number },
+    input: { productId?: string; catalogItemId?: string; basicItem?: string; quantity: number },
   ) =>
     apiRequest<ShoppingListItem>(`/shopping-lists/${id}/items`, {
       method: "POST",
@@ -416,6 +433,8 @@ export const adminApi = {
   recordPrice: (input: unknown) =>
     apiRequest("/admin/prices", { method: "POST", body: input }),
   collectionHealth: () => apiRequest<CollectionHealth>("/admin/collections/health"),
+  basicItemCoverage: (cityId: string) =>
+    apiRequest<BasicItemCoverage>(`/admin/basic-items/coverage?${queryString({ cityId })}`),
   setStoreVisitValidity: (storeId: string, days: number | null) =>
     apiRequest<Store>(`/admin/stores/${storeId}/visit-validity`, { method: "PUT", body: { days } }),
   recordStoreVisit: (storeId: string, input: { observedAt: string; items: { productId: string; price: number }[] }) =>

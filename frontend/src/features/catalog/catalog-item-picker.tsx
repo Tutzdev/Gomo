@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { catalogApi } from "@/services/gomo-api";
-import type { CatalogItem } from "@/types/api";
+import { BasicItemSuggestions } from "@/features/basic-items/basic-item-suggestions";
+import type { BasicItem, CatalogItem } from "@/types/api";
 import { useNearViewport, useProductImage } from "./product-image-url";
 import { HighlightedName } from "./highlighted-name";
 
@@ -17,6 +18,10 @@ interface CatalogItemPickerProps {
   /** Catalog item IDs already chosen, shown as unavailable. */
   excludedIds?: string[];
   label?: string;
+  anyBrand?: {
+    onChoose: (item: BasicItem) => void;
+    excludedSlugs?: string[];
+  };
 }
 
 /**
@@ -31,6 +36,7 @@ export function CatalogItemPicker({
   storeIds,
   excludedIds = [],
   label = "Buscar produto",
+  anyBrand,
 }: CatalogItemPickerProps) {
   const [search, setSearch] = useState(value?.name ?? "");
   const [query, setQuery] = useState("");
@@ -168,6 +174,21 @@ export function CatalogItemPicker({
 
       {expanded ? (
         <div className="mt-2 overflow-hidden rounded-lg border border-border bg-white lg:absolute lg:inset-x-0 lg:top-full lg:z-30 lg:shadow-lg">
+          {anyBrand ? (
+            <div className="border-b border-border p-2" onMouseDown={(event) => event.preventDefault()}>
+              <BasicItemSuggestions
+                query={query}
+                cityId={cityId}
+                stacked
+                excludedSlugs={anyBrand.excludedSlugs}
+                onChoose={(item) => {
+                  setSearch("");
+                  setOpen(false);
+                  anyBrand.onChoose(item);
+                }}
+              />
+            </div>
+          ) : null}
           {waiting && !options.length ? (
             <p className="flex items-center gap-2 p-5 text-sm text-muted">
               <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />

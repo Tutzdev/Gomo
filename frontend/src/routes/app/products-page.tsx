@@ -10,6 +10,7 @@ import {
   Pagination,
   StatusBadge,
 } from "@/components/page/page-elements";
+import { BasicItemSuggestions } from "@/features/basic-items/basic-item-suggestions";
 import { AddToList } from "@/features/catalog/add-to-list";
 import { CatalogItemThumbnail } from "@/features/catalog/catalog-item-picker";
 import { ComparisonStoreFilter } from "@/features/catalog/comparison-store-filter";
@@ -139,6 +140,11 @@ export function ProductsPage() {
         ) : null}
       </section>
       {cities.isError ? <ErrorState retry={() => void cities.refetch()} /> : null}
+      {query && page === 0 ? (
+        <div className="mb-6">
+          <BasicItemSuggestions query={query} cityId={cityId} />
+        </div>
+      ) : null}
       <section aria-live="polite" aria-busy={waiting || refreshing}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold">

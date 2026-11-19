@@ -1,12 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Store, Trophy } from "lucide-react";
+import { ExternalLink, Store, Tags, Trophy } from "lucide-react";
+import { Link } from "react-router-dom";
+import { perMeasure } from "@/features/basic-items/basic-item-format";
+import { MissingStores } from "@/features/basic-items/missing-stores";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { StatusBadge } from "@/components/page/page-elements";
 import { formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { DailyComparisonsMeter, DailyLimitNotice, LockedStores } from "@/features/plan/plan-locks";
 import { PriceHistoryPanel } from "@/features/plan/price-history-panel";
-import { catalogApi } from "@/services/gomo-api";
+import { basicItemApi, catalogApi } from "@/services/gomo-api";
 import type { CatalogItemDetail } from "@/types/api";
 import { ShareButton } from "@/components/ui/share-button";
 import { productPagePath } from "@/lib/product-page-path";
@@ -21,7 +24,7 @@ function productShareText(name: string, cheapest: number, cheapestStore: string,
 
 /**
  * One product, every market that sells it at a real, current price, cheapest first.
- * Markets without a current price are not listed: they would not be a comparison.
+ * Markets without a current price come last, by name, each with the reason.
  */
 export function CatalogItemComparison({
   itemId,
@@ -42,6 +45,11 @@ export function CatalogItemComparison({
   if (detail.isError) return <ErrorState message={detail.error.message} retry={() => void detail.refetch()} />;
   return (
     <>
+      <AnyBrandBanner
+        itemId={itemId}
+        cityId={cityId}
+        exactStores={detail.data.offers.length + detail.data.access.lockedStores}
+      />
       <ComparisonResult detail={detail.data} />
       {detail.data.offers.length ? <PriceHistoryPanel itemId={itemId} productId={detail.data.item.productId} cityId={cityId} storeIds={storeIds} /> : null}
     </>
@@ -49,7 +57,7 @@ export function CatalogItemComparison({
 }
 
 function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
-  const { item, offers, storesWithoutPrice, access } = detail;
+  const { item, offers, missingStores, access } = detail;
   // Stores hidden by the plan still have a current price, so the headline counts them.
   const pricedStores = offers.length + access.lockedStores;
   const cheapest = offers[0]?.price.unitPrice ?? null;
@@ -167,14 +175,35 @@ function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
           <LockedStores count={access.lockedStores} />
         </>
       )}
-      {storesWithoutPrice > 0 && offers.length ? (
-        <p className="border-t border-border px-4 py-3 text-xs text-muted sm:px-5">
-          {storesWithoutPrice === 1
-            ? "1 mercado não tem preço atual deste produto e ficou fora da comparação."
-            : `${storesWithoutPrice} mercados não têm preço atual deste produto e ficaram fora da comparação.`}
-        </p>
-      ) : null}
+      <MissingStores stores={missingStores} what={item.name} />
     </section>
+  );
+}
+
+function AnyBrandBanner({ itemId, cityId, exactStores }: { itemId: string; cityId: string; exactStores: number }) {
+  const basicItem = useQuery({
+    queryKey: ["basic-item-of", itemId, cityId],
+    queryFn: () => basicItemApi.ofCatalogItem(itemId, cityId),
+    enabled: Boolean(itemId && cityId),
+    staleTime: 60_000,
+  });
+  const item = basicItem.data;
+  if (!item || item.pricedStores <= exactStores) return null;
+  return (
+    <Link
+      to={`/app/basicos/${item.slug}?cityId=${cityId}`}
+      className="mb-4 flex items-center gap-3 rounded-lg border border-primary/25 bg-primary-soft px-4 py-3 text-sm hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+    >
+      <Tags className="size-5 shrink-0 text-primary" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <strong>
+          {exactStores === 1 ? "Este produto exato está em 1 mercado." : `Este produto exato está em ${exactStores} mercados.`}
+        </strong>{" "}
+        {item.name} de qualquer marca tem preço em {item.pricedStores} de {item.comparedStores}
+        {item.lowestPricePerMeasure !== null ? `, a partir de ${perMeasure(item.lowestPricePerMeasure, item)}` : ""}.
+      </span>
+      <span className="shrink-0 font-semibold text-primary">Comparar marcas</span>
+    </Link>
   );
 }
 

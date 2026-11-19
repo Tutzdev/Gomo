@@ -13,7 +13,7 @@ import { NativeButton } from "@/components/ui/native-button";
 import { Sheet } from "@/components/ui/sheet";
 import { useAuth } from "@/features/auth/auth-context";
 import { shoppingListApi } from "@/services/gomo-api";
-import type { CatalogItem, Product } from "@/types/api";
+import type { BasicItem, CatalogItem, Product } from "@/types/api";
 import { PlanLimitNotice } from "@/features/plan/plan-locks";
 import { useLimitUpsell } from "@/features/plan/use-limit-upsell";
 import { planLimitOf } from "@/features/plan/use-plan";
@@ -22,6 +22,7 @@ import { useVisitorOffer } from "@/features/plan/use-visitor-offer";
 interface AddToListProps {
   product?: Product;
   catalogItem?: Pick<CatalogItem, "id" | "name">;
+  basicItem?: Pick<BasicItem, "slug" | "name">;
 }
 
 /**
@@ -41,10 +42,12 @@ export function AddToList(props: AddToListProps) {
   return <AccountAddToList {...props} />;
 }
 
-function AccountAddToList({ product, catalogItem }: AddToListProps) {
-  const target = catalogItem
-    ? { id: catalogItem.id, name: catalogItem.name }
-    : { id: product?.id ?? "", name: product?.name ?? "" };
+function AccountAddToList({ product, catalogItem, basicItem }: AddToListProps) {
+  const target = basicItem
+    ? { id: basicItem.slug, name: `${basicItem.name} (qualquer marca)` }
+    : catalogItem
+      ? { id: catalogItem.id, name: catalogItem.name }
+      : { id: product?.id ?? "", name: product?.name ?? "" };
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [listId, setListId] = useState("");
@@ -60,9 +63,11 @@ function AccountAddToList({ product, catalogItem }: AddToListProps) {
     mutationFn: () =>
       shoppingListApi.addItem(
         listId,
-        catalogItem
-          ? { catalogItemId: catalogItem.id, quantity }
-          : { productId: product?.id, quantity },
+        basicItem
+          ? { basicItem: basicItem.slug, quantity }
+          : catalogItem
+            ? { catalogItemId: catalogItem.id, quantity }
+            : { productId: product?.id, quantity },
       ),
     onMutate: () => itemLimit.clear(),
     onError: (error) => {
