@@ -35,6 +35,7 @@ import br.com.supermercados.prices.price.PriceRecordRepository;
 import br.com.supermercados.prices.price.UsualPrice;
 import br.com.supermercados.prices.product.Product;
 import br.com.supermercados.prices.product.ProductRepository;
+import br.com.supermercados.prices.store.StoreFreshnessService;
 import br.com.supermercados.prices.store.StoreResponse;
 import br.com.supermercados.prices.store.StoreService;
 import br.com.supermercados.prices.subscription.ComparisonAccess;
@@ -53,6 +54,7 @@ public class CatalogService {
     private final PriceRecordRepository prices;
     private final ProductRepository products;
     private final StoreService stores;
+    private final StoreFreshnessService freshness;
     private final PricePolicy policy;
     private final Clock clock;
     private final Duration maxPriceAge;
@@ -64,6 +66,7 @@ public class CatalogService {
         PriceRecordRepository prices,
         ProductRepository products,
         StoreService stores,
+        StoreFreshnessService freshness,
         PricePolicy policy,
         Clock clock,
         @Value("${app.prices.max-age:P2D}") Duration maxPriceAge,
@@ -76,6 +79,7 @@ public class CatalogService {
         this.prices = prices;
         this.products = products;
         this.stores = stores;
+        this.freshness = freshness;
         this.policy = policy;
         this.clock = clock;
     }
@@ -201,10 +205,17 @@ public class CatalogService {
         List<CatalogItemDetailResponse.StoreOffer> visibleOffers = access.visibleOf(rankedOffers).stream()
                 .filter(offer -> selectedIds.contains(offer.storeId())).toList();
 
+        Set<UUID> pricedIds = rankedOffers.stream()
+                .map(CatalogItemDetailResponse.StoreOffer::storeId)
+                .collect(Collectors.toSet());
+
+        List<StoreResponse> missing = selected.stream().filter(store -> !pricedIds.contains(store.id())).toList();
+
         return new CatalogItemDetailResponse(
             respond(List.of(item), selected).getFirst(),
             visibleOffers,
             selected.size() - selectedOffers.size(),
+            freshness.explainMissing(missing, clock.instant()),
             access.withLockedStores(selectedOffers.size() - visibleOffers.size()));
     }
 
