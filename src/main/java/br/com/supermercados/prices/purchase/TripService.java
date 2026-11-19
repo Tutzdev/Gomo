@@ -3,7 +3,6 @@ package br.com.supermercados.prices.purchase;
 import br.com.supermercados.prices.comparison.EquivalentPriceService;
 import br.com.supermercados.prices.price.PricePolicy;
 import br.com.supermercados.prices.price.PriceRecord;
-import br.com.supermercados.prices.shoppinglist.ShoppingListItemResponse;
 import br.com.supermercados.prices.shoppinglist.ShoppingListService;
 import br.com.supermercados.prices.store.Store;
 import br.com.supermercados.prices.store.StoreService;
