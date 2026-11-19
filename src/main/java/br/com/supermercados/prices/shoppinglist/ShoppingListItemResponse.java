@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import br.com.supermercados.prices.basicitem.BasicItems;
+
 public record ShoppingListItemResponse(
         UUID id,
         UUID productId,
@@ -13,7 +15,10 @@ public record ShoppingListItemResponse(
         String imageUrl,
         Instant checkedAt,
         UUID checkedBy,
-        String checkedByName) {
+        String checkedByName,
+        String basicItem) {
+
+    private static final String ANY_BRAND = " (qualquer marca)";
 
     public ShoppingListItemResponse(
         UUID id,
@@ -48,5 +53,39 @@ public record ShoppingListItemResponse(
             null,
             null,
             null);
+    }
+
+    public ShoppingListItemResponse(
+        UUID id,
+        UUID productId,
+        String productName,
+        BigDecimal quantity,
+        UUID catalogItemId,
+        String imageUrl,
+        Instant checkedAt,
+        UUID checkedBy,
+        String checkedByName) {
+
+        this(
+            id,
+            productId,
+            productName,
+            quantity,
+            catalogItemId,
+            imageUrl,
+            checkedAt,
+            checkedBy,
+            checkedByName,
+            null);
+    }
+
+    public ShoppingListItemResponse {
+        if (basicItem != null) {
+            productName = BasicItems.find(basicItem).map(item -> item.name() + ANY_BRAND).orElse(productName);
+        }
+    }
+
+    public boolean anyBrand() {
+        return basicItem != null;
     }
 }

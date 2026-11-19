@@ -30,6 +30,9 @@ public class ShoppingListItem {
     @Column(updatable = false)
     private UUID catalogItemId;
 
+    @Column(updatable = false)
+    private String basicItem;
+
     @Column(nullable = false, precision = 12, scale = 3)
     private BigDecimal quantity;
 
@@ -52,6 +55,18 @@ public class ShoppingListItem {
         this.productId = productId;
         this.catalogItemId = catalogItemId;
         this.quantity = quantity;
+    }
+
+    static ShoppingListItem anyBrand(
+        UUID shoppingListId,
+        UUID productId,
+        String basicItem,
+        BigDecimal quantity) {
+
+        ShoppingListItem item = new ShoppingListItem(shoppingListId, productId, quantity);
+        item.basicItem = basicItem;
+
+        return item;
     }
 
     void changeQuantity(BigDecimal quantity) {

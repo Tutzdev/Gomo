@@ -47,10 +47,7 @@ public class TripService {
         Store store = stores.requireActiveStore(storeId);
         Instant now = clock.instant();
 
-        var offers = prices.find(
-            list.items().stream().map(ShoppingListItemResponse::productId).toList(),
-            List.of(storeId),
-            now);
+        var offers = prices.findForList(list.items(), List.of(storeId), now);
 
         Map<UUID, PriceRecord> storePrices = offers.byStore().getOrDefault(storeId, Map.of());
 

@@ -1,6 +1,8 @@
 package br.com.supermercados.prices.comparison;
 
+import br.com.supermercados.prices.basicitem.BasicItemOffers;
 import br.com.supermercados.prices.common.ApiException;
+import br.com.supermercados.prices.product.ProductRepository;
 import br.com.supermercados.prices.location.LocationService;
 import br.com.supermercados.prices.price.PriceFixtures;
 import br.com.supermercados.prices.price.PricePolicy;
@@ -76,7 +78,8 @@ class ShoppingComparisonServiceTest {
             return matches;
         });
         comparisons = new ShoppingComparisonService(locations, stores, products, shoppingLists,
-                new EquivalentPriceService(equivalence, prices, policy),
+                new EquivalentPriceService(equivalence, prices, policy, mock(BasicItemOffers.class),
+                        mock(ProductRepository.class)),
                 policy, new ShoppingPriceCalculator(policy), Clock.fixed(now, ZoneOffset.UTC), 500);
     }
 

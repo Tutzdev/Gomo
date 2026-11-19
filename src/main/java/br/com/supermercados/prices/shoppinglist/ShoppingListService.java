@@ -1,5 +1,8 @@
 package br.com.supermercados.prices.shoppinglist;
 
+import br.com.supermercados.prices.basicitem.BasicItem;
+import br.com.supermercados.prices.basicitem.BasicItemOffers;
+import br.com.supermercados.prices.basicitem.BasicItemService;
 import br.com.supermercados.prices.catalog.CatalogItemRepository;
 import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.product.ProductService;
@@ -8,6 +11,7 @@ import br.com.supermercados.prices.subscription.PlanLimit;
 import br.com.supermercados.prices.subscription.PlanLimitException;
 import java.time.Clock;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +32,7 @@ public class ShoppingListService {
     private final ShoppingListMemberRepository members;
     private final ProductService products;
     private final CatalogItemRepository catalog;
+    private final BasicItemOffers basicItems;
     private final Clock clock;
 
     public ShoppingListService(
@@ -36,6 +41,7 @@ public class ShoppingListService {
         ShoppingListMemberRepository members,
         ProductService products,
         CatalogItemRepository catalog,
+        BasicItemOffers basicItems,
         Clock clock) {
 
         this.lists = lists;
@@ -43,6 +49,7 @@ public class ShoppingListService {
         this.members = members;
         this.products = products;
         this.catalog = catalog;
+        this.basicItems = basicItems;
         this.clock = clock;
     }
 
@@ -120,6 +127,8 @@ public class ShoppingListService {
 
         var list = lockAccessibleList(userId, listId);
 
+        if (request.basicItem() != null) {return addAnyBrand(list, premium, request);}
+
         var catalogItem = request.catalogItemId() == null
                 ? catalog.findActiveByProductId(request.productId()).orElse(null)
                 : catalog.findById(request.catalogItemId()).filter(found -> found.isActive())
@@ -133,15 +142,7 @@ public class ShoppingListService {
             throw new ApiException(HttpStatus.CONFLICT, "Produto já está na lista; altere sua quantidade.");
         }
 
-        long itemCount = items.countByShoppingListId(listId);
-
-        if (!premium && itemCount >= FreePlan.MAX_LIST_ITEMS && !members.existsByShoppingListId(listId)) {
-            throw new PlanLimitException(PlanLimit.LIST_ITEMS, "No plano grátis cada lista tem até 10 produtos.");
-        }
-
-        if (itemCount >= MAX_ITEMS) {
-            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Uma lista pode conter até 200 produtos.");
-        }
+        requireRoomForAnotherItem(listId, premium);
 
         var item = items.save(new ShoppingListItem(
             listId,
@@ -161,6 +162,43 @@ public class ShoppingListService {
                     item.getQuantity(),
                     catalogItem.getId(),
                     catalogItem.getImageUrl());
+    }
+
+    private ShoppingListItemResponse addAnyBrand(ShoppingList list, boolean premium, AddItemRequest request) {
+        BasicItem basicItem = BasicItemService.require(request.basicItem());
+
+        if (items.existsByShoppingListIdAndBasicItem(list.getId(), basicItem.slug())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Esse item já está na lista; altere sua quantidade.");
+        }
+
+        UUID productId = basicItems.anyLinkedProduct(basicItem, items.findProductIds(list.getId()))
+                .orElseThrow(() -> new ApiException(
+                    HttpStatus.UNPROCESSABLE_CONTENT,
+                    "Ainda não temos preço de " + basicItem.name().toLowerCase(Locale.ROOT) + " em nenhum mercado."));
+
+        requireRoomForAnotherItem(list.getId(), premium);
+
+        var item = items.save(ShoppingListItem.anyBrand(
+            list.getId(),
+            productId,
+            basicItem.slug(),
+            request.quantity()));
+
+        list.touch(clock.instant());
+
+        return itemResponse(item);
+    }
+
+    private void requireRoomForAnotherItem(UUID listId, boolean premium) {
+        long itemCount = items.countByShoppingListId(listId);
+
+        if (!premium && itemCount >= FreePlan.MAX_LIST_ITEMS && !members.existsByShoppingListId(listId)) {
+            throw new PlanLimitException(PlanLimit.LIST_ITEMS, "No plano grátis cada lista tem até 10 produtos.");
+        }
+
+        if (itemCount >= MAX_ITEMS) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Uma lista pode conter até 200 produtos.");
+        }
     }
 
     @Transactional
@@ -266,7 +304,8 @@ public class ShoppingListService {
             catalogItem == null ? product.getImageUrl() : catalogItem.getImageUrl(),
             item.getCheckedAt(),
             item.getCheckedBy(),
-            item.getCheckedBy() == null ? null : members.findUserName(item.getCheckedBy()));
+            item.getCheckedBy() == null ? null : members.findUserName(item.getCheckedBy()),
+            item.getBasicItem());
     }
 
     private ShoppingList lockOwnedList(UUID userId, UUID listId) {

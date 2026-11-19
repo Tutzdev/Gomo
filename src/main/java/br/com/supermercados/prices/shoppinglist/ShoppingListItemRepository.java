@@ -14,7 +14,7 @@ public interface ShoppingListItemRepository extends JpaRepository<ShoppingListIt
             select new br.com.supermercados.prices.shoppinglist.ShoppingListItemResponse(
                 item.id, item.productId, coalesce(catalog.displayName, product.name), item.quantity,
                 item.catalogItemId, coalesce(catalog.imageUrl, product.imageUrl), item.checkedAt, item.checkedBy,
-                checker.name)
+                checker.name, item.basicItem)
             from ShoppingListItem item join Product product on product.id = item.productId
             left join CatalogItem catalog on catalog.id = item.catalogItemId
             left join User checker on checker.id = item.checkedBy
@@ -28,6 +28,11 @@ public interface ShoppingListItemRepository extends JpaRepository<ShoppingListIt
     boolean existsByShoppingListIdAndProductId(UUID shoppingListId, UUID productId);
 
     boolean existsByShoppingListIdAndCatalogItemId(UUID shoppingListId, UUID catalogItemId);
+
+    boolean existsByShoppingListIdAndBasicItem(UUID shoppingListId, String basicItem);
+
+    @Query("select item.productId from ShoppingListItem item where item.shoppingListId = :listId")
+    Set<UUID> findProductIds(UUID listId);
 
     long countByShoppingListId(UUID shoppingListId);
 

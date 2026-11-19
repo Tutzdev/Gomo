@@ -189,10 +189,10 @@ public class ShoppingComparisonService {
                 ? comparisonStores(cityId, pageable, storeIds)
                 : new PageImpl<>(stores.selectComparisonStores(cityId, null, maximumRecommendationStores));
 
-        List<UUID> productIds = shoppingList.items().stream()
-                .map(ShoppingListItemResponse::productId).toList();
-
-        var offers = prices.find(productIds, availableStores.stream().map(StoreResponse::id).toList(), comparedAt);
+        var offers = prices.findForList(
+            shoppingList.items(),
+            availableStores.stream().map(StoreResponse::id).toList(),
+            comparedAt);
 
         Page<ShoppingStoreComparison> comparisons = availableStores.map(store ->
                 calculateStore(store, shoppingList.items(), offers, comparedAt));
@@ -256,10 +256,10 @@ public class ShoppingComparisonService {
             storeIds,
             maximumRecommendationStores);
 
-        List<UUID> productIds = shoppingList.items().stream()
-                .map(ShoppingListItemResponse::productId).toList();
-
-        var offers = prices.find(productIds, availableStores.stream().map(StoreResponse::id).toList(), comparedAt);
+        var offers = prices.findForList(
+            shoppingList.items(),
+            availableStores.stream().map(StoreResponse::id).toList(),
+            comparedAt);
 
         List<ShoppingStoreComparison> comparisons = availableStores.stream()
                 .map(store -> calculateStore(store, shoppingList.items(), offers, comparedAt)).toList();

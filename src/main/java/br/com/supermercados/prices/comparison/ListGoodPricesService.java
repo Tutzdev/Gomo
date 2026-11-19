@@ -116,6 +116,8 @@ public class ListGoodPricesService {
         List<ListGoodPricesResponse.GoodPrice> good = new ArrayList<>();
 
         for (ShoppingListItemResponse item : list.items()) {
+            if (item.anyBrand()) {continue;}
+
             List<UUID> products = productsByItem.get(item.id());
             PriceRecord cheapest = cheapest(products, latestByProduct, now);
 
