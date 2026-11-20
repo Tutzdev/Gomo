@@ -2,6 +2,7 @@ package br.com.supermercados.prices.basicitem;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -21,8 +22,12 @@ public final class PackageSize {
     private static final Pattern VOLUME = Pattern.compile(
             "\\b(?:(\\d+) X )?(\\d+(?:\\.\\d+)?) (ML|L|LT|LTS|LITROS?)\\b");
 
-    private static final Pattern COUNT = Pattern.compile(
-            "\\b(\\d+) (?:UN|UND|UNID|UNIDS|UNIDADES?|OVOS?)\\b|\\bC (\\d+)\\b");
+    private static final List<Pattern> COUNTS = List.of(
+        Pattern.compile("\\b(?:LEVE|LV|L) (\\d+)(?: E)? (?:PAGUE|PG|P)(?: \\d+)?\\b"),
+        Pattern.compile("\\bPAGUE \\d+ LEVE (\\d+)\\b"),
+        Pattern.compile("\\b(\\d+) (?:UN|UND|UNID|UNIDS|UNIDADES?|OVOS?|ROLOS?)\\b"),
+        Pattern.compile("\\b(\\d+) X \\d+ (?:M|MTS|METROS)\\b"),
+        Pattern.compile("\\bC (\\d+)\\b"));
 
     private PackageSize() {}
 
@@ -76,13 +81,17 @@ public final class PackageSize {
 
         if (text.matches(".*\\b(?:DUZIA|DZ)\\b.*")) {return Optional.of(BigDecimal.valueOf(12));}
 
-        Matcher matcher = COUNT.matcher(text);
+        for (Pattern pattern : COUNTS) {
+            Matcher matcher = pattern.matcher(text);
 
-        if (!matcher.find()) {return Optional.empty();}
+            while (matcher.find()) {
+                BigDecimal count = new BigDecimal(matcher.group(1));
 
-        String found = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
+                if (plausibleCount(count)) {return Optional.of(count);}
+            }
+        }
 
-        return Optional.of(new BigDecimal(found));
+        return Optional.empty();
     }
 
     private static Optional<BigDecimal> declared(Measure measure, BigDecimal quantity, String unit) {

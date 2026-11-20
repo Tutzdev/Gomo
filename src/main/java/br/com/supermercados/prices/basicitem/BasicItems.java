@@ -16,14 +16,17 @@ public final class BasicItems {
     private static final String MERCEARIA = "Mercearia";
     private static final String FRIOS = "Frios e laticínios";
     private static final String HORTIFRUTI = "Hortifrúti";
+    private static final String BEBIDAS = "Bebidas";
+    private static final String LIMPEZA = "Limpeza";
+    private static final String HIGIENE = "Higiene";
 
     private static final String READY_MEALS = "PRONTO|PRONTA|COZID[OA]|VAPZA|ESCONDIDINHO|LASANHA|SOPA|CALDO|TEMPERO|SABOR"
             + "|KIT|BISCOITO|BOLACHA|SALGADINHO|SNACK|CHIPS|SORVETE|PAPINHA|RACAO|DOG|CAT|SHAMPOO|CONDICIONADOR"
-            + "|SABONETE|CREME TRAT|MASCARA|BARRA|BALA|IOGURTE|BEBIDA|SUCO|GELEIA";
+            + "|SABONETE|CREME TRAT|MASCARA|BARRA|BALA|IOGURTE|BEBIDA|SUCO|GELEIA|TEMPERAD[OA]";
 
     private static final String PROCESSED_MEAT = "MOID[OA]|MOIDA|TEMPERAD[OA]|EMPANAD[OA]|HAMBURG|ALMONDEG|ESCONDIDINHO"
             + "|DEFUMAD[OA]|NUGGET|LINGUICA|SALSICHA|KIBE|QUIBE|STEAK|RACAO|SUIN[OA]|CORDEIRO|FRANGO|PERU|CHESTER"
-            + "|PEIXE|SALMAO|VEGETAL|SOJA|LIMPADOR|LIMPA|DESENGORDURANTE|MR";
+            + "|PEIXE|SALMAO|VEGETAL|SOJA|LIMPADOR|LIMPA|DESENGORDURANTE|MR|SUI|STROGONOFF";
 
     private static final List<BasicItem> ALL = List.of(
         BasicItem.of(
@@ -41,16 +44,19 @@ public final class BasicItems {
             Measure.KG,
             "0.45",
             "\\bPAO\\b(?: [A-Z0-9]+){0,2} FORMA\\b",
-            "\\b(?:INTEGRAL|GRAOS|GLUTEN|ZERO|ZEROS|LIGHT|AVEIA|CENTEIO|PROTEINA|PROTEINAS|CHIA|BRIOCHE|SEMENTES"
-                    + "|LINHACA|" + READY_MEALS + ")\\b"),
+            "\\b(?:INTEGRAL|INTEG[A-Z]*|INT|GRAOS|GLUTEN|GLUTEM|GLU|ZERO|ZEROS|LIGHT|AVEIA|CENTEIO|PROTEINA|PROTEINAS"
+                    + "|CHIA|BRIOCHE|SEMENTES|LINHACA|MULTIGRAOS|1[0-9] ?GR(?:A|AOS)?|100 I|ABOBOR[A-Z]*|CAST[A-Z]*"
+                    + "|CRANB[A-Z]*|FRUT[A-Z]*|MACA|COCO|MILHO|CANELA|PASSAS|QUINOA|NOZES|AUSTRALIANO|"
+                    + READY_MEALS + ")\\b"),
         BasicItem.of(
             "pao-frances",
             "Pão francês",
             PADARIA,
             Measure.KG,
             "1",
-            "\\bPAO\\b(?: [A-Z0-9]+){0,1} FRANCES\\b|\\bCARIOQUINHA\\b",
-            "\\b(?:CONGELAD[OA]|PRE ASSADO|MINI|TAPIOCA|INTEGRAL|" + READY_MEALS + ")\\b"),
+            "\\bPAO\\b(?: [A-Z0-9]+){0,1} (?:FRANCES|CARIOQUINHA)\\b",
+            "\\b(?:CONGELAD[OA]|PRE ASSADO|MINI|TAPIOCA|INTEGRAL|MISTURA|GRAOS|GLUTEN|GLUTEM|SCHAR|"
+                    + READY_MEALS + ")\\b"),
         BasicItem.of(
             "carne-moida",
             "Carne moída bovina",
@@ -60,7 +66,7 @@ public final class BasicItems {
             "\\bMOID[AO]\\b",
             "\\b(?:VEGETAL|SOJA|PIMENTA|FRANGO|SUIN[OA]|PERU|CEVADA|CAFE|UVA|CANELA|COMINHO|ERVA|NOZ|PAPRICA|ALHO"
                     + "|OREGANO|CRAVO|GENGIBRE|AMENDOIM|CASTANHA|AMENDOA|COCO|SAL|LINHACA|ACUCAR|CACAU|QUEIJO|LEGUMES"
-                    + "|PURE|BATATA|ARROZ|PROTEINA|PASTEL|EMPADA|COXINHA|PIZZA|CANELONE|" + READY_MEALS + ")\\b"),
+                    + "|PURE|BATATA|ARROZ|PROTEINA|PASTEL|EMPADA|COXINHA|PIZZA|CANELONE|PEITO|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "acem",
             "Acém",
@@ -109,7 +115,8 @@ public final class BasicItems {
             "1",
             "\\bPEITO\\b(?: [A-Z0-9]+){0,3} (?:FRANGO|FGO|FRG)\\b|\\bFILE DE PEITO\\b",
             "\\b(?:PERU|CHESTER|DEFUMAD[OA]|EMPANAD[OA]|TEMPERAD[OA]|NUGGETS?|DESFIAD[OA]|LEGUMES|RECHEAD[OA]"
-                    + "|CONGELAD[OA] PRONTO|GRELHAD[OA]|ASSAD[OA]|FACIL|" + READY_MEALS + ")\\b"),
+                    + "|CONGELAD[OA] PRONTO|GRELHAD[OA]|ASSAD[OA]|FACIL|CERA|EMBUTIDO|COZ|ESPETINHO|MOIDO|CUBOS|TEMP"
+                    + "|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "coxa-e-sobrecoxa",
             "Coxa e sobrecoxa de frango",
@@ -117,7 +124,7 @@ public final class BasicItems {
             Measure.KG,
             "1",
             "\\bSOBR?E?COXA\\b|\\bSOBECOXA\\b",
-            "\\b(?:TEMPERAD[OA]|EMPANAD[OA]|ASSAD[OA]|DEFUMAD[OA]|PERU|" + READY_MEALS + ")\\b"),
+            "\\b(?:EMPANAD[OA]|ASSAD[OA]|DEFUMAD[OA]|PERU|PATO|CHIMICHURRI|TEMP|EMP|FACIL|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "arroz-branco",
             "Arroz branco tipo 1",
@@ -127,7 +134,9 @@ public final class BasicItems {
             "^(?:ARROZ|[0-9]ARROZ)\\b",
             "\\b(?:INTEGRAL|PARBO|PARBOILIZADO|PARBOLIZADO|ARBOREO|ARBORIO|JAPONES|GOHAN|SELVAGEM|NEGRO|VERMELHO|CATETO"
                     + "|BASMATI|JASMIM|BIRO|DOCE|FLOCOS|GRAOS|CARRETEIRO|RISOTO|ORIENTAL|SUSHI|TIPO 2|ERVAS|MILANES"
-                    + "|GREGO|BROCOLIS|ALHO|CEBOLA|COMBO|FARINHA|CREME|" + READY_MEALS + ")\\b"),
+                    + "|GREGO|GREGA|BROCOLIS|ALHO|CEBOLA|COMBO|FARINHA|CREME|SELV|INTEG[A-Z]*|INTGRAL|CARNAROLI|CARNA"
+                    + "|ARBOR|PARB[A-Z]*|COZ|VERM|CEREAIS|PRETO|CURRY|FUNGHI|SASANISHIKI|PAELLA|TILAPIA|COUVE|FEIJOADA"
+                    + "|MOMIJI|RISO|RISOTOS|VEGETAIS|KANGAI|ITALIANO|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "feijao-carioca",
             "Feijão carioca",
@@ -135,7 +144,7 @@ public final class BasicItems {
             Measure.KG,
             "1",
             "\\bFEIJAO\\b(?: [A-Z0-9]+){0,4} CARIOCA\\b|\\bCARIOCA\\b(?: [A-Z0-9]+){0,3} FEIJAO\\b",
-            "\\b(?:FEIJOADA|LATA|CONGELAD[OA]|TIPO 2|" + READY_MEALS + ")\\b"),
+            "\\b(?:FEIJOADA|LATA|CONGELAD[OA]|TIPO 2|FUGINI|FUGIN|SACHE|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "feijao-preto",
             "Feijão preto",
@@ -143,7 +152,7 @@ public final class BasicItems {
             Measure.KG,
             "1",
             "\\bFEIJAO\\b(?: [A-Z0-9]+){0,4} PRETO\\b",
-            "\\b(?:FEIJOADA|LATA|CONGELAD[OA]|ORGANICO|TIPO 2|" + READY_MEALS + ")\\b"),
+            "\\b(?:FEIJOADA|LATA|CONGELAD[OA]|ORGANICO|TIPO 2|FUGINI|FUGIN|SACHE|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "acucar-refinado",
             "Açúcar refinado",
@@ -159,7 +168,7 @@ public final class BasicItems {
             Measure.KG,
             "5",
             "^(?:ACUCAR|[0-9]ACUCAR)\\b(?: [A-Z0-9]+){0,3} CRISTAL\\b",
-            "\\b(?:ORGANICO|SACHE|SACHES|" + READY_MEALS + ")\\b"),
+            "\\b(?:ORGANICO|ORG|ORGAN|SACHE|SACHES|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "oleo-de-soja",
             "Óleo de soja",
@@ -167,7 +176,7 @@ public final class BasicItems {
             Measure.L,
             "0.9",
             "^(?:OLEO|[0-9]OLEO)\\b(?: [A-Z0-9]+){0,2} SOJA\\b",
-            "\\b(?:SPRAY|COMPOSTO|AZEITE|SARDINHA|ATUM|ORGANICO|ORGANIC|PIMENTA|" + READY_MEALS + ")\\b"),
+            "\\b(?:SPRAY|COMPOSTO|MISTO|AZEITE|SARDINHA|ATUM|ORGANICO|ORGANIC|PIMENTA|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "cafe-em-po",
             "Café torrado e moído",
@@ -176,7 +185,8 @@ public final class BasicItems {
             "0.5",
             "^(?:CAFE|[0-9]CAFE)\\b(?!.*\\b(?:SOLUVEL|CAPSULAS?|CAPPUCCINO|GRAOS?|BEBIDA|COLD|LEITE|SACHE|DESCAFEINADO"
                     + "|FILTRO|COADOR|INSTANTANEO|ORIGINAL NESCAFE|NESCAFE|DOLCE|TRES|CHOCOLATE|COLOMBIANO|ARABICA)\\b)",
-            "\\b(?:GOURMET|ORGANICO|" + READY_MEALS + ")\\b"),
+            "\\b(?:GOURMET|GOURME|ORGANICO|DESC[A-Z]*|DECAF|SOLU[A-Z]*|REFI[A-Z]*|LIOFILIZADO|DRIP|NESPRESSO|STARBUCKS"
+                    + "|GRAN|VD|RITUAIS?|MUNDO|PORTIN|SOL|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "leite-integral",
             "Leite integral UHT",
@@ -194,7 +204,7 @@ public final class BasicItems {
             "1",
             "\\bFARINHA\\b(?: [A-Z0-9]+){0,1} TRIGO\\b",
             "\\b(?:INTEGRAL|FERMENTO|PASTEL|PIZZA|SALGADOS|PANIFICACAO|ROSCA|BOLO|TEMPURA|EMPANAR|KIBE|QUIBE|MISTURA"
-                    + "|" + READY_MEALS + ")\\b"),
+                    + "|ORGANICA|CASCA|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "macarrao-espaguete",
             "Macarrão espaguete",
@@ -203,7 +213,8 @@ public final class BasicItems {
             "0.5",
             "\\b(?:ESPAGUETE|SPAGHETTI|SPAGUETTI|ESPAGUETI)\\b",
             "\\b(?:INTEGRAL|INTEGRALI|ARROZ|GLUTEN|CEREALI|PALMITO|CENOURA|ABOBRINHA|LEGUMES|INSTANTANEO|LAMEN"
-                    + "|MOLHO|CONGELAD[OA]|GRAO DE BICO|LENTILHA|DOLCE GABBANA|" + READY_MEALS + ")\\b"),
+                    + "|MOLHO|CONGELAD[OA]|GRAO DE BICO|LENTILHA|DOLCE GABBANA|NISSIN|ORGANICA|INTEGRALE|" + READY_MEALS
+                    + ")\\b"),
         BasicItem.of(
             "sal-refinado",
             "Sal refinado",
@@ -211,7 +222,7 @@ public final class BasicItems {
             Measure.KG,
             "1",
             "^(?:SAL|[0-9]SAL)\\b(?: [A-Z0-9]+){0,3} REFINADO\\b",
-            "\\b(?:LIGHT|SACHE|SACHES|HIMALAIA|ROSA|GROSSO|PARRILLA|" + READY_MEALS + ")\\b"),
+            "\\b(?:LIGHT|SACHE|SACHES|HIMALAIA|ROSA|GROSSO|PARRILLA|SALEIRO|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "ovos-brancos",
             "Ovos brancos",
@@ -220,7 +231,8 @@ public final class BasicItems {
             "12",
             "^(?:OVOS?|[0-9]OVOS?)\\b",
             "\\b(?:PASCOA|PASC|CHOCOLATE|KINDER|LACTA|ARCOR|CODORNA|PASTEURIZADO|LIQUIDO|DESIDRATADO|PO|CAIPIRA"
-                    + "|VERMELHOS?|ORGANICOS?|COLHER|TRUFADO|RECHEADO|" + READY_MEALS + ")\\b"),
+                    + "|CAIPIRAS|VERM[A-Z]*|VEERM|HAPPY|ORGANICOS?|ORGANIC|COLHER|TRUFADO|RECHEADO|" + READY_MEALS
+                    + ")\\b"),
         BasicItem.of(
             "manteiga",
             "Manteiga com sal",
@@ -228,7 +240,8 @@ public final class BasicItems {
             Measure.KG,
             "0.2",
             "^(?:MANTEIGA|[0-9]MANTEIGA)\\b",
-            "\\b(?:SEM SAL|CACAU|KARITE|AMENDOIM|GHEE|GARRAFA|AROMA|VAGEM|FEIJAO|PIPOCA|" + READY_MEALS + ")\\b"),
+            "\\b(?:SEM SAL|S SAL|S SA|S S|CACAU|KARITE|AMENDOIM|GHEE|GARRAFA|AROMA|VAGEM|FEIJAO|PIPOCA|CAPILAR|VEG"
+                    + "|VEGETAL|VEGANA|CASTANHA|AVEIA|BUFALA|BUFULA|BLISTER|GORDURA|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "margarina",
             "Margarina com sal",
@@ -236,7 +249,7 @@ public final class BasicItems {
             Measure.KG,
             "0.5",
             "^(?:MARGARINA|[0-9]MARGARINA)\\b",
-            "\\b(?:SEM SAL|BALDE|LIGHT|" + READY_MEALS + ")\\b"),
+            "\\b(?:SEM SAL|S SAL|BALDE|LIGHT|LIQUIDA|FOLHADA|ERVAS|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "tomate",
             "Tomate",
@@ -245,7 +258,8 @@ public final class BasicItems {
             "1",
             "^(?:TOMATE|[0-9]TOMATE)\\b",
             "\\b(?:MOLHO|EXTRATO|PELADO|SECO|CEREJA|GRAPE|SWEET|SUCO|POLPA|PASSATA|KETCHUP|CATCHUP|PURE|ORGANICO"
-                    + "|DESIDRATADO|CONSERVA|SARDINHA|" + READY_MEALS + ")\\b"),
+                    + "|DESIDRATADO|CONSERVA|SARDINHA|PELADOS|PEL|PELATI|TRITURADO|COQUETEL|UVA|TOMATINHO|" + READY_MEALS
+                    + ")\\b"),
         BasicItem.of(
             "batata",
             "Batata inglesa",
@@ -254,7 +268,10 @@ public final class BasicItems {
             "1",
             "^(?:BATATA|[0-9]BATATA)\\b",
             "\\b(?:DOCE|BAROA|YACON|PALHA|CHIPS|FRITA|PRE FRITA|CONGELAD[OA]|PURE|RUFFLES|PRINGLES|LAYS|ONDULADA"
-                    + "|PALITO|SMILE|NOISETTE|RUSTICA|CRINKLE|ROSTI|ASTERIX|BOLINHA|ORGANICA|" + READY_MEALS + ")\\b"),
+                    + "|PALITO|SMILE|NOISETTE|RUSTICA|CRINKLE|ROSTI|ASTERIX|BOLINHA|ORGANICA|CONG|MCCAIN|MC CAIN"
+                    + "|BEM BRASIL|PRE|CONSERVA|PROCESSADA|YOKITOS|SALSA|CALABRESA|KARITOS|JOHNNY|JACKER|CRISPS|OND"
+                    + "|ONDUL|PIRAQUE|PRAMESA|SENSACOES|YAKON|FRIES|UAI|PIFPAF|BOBS|AIRFRYER|CUBOS|CANOA|CLASSICAS"
+                    + "|CASA DE MAE|LISA|KERUS|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "cebola",
             "Cebola",
@@ -262,8 +279,8 @@ public final class BasicItems {
             Measure.KG,
             "1",
             "^(?:CEBOLA|[0-9]CEBOLA)\\b",
-            "\\b(?:ROXA|CREME|FRITA|DESIDRATADA|FLOCOS|EM PO|PO|CONSERVA|CEBOLINHA|ORGANICA|BRANCA|" + READY_MEALS
-                    + ")\\b"),
+            "\\b(?:ROXA|CREME|FRITA|DESIDRATADA|FLOCOS|EM PO|PO|CONSERVA|CEBOLINHA|ORGANICA|BRANCA|CARAMELIZADA"
+                    + "|GRANULADA|ALHO|SALSA|CRISPY|PALHA|PICADA|ONION|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "banana-prata",
             "Banana prata",
@@ -279,7 +296,71 @@ public final class BasicItems {
             Measure.KG,
             "1",
             "^(?:BANANA|[0-9]BANANA)\\b(?: [A-Z0-9]+){0,1} (?:NANICA|D AGUA|DAGUA|DA AGUA|CATURRA)\\b",
-            "\\b(?:CHIPS|PASSA|DESIDRATADA|ORGANICA|" + READY_MEALS + ")\\b"));
+            "\\b(?:CHIPS|PASSA|DESIDRATADA|ORGANICA|" + READY_MEALS + ")\\b"),
+        BasicItem.of(
+            "mucarela",
+            "Muçarela",
+            FRIOS,
+            Measure.KG,
+            "1",
+            "^(?:QUEIJO )?(?:MU[CS]+AREL+A|MOZZARELLA|MOZARELA|MUZZARELA)\\b",
+            "\\b(?:BUFALA|BUFULA|BUFALO|LACTOSE|LACTO|LAC|LACFREE|MINI|LIGHT|FIT|VEG|VEGANA|VEGANO|VEGETAL|CASTANHA|CAJU|BOLINHA|NOZINHO|PALITO"
+                    + "|PALITOS|TRANCA|CEREJA|PIZZA|PAO|PASTEL|ESFIHA|EMPANAD[OA]|RALAD[OA]|SALGADINHO|BATATA)\\b"),
+        BasicItem.of(
+            "presunto",
+            "Presunto cozido",
+            FRIOS,
+            Measure.KG,
+            "1",
+            "^PRESUNTO\\b",
+            "\\b(?:PARMA|CRU|SERRANO|DEFUMAD[OA]|ALEMAO|BEINSCHINKEN|ROYAL|ROYALE|GOURMET|MIGNON|MIGNONETO|MINGHONETO"
+                    + "|FILE|PERU|CHESTER|ITALIANO|ITA|TENDER|SPECIALE|PIZZA|PAO|PASTEL|CROISSANT|ENROLADINHO|MISTO"
+                    + "|QUEIJO)\\b"),
+        BasicItem.of(
+            "iogurte-natural",
+            "Iogurte natural",
+            FRIOS,
+            Measure.KG,
+            "0.17",
+            "^IOGURTE\\b(?: [A-Z0-9]+){0,4} NATURAL\\b",
+            "\\b(?:GREGO|DESNATADO|ZERO|LIGHT|MEL|FRUTAS|CONFEITO|MORANGO|AMEIXA|COCO|LACFREE|LACTOSE|PROTEINA|SEMENTES"
+                    + "|GRANOLA|POLPA|CALDA|MIX|BAUNILHA|VEGETAL|VEG|SKYR|KEFIR|FIT|BATIDO|LIQUIDO|LIQ|COLAGENO|TANGERINA"
+                    + "|CENOURA|LARANJA)\\b"),
+        BasicItem.of(
+            "refrigerante",
+            "Refrigerante 2 L",
+            BEBIDAS,
+            Measure.L,
+            "2",
+            "^(?:REFRIGERANTE|REFRIG|REFRI|REFR)\\b|^(?:COCA COLA|GUARANA ANTARCTICA|GUARANA ANTARTICA|PEPSI|FANTA"
+                    + "|SPRITE|SUKITA|KUAT)\\b(?=.*\\b[0-9]+ ?(?:L|LT|LTS|LITROS?)\\b)",
+            "\\b(?:ZERO|ZE|DIET|LIGHT|BLACK|S AC|S ACUCA|S ACUCAR|SEM ACUCAR|LATA|LT|COPO|BALA|PIRULITO|XAROPE|GELATINA"
+                    + "|PO|REFIL|SUCO|ENERGETICO|TONICA|AGUA|H2O|H2OH)\\b"),
+        BasicItem.of(
+            "detergente",
+            "Detergente líquido",
+            LIMPEZA,
+            Measure.L,
+            "0.5",
+            "^(?:DETERGENTE|DET)\\b",
+            "\\b(?:PO|EM PO|MAQ|MAQUINA|LAVA LOUCAS|PASTILHAS?|TABLETES?|GEL|GELATINOSO|HARPIC|SANITARIO|BLOCO|ROUPAS?"
+                    + "|DESINFETANTE|LIMPADOR|CONCENTRADO|PASTA)\\b"),
+        BasicItem.of(
+            "sabao-em-po",
+            "Sabão em pó",
+            LIMPEZA,
+            Measure.KG,
+            "1.6",
+            "^SABAO\\b(?: EM)? PO\\b",
+            "\\b(?:COCO|LIQUIDO|BARRA|PASTOSO)\\b"),
+        BasicItem.of(
+            "papel-higienico",
+            "Papel higiênico folha dupla",
+            HIGIENE,
+            Measure.UN,
+            "12",
+            "^PAPEL HIG(?:IENICO)?\\b",
+            "\\b(?:SIMPLES|TRIPLA|ROLAO|300|UMEDECIDO|LENCO|INTERFOLHA|INTERFOLHADO|TOALHA)\\b"));
 
     private BasicItems() {}
 
