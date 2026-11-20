@@ -14,12 +14,15 @@ export function BasicItemSuggestions({
   onChoose,
   excludedSlugs = [],
   stacked = false,
+  disabled = false,
 }: {
   query: string;
   cityId?: string;
   onChoose?: (item: BasicItem) => void;
   excludedSlugs?: string[];
   stacked?: boolean;
+  /** True while the person is still typing: the suggestions on screen answer the previous search. */
+  disabled?: boolean;
 }) {
   const suggestions = useBasicItemSuggestions(query, cityId);
   const items = suggestions.data ?? [];
@@ -49,7 +52,7 @@ export function BasicItemSuggestions({
         return (
           <li key={item.slug}>
             {onChoose ? (
-              <button type="button" className={className} disabled={excluded} onClick={() => onChoose(item)}>
+              <button type="button" className={className} disabled={excluded || disabled} onClick={() => onChoose(item)}>
                 {content}
               </button>
             ) : (

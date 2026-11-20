@@ -8,6 +8,7 @@ import { BasicItemSuggestions } from "@/features/basic-items/basic-item-suggesti
 import type { BasicItem, CatalogItem } from "@/types/api";
 import { useNearViewport, useProductImage } from "./product-image-url";
 import { HighlightedName } from "./highlighted-name";
+import { resultsMatchTypedSearch } from "./picker-results";
 
 interface CatalogItemPickerProps {
   id: string;
@@ -66,11 +67,12 @@ export function CatalogItemPicker({
   });
   const expanded = open && !value && search.trim().length >= 2;
   const waiting = search.trim() !== query || (results.isFetching && !results.data);
+  const current = resultsMatchTypedSearch(search, query, results.isPlaceholderData);
   const options = results.data?.content ?? [];
   const isExcluded = (item: CatalogItem) => excludedIds.includes(item.id);
 
   const choose = (item: CatalogItem) => {
-    if (isExcluded(item)) return;
+    if (!current || isExcluded(item)) return;
     setSearch(item.name);
     setOpen(false);
     setActive(-1);
@@ -83,7 +85,7 @@ export function CatalogItemPicker({
     if (value) onChange(null);
   };
   const move = (direction: number) => {
-    if (!options.length) return;
+    if (!current || !options.length) return;
     let next = active;
     for (let attempt = 0; attempt < options.length; attempt++) {
       next = (next + direction + options.length) % options.length;
@@ -180,6 +182,7 @@ export function CatalogItemPicker({
                 query={query}
                 cityId={cityId}
                 stacked
+                disabled={search.trim() !== query}
                 excludedSlugs={anyBrand.excludedSlugs}
                 onChoose={(item) => {
                   setSearch("");
@@ -219,7 +222,7 @@ export function CatalogItemPicker({
             id={`${id}-results`}
             role="listbox"
             aria-label="Produtos encontrados"
-            className={cn("max-h-[min(24rem,45dvh)] overflow-y-auto overscroll-contain", waiting && "opacity-60")}
+            className={cn("max-h-[min(24rem,45dvh)] overflow-y-auto overscroll-contain", !current && "opacity-60")}
           >
             {options.map((item, index) => (
               <CatalogItemOption
@@ -227,8 +230,9 @@ export function CatalogItemPicker({
                 id={`${id}-option-${item.id}`}
                 item={item}
                 query={query}
-                active={index === active}
+                active={current && index === active}
                 excluded={isExcluded(item)}
+                outdated={!current}
                 onChoose={() => choose(item)}
               />
             ))}
@@ -245,6 +249,7 @@ function CatalogItemOption({
   query,
   active,
   excluded,
+  outdated,
   onChoose,
 }: {
   id: string;
@@ -252,6 +257,7 @@ function CatalogItemOption({
   query: string;
   active: boolean;
   excluded: boolean;
+  outdated: boolean;
   onChoose: () => void;
 }) {
   return (
@@ -259,11 +265,12 @@ function CatalogItemOption({
       id={id}
       role="option"
       aria-selected={active}
-      aria-disabled={excluded}
+      aria-disabled={excluded || outdated}
       className={cn(
         "flex min-h-18 cursor-pointer items-center gap-3 border-t border-border px-3 py-2.5 first:border-t-0",
         active ? "bg-primary-soft" : "hover:bg-surface-strong",
         excluded && "cursor-default opacity-60",
+        outdated && "cursor-wait hover:bg-transparent",
       )}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onChoose}
