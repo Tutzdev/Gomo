@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -84,6 +85,10 @@ public class BasicItemOffers {
             String.class);
 
         return found.stream().findFirst().flatMap(BasicItems::find);
+    }
+
+    public Set<UUID> productIdsOf(BasicItem item) {
+        return linkedProducts(List.of(item)).keySet();
     }
 
     public Optional<UUID> anyLinkedProduct(BasicItem item, Collection<UUID> excluded) {

@@ -4,8 +4,10 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -28,31 +30,46 @@ public class StoreFreshnessService {
             WHERE s.id IN (:storeIds)
             """;
 
+    private static final String STORES_OUT_OF_STOCK = """
+            SELECT DISTINCT latest.store_id
+            FROM latest_prices latest
+            WHERE latest.store_id IN (:storeIds)
+              AND latest.product_id IN (:productIds)
+              AND latest.availability = 'UNAVAILABLE'
+              AND latest.collected_at > :freshAfter
+            """;
+
     private final NamedParameterJdbcTemplate jdbc;
     private final PricePolicy policy;
 
-    public List<MissingStoreResponse> explainMissing(Collection<StoreResponse> missing, Instant now) {
+    public List<MissingStoreResponse> explainMissing(
+        Collection<StoreResponse> missing,
+        Collection<UUID> productIds,
+        Instant now) {
+
         if (missing.isEmpty()) {return List.of();}
 
-        Map<UUID, Instant> lastCollected = lastCollections(missing.stream().map(StoreResponse::id).toList());
+        List<UUID> storeIds = missing.stream().map(StoreResponse::id).toList();
+        Map<UUID, Instant> lastCollected = lastCollections(storeIds);
+        Set<UUID> outOfStock = storesOutOfStock(storeIds, productIds, now);
 
         return missing.stream()
                 .map(store -> new MissingStoreResponse(
                     store.id(),
                     store.name(),
-                    reason(store, lastCollected.get(store.id()), now),
+                    reason(store, lastCollected.get(store.id()), outOfStock.contains(store.id()), now),
                     lastCollected.get(store.id())))
                 .toList();
     }
 
-    private MissingPriceReason reason(StoreResponse store, Instant lastCollected, Instant now) {
-        boolean inStore = store.priceChannel() == StorePriceChannel.IN_STORE;
-        PriceOriginType origin = inStore ? PriceOriginType.STORE_VISIT : PriceOriginType.SOURCE;
-        boolean outdated = lastCollected == null || lastCollected.isBefore(now.minus(policy.maxAge(origin)));
+    private MissingPriceReason reason(StoreResponse store, Instant lastCollected, boolean outOfStock, Instant now) {
+        if (store.priceChannel() == StorePriceChannel.IN_STORE) {return MissingPriceReason.NOT_CHECKED_IN_STORE;}
 
-        if (inStore) {return MissingPriceReason.NOT_CHECKED_IN_STORE;}
+        if (lastCollected == null || lastCollected.isBefore(now.minus(policy.maxAge(PriceOriginType.SOURCE)))) {
+            return MissingPriceReason.OUTDATED_PRICES;
+        }
 
-        return outdated ? MissingPriceReason.OUTDATED_PRICES : MissingPriceReason.NOT_SOLD_ONLINE;
+        return outOfStock ? MissingPriceReason.OUT_OF_STOCK : MissingPriceReason.NOT_SOLD_ONLINE;
     }
 
     private Map<UUID, Instant> lastCollections(List<UUID> storeIds) {
@@ -65,5 +82,22 @@ public class StoreFreshnessService {
         });
 
         return lastCollected;
+    }
+
+    private Set<UUID> storesOutOfStock(List<UUID> storeIds, Collection<UUID> productIds, Instant now) {
+        if (productIds.isEmpty()) {return Set.of();}
+
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("storeIds", storeIds)
+                .addValue("productIds", productIds)
+                .addValue("freshAfter", Timestamp.from(now.minus(policy.maxAge(PriceOriginType.SOURCE))));
+
+        Set<UUID> outOfStock = new HashSet<>();
+
+        jdbc.query(STORES_OUT_OF_STOCK, parameters, row -> {
+            outOfStock.add(row.getObject("store_id", UUID.class));
+        });
+
+        return outOfStock;
     }
 }

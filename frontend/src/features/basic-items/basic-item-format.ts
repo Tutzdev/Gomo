@@ -12,6 +12,10 @@ export function basicItemCoverage(item: BasicItem) {
 
 export function missingReason(store: MissingStore) {
   switch (store.reason) {
+    case "OUT_OF_STOCK":
+      return store.lastPriceCollectedAt
+        ? `O mercado vende, mas estava em falta no site na última leitura (${formatDate(store.lastPriceCollectedAt)}).`
+        : "O mercado vende, mas está em falta no site agora.";
     case "NOT_CHECKED_IN_STORE":
       return "Mercado sem loja online: ainda não conferimos este item na prateleira.";
     case "OUTDATED_PRICES":

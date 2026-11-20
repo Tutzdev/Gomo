@@ -116,7 +116,7 @@ public class BasicItemService {
             summary(item, byStore, storeNames(selected)),
             now,
             storeOffers(item, visibleOffers, storeNames),
-            freshness.explainMissing(missing, now),
+            freshness.explainMissing(missing, offers.productIdsOf(item), now),
             access.withLockedStores(selectedOffers.size() - visibleOffers.size()));
     }
 

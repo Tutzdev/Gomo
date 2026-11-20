@@ -30,6 +30,7 @@ describe("basic item format", () => {
 
   it("explains why a market has no price", () => {
     expect(missingReason(missing("NOT_SOLD_ONLINE"))).toBe("Não está à venda no site do mercado.");
+    expect(missingReason(missing("OUT_OF_STOCK"))).toBe("O mercado vende, mas está em falta no site agora.");
     expect(missingReason(missing("NOT_CHECKED_IN_STORE"))).toContain("sem loja online");
     expect(missingReason(missing("OUTDATED_PRICES", "2026-11-18T10:00:00Z"))).toContain("desatualizados");
     expect(missingReason(missing("OUTDATED_PRICES"))).toBe("Ainda não conseguimos ler os preços deste mercado.");

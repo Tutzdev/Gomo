@@ -107,6 +107,19 @@ class BasicItemIntegrationTests {
     }
 
     @Test
+    void aMarketThatListsTheItemOutOfStockSaysSoInsteadOfNotSellingIt() {
+        price(product("Carne Bovina Acem Resfriada 1kg"), STORE_B, "36.90", "UNAVAILABLE");
+        linker.relink();
+
+        BasicItemComparisonResponse acem = basicItems.compare("acem", cityId, null, ComparisonAccess.premiumAccess());
+
+        assertThat(acem.missingStores()).singleElement().satisfies(missing -> {
+            assertThat(missing.storeId()).isEqualTo(STORE_B);
+            assertThat(missing.reason()).isEqualTo(MissingPriceReason.OUT_OF_STOCK);
+        });
+    }
+
+    @Test
     void anAnyBrandListItemIsPricedInEveryMarketThatSellsTheItem() {
         UUID user = user();
         var list = lists.create(user, true, new ShoppingListRequest("Compra da semana", ShoppingType.WEEKLY));
@@ -143,12 +156,16 @@ class BasicItemIntegrationTests {
     }
 
     private void price(UUID product, UUID store, String regularPrice) {
+        price(product, store, regularPrice, "AVAILABLE");
+    }
+
+    private void price(UUID product, UUID store, String regularPrice, String availability) {
         jdbc.update("""
                 INSERT INTO price_records (id, product_id, store_id, source_id, source_reference, regular_price,
                     collected_at, recorded_at, availability)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AVAILABLE')
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, UUID.randomUUID(), product, store, SOURCE_ID, "synthetic-basic-price-" + UUID.randomUUID(),
-                new BigDecimal(regularPrice), recently(), recently());
+                new BigDecimal(regularPrice), recently(), recently(), availability);
     }
 
     private UUID user() {

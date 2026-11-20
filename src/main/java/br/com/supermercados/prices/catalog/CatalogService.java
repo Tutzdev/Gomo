@@ -215,7 +215,7 @@ public class CatalogService {
             respond(List.of(item), selected).getFirst(),
             visibleOffers,
             selected.size() - selectedOffers.size(),
-            freshness.explainMissing(missing, clock.instant()),
+            freshness.explainMissing(missing, items.findProductIds(itemId), clock.instant()),
             access.withLockedStores(selectedOffers.size() - visibleOffers.size()));
     }
 

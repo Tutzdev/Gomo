@@ -344,7 +344,7 @@ export interface CatalogItemDetail {
   access: ComparisonAccess;
 }
 
-export type MissingPriceReason = "NOT_SOLD_ONLINE" | "OUTDATED_PRICES" | "NOT_CHECKED_IN_STORE";
+export type MissingPriceReason = "NOT_SOLD_ONLINE" | "OUT_OF_STOCK" | "OUTDATED_PRICES" | "NOT_CHECKED_IN_STORE";
 
 export interface MissingStore {
   storeId: string;
