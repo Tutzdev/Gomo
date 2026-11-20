@@ -113,6 +113,15 @@ public class ShoppingListController {
         return service.replaceItem(user.id(), id, itemId, request);
     }
 
+    @PostMapping("/{id}/items/{itemId}/any-brand")
+    public ShoppingListItemResponse switchToAnyBrand(
+        @AuthenticationPrincipal AuthenticatedUser user,
+        @PathVariable UUID id,
+        @PathVariable UUID itemId) {
+
+        return service.switchToAnyBrand(user.id(), id, itemId);
+    }
+
     @PutMapping("/{id}/items/{itemId}/check")
     public ShoppingListItemResponse check(
         @AuthenticationPrincipal AuthenticatedUser user,

@@ -34,6 +34,12 @@ public interface ShoppingListItemRepository extends JpaRepository<ShoppingListIt
     @Query("select item.productId from ShoppingListItem item where item.shoppingListId = :listId")
     Set<UUID> findProductIds(UUID listId);
 
+    @Query("""
+            select item.basicItem from ShoppingListItem item
+            where item.shoppingListId = :listId and item.basicItem is not null
+            """)
+    Set<String> findBasicItems(UUID listId);
+
     long countByShoppingListId(UUID shoppingListId);
 
     long countByShoppingListIdAndCheckedAtIsNull(UUID shoppingListId);

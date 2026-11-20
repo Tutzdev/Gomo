@@ -32,6 +32,12 @@ public class BasicItemOffers {
             WHERE basic_item IN (:items)
             """;
 
+    private static final String ITEMS_OF_PRODUCTS = """
+            SELECT product_id, basic_item
+            FROM basic_item_products
+            WHERE product_id IN (:productIds)
+            """;
+
     private static final String ITEM_OF_CATALOG_ITEM = """
             SELECT link.basic_item
             FROM catalog_item_products catalog
@@ -89,6 +95,20 @@ public class BasicItemOffers {
 
     public Set<UUID> productIdsOf(BasicItem item) {
         return linkedProducts(List.of(item)).keySet();
+    }
+
+    public Map<UUID, BasicItem> itemsOfProducts(Collection<UUID> productIds) {
+        if (productIds.isEmpty()) {return Map.of();}
+
+        Map<UUID, BasicItem> items = new HashMap<>();
+
+        jdbc.query(ITEMS_OF_PRODUCTS, new MapSqlParameterSource("productIds", productIds), row -> {
+            UUID productId = row.getObject("product_id", UUID.class);
+
+            BasicItems.find(row.getString("basic_item")).ifPresent(item -> items.put(productId, item));
+        });
+
+        return items;
     }
 
     public Optional<UUID> anyLinkedProduct(BasicItem item, Collection<UUID> excluded) {

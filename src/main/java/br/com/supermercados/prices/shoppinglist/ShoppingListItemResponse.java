@@ -16,9 +16,36 @@ public record ShoppingListItemResponse(
         Instant checkedAt,
         UUID checkedBy,
         String checkedByName,
-        String basicItem) {
+        String basicItem,
+        AnyBrandSuggestion anyBrandSuggestion) {
 
     private static final String ANY_BRAND = " (qualquer marca)";
+
+    public ShoppingListItemResponse(
+        UUID id,
+        UUID productId,
+        String productName,
+        BigDecimal quantity,
+        UUID catalogItemId,
+        String imageUrl,
+        Instant checkedAt,
+        UUID checkedBy,
+        String checkedByName,
+        String basicItem) {
+
+        this(
+            id,
+            productId,
+            productName,
+            quantity,
+            catalogItemId,
+            imageUrl,
+            checkedAt,
+            checkedBy,
+            checkedByName,
+            basicItem,
+            null);
+    }
 
     public ShoppingListItemResponse(
         UUID id,
@@ -87,5 +114,20 @@ public record ShoppingListItemResponse(
 
     public boolean anyBrand() {
         return basicItem != null;
+    }
+
+    public ShoppingListItemResponse withAnyBrandSuggestion(AnyBrandSuggestion suggestion) {
+        return new ShoppingListItemResponse(
+            id,
+            productId,
+            productName,
+            quantity,
+            catalogItemId,
+            imageUrl,
+            checkedAt,
+            checkedBy,
+            checkedByName,
+            basicItem,
+            suggestion);
     }
 }

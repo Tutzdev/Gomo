@@ -342,6 +342,8 @@ export const shoppingListApi = {
   /** Premium: cheaper equivalents per kg, litre or unit; the free plan gets only the count. */
   substitutes: (id: string, cityId: string) =>
     apiRequest<ListSubstitutes>(`/comparisons/shopping-lists/${id}/substitutes?${queryString({ cityId })}`),
+  switchToAnyBrand: (id: string, itemId: string) =>
+    apiRequest<ShoppingListItem>(`/shopping-lists/${id}/items/${itemId}/any-brand`, { method: "POST" }),
   replaceItem: (id: string, itemId: string, input: { catalogItemId: string; quantity: number }) =>
     apiRequest<ShoppingListItem>(`/shopping-lists/${id}/items/${itemId}/replacement`, { method: "POST", body: input }),
   /** Premium: the items that are a good buy today; the free plan gets only the counts. */

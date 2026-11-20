@@ -120,6 +120,31 @@ class BasicItemIntegrationTests {
     }
 
     @Test
+    void anExactListItemThatIsAnEverydayItemCanSwitchToAnyBrand() {
+        UUID user = user();
+        UUID bread = product("Pão de Hambúrguer Seven Boys 300g");
+        price(bread, STORE_B, "7.50");
+        linker.relink();
+
+        var list = lists.create(user, true, new ShoppingListRequest("Churrasco", ShoppingType.CUSTOM));
+        var exact = lists.addItem(user, true, list.id(), new AddItemRequest(bread, new BigDecimal("2")));
+
+        assertThat(lists.getList(user, list.id()).items()).singleElement().satisfies(item -> {
+            assertThat(item.anyBrandSuggestion()).isNotNull();
+            assertThat(item.anyBrandSuggestion().basicItem()).isEqualTo("pao-de-hamburguer");
+        });
+
+        var switched = lists.switchToAnyBrand(user, list.id(), exact.id());
+
+        assertThat(switched.basicItem()).isEqualTo("pao-de-hamburguer");
+        assertThat(switched.productName()).isEqualTo("Pão de hambúrguer (qualquer marca)");
+        assertThat(switched.quantity()).isEqualByComparingTo("2");
+        assertThat(switched.anyBrandSuggestion()).isNull();
+        assertThat(lists.getList(user, list.id()).items()).singleElement()
+                .satisfies(item -> assertThat(item.basicItem()).isEqualTo("pao-de-hamburguer"));
+    }
+
+    @Test
     void anAnyBrandListItemIsPricedInEveryMarketThatSellsTheItem() {
         UUID user = user();
         var list = lists.create(user, true, new ShoppingListRequest("Compra da semana", ShoppingType.WEEKLY));

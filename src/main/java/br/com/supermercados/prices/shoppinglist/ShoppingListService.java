@@ -253,6 +253,41 @@ public class ShoppingListService {
     }
 
     @Transactional
+    public ShoppingListItemResponse switchToAnyBrand(UUID userId, UUID listId, UUID itemId) {
+        var list = lockAccessibleList(userId, listId);
+        var previous = requireItem(listId, itemId);
+
+        if (previous.getBasicItem() != null) {
+            throw new ApiException(HttpStatus.CONFLICT, "Esse item já é de qualquer marca.");
+        }
+
+        BasicItem basicItem = basicItems.itemsOfProducts(List.of(previous.getProductId())).get(previous.getProductId());
+
+        if (basicItem == null) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Esse produto não tem a opção de qualquer marca.");
+        }
+
+        if (items.existsByShoppingListIdAndBasicItem(listId, basicItem.slug())) {
+            throw new ApiException(
+                HttpStatus.CONFLICT,
+                "Esse item já está na lista como qualquer marca; altere sua quantidade.");
+        }
+
+        items.delete(previous);
+        items.flush();
+
+        var item = items.save(ShoppingListItem.anyBrand(
+            listId,
+            previous.getProductId(),
+            basicItem.slug(),
+            previous.getQuantity()));
+
+        list.touch(clock.instant());
+
+        return itemResponse(item);
+    }
+
+    @Transactional
     public ShoppingListItemResponse checkItem(
         UUID userId,
         UUID listId,
@@ -295,7 +330,7 @@ public class ShoppingListService {
                 .findById(item.getCatalogItemId())
                 .orElse(null);
 
-        return new ShoppingListItemResponse(
+        var response = new ShoppingListItemResponse(
             item.getId(),
             product.getId(),
             catalogItem == null ? product.getName() : catalogItem.getDisplayName(),
@@ -306,6 +341,31 @@ public class ShoppingListService {
             item.getCheckedBy(),
             item.getCheckedBy() == null ? null : members.findUserName(item.getCheckedBy()),
             item.getBasicItem());
+
+        return withAnyBrandSuggestions(item.getShoppingListId(), List.of(response)).getFirst();
+    }
+
+    private List<ShoppingListItemResponse> withAnyBrandSuggestions(UUID listId, List<ShoppingListItemResponse> listItems) {
+        List<UUID> exactProducts = listItems.stream()
+                .filter(item -> !item.anyBrand())
+                .map(ShoppingListItemResponse::productId)
+                .toList();
+
+        Map<UUID, BasicItem> basicItemOf = basicItems.itemsOfProducts(exactProducts);
+
+        if (basicItemOf.isEmpty()) {return listItems;}
+
+        Set<String> alreadyAnyBrand = items.findBasicItems(listId);
+
+        return listItems.stream()
+                .map(item -> {
+                    BasicItem suggested = item.anyBrand() ? null : basicItemOf.get(item.productId());
+
+                    if (suggested == null || alreadyAnyBrand.contains(suggested.slug())) {return item;}
+
+                    return item.withAnyBrandSuggestion(AnyBrandSuggestion.of(suggested));
+                })
+                .toList();
     }
 
     private ShoppingList lockOwnedList(UUID userId, UUID listId) {
@@ -330,7 +390,7 @@ public class ShoppingListService {
             list.getId(),
             list.getName(),
             list.getShoppingType(),
-            items.findItems(list.getId()),
+            withAnyBrandSuggestions(list.getId(), items.findItems(list.getId())),
             list.getCreatedAt(),
             list.getUpdatedAt(),
             list.getVersion(),

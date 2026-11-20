@@ -363,6 +363,11 @@ function ListItemRow({
     mutationFn: () => shoppingListApi.removeItem(listId, item.id),
     onSuccess: onSaved,
   });
+  const switchToAnyBrand = useMutation({
+    mutationFn: () => shoppingListApi.switchToAnyBrand(listId, item.id),
+    onSuccess: onSaved,
+  });
+  const busy = update.isPending || remove.isPending || switchToAnyBrand.isPending;
   const changed = Number(quantity) !== item.quantity;
   const link = item.basicItem
     ? `/app/basicos/${item.basicItem}`
@@ -388,6 +393,17 @@ function ListItemRow({
               No carrinho{item.checkedByName ? ` · ${item.checkedByName}` : ""}
             </span>
           ) : null}
+          {item.anyBrandSuggestion ? (
+            <button
+              type="button"
+              className="mt-1 block text-left text-xs font-semibold text-primary hover:underline disabled:opacity-60"
+              disabled={busy}
+              aria-label={`Trocar ${item.productName} por ${item.anyBrandSuggestion.name} de qualquer marca`}
+              onClick={() => switchToAnyBrand.mutate()}
+            >
+              {switchToAnyBrand.isPending ? "Trocando…" : "Trocar por qualquer marca"}
+            </button>
+          ) : null}
         </div>
         <label htmlFor={`quantity-${item.id}`} className="sr-only">
           Quantidade de {item.productName}
@@ -406,7 +422,7 @@ function ListItemRow({
           />
         </div>
         {changed ? (
-          <NativeButton type="submit" variant="secondary" size="sm" loading={update.isPending} disabled={remove.isPending}>
+          <NativeButton type="submit" variant="secondary" size="sm" loading={update.isPending} disabled={busy}>
             Salvar
           </NativeButton>
         ) : null}
@@ -414,14 +430,14 @@ function ListItemRow({
           variant="ghost"
           size="icon"
           loading={remove.isPending}
-          disabled={update.isPending}
+          disabled={busy}
           aria-label={`Remover ${item.productName}`}
           onClick={() => remove.mutate()}
         >
           <Trash2 className="size-4" aria-hidden />
         </NativeButton>
       </form>
-      <InlineError>{(update.error ?? remove.error)?.message}</InlineError>
+      <InlineError>{(update.error ?? remove.error ?? switchToAnyBrand.error)?.message}</InlineError>
     </li>
   );
 }

@@ -309,6 +309,8 @@ export interface ShoppingListItem {
   checkedByName: string | null;
   /** Set when the item is "qualquer marca": each market gets its cheapest pack per kg of this basic item. */
   basicItem: string | null;
+  /** Set when this exact product is also an everyday item the list could compare by any brand. */
+  anyBrandSuggestion: { basicItem: string; name: string } | null;
 }
 
 /** A real-world product ("Coca-Cola 2 L") grouped across every store that sells it. */
