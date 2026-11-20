@@ -82,7 +82,7 @@ class PaidSubscriptionIntegrationTests {
         String checkoutId = openCheckout(BillingCycle.MONTHLY);
         currentUser().andExpect(jsonPath("$.premium").value(false));
 
-        Instant paidAt = Instant.parse("2026-10-16T20:00:05Z");
+        Instant paidAt = Instant.now().truncatedTo(ChronoUnit.MILLIS).minusSeconds(5);
         webhook(completed("log_" + UUID.randomUUID(), "subs_" + checkoutId, checkoutId, "MONTHLY", paidAt))
                 .andExpect(status().isOk());
 
