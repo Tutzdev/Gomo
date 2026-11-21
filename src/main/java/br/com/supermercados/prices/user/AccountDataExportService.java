@@ -54,6 +54,18 @@ public class AccountDataExportService {
             WHERE n.user_id = ? ORDER BY n.created_at
             """;
 
+    private static final String WHATSAPP = """
+            SELECT phone_number AS "celular", consented_at AS "autorizadoEm"
+            FROM whatsapp_contacts WHERE user_id = ?
+            """;
+
+    private static final String WHATSAPP_DELIVERIES = """
+            SELECT p.name AS "produto", d.sent_at AS "enviadoEm", d.attempts AS "tentativas"
+            FROM whatsapp_deliveries d JOIN alert_notifications n ON n.id = d.notification_id
+                JOIN price_alerts a ON a.id = n.alert_id JOIN products p ON p.id = a.product_id
+            WHERE n.user_id = ? ORDER BY n.created_at
+            """;
+
     private static final String PRICE_CONTRIBUTIONS = """
             SELECT p.name AS "produto", s.name AS "mercado", c.regular_price AS "preco",
                 c.promotional_price AS "precoPromocional", c.observed_at AS "vistoEm", c.submitted_at AS "enviadoEm",
@@ -124,6 +136,8 @@ public class AccountDataExportService {
         export.put("listasDeCompras", shoppingLists(userId));
         export.put("alertasDePreco", rows(PRICE_ALERTS, userId));
         export.put("avisosDePreco", rows(ALERT_NOTIFICATIONS, userId));
+        export.put("whatsapp", rows(WHATSAPP, userId).stream().findFirst().orElse(null));
+        export.put("avisosNoWhatsApp", rows(WHATSAPP_DELIVERIES, userId));
         export.put("precosEnviados", rows(PRICE_CONTRIBUTIONS, userId));
         export.put("produtosSugeridos", rows(PRODUCT_SUGGESTIONS, userId));
         export.put("listasCompartilhadasComigo", rows(LISTS_SHARED_WITH_ME, userId));

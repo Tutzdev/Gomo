@@ -28,6 +28,7 @@ public class AccountDeletionService {
         "UPDATE shopping_list_items SET checked_by = NULL WHERE checked_by = ?",
         "DELETE FROM shopping_lists WHERE user_id = ?",
         "DELETE FROM alert_notifications WHERE user_id = ?",
+        "DELETE FROM whatsapp_contacts WHERE user_id = ?",
         "DELETE FROM price_alerts WHERE user_id = ?",
         "DELETE FROM favorite_stores WHERE user_id = ?",
         "DELETE FROM user_preferences WHERE user_id = ?",

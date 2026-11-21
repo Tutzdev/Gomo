@@ -189,3 +189,27 @@ Tudo fica desligado até as variáveis existirem. Sem elas, nenhum script de ter
 - **Uso do site, sem cookie:** `VITE_ANALYTICS_PROVIDER` (`plausible` ou `umami`), `VITE_ANALYTICS_SCRIPT_URL` (o `script.js` do serviço, em https) e `VITE_ANALYTICS_SITE_ID` (o domínio no Plausible ou o website id no Umami), também no build.
 
 No Sentry, ative **Settings > Security & Privacy > Prevent Storing of IP Addresses** nos dois projetos. A Política de Privacidade diz que o IP não é guardado. As variáveis `VITE_*` entram no build, então é preciso gerar o frontend de novo depois de mudá-las. A página de privacidade passa a descrever o que estiver ligado.
+
+## 9. Avisos de preço no WhatsApp (opcional)
+
+Desligado enquanto `WHATSAPP_ENABLED=false`: o cartão "Avisos no WhatsApp" nem aparece na página de alertas e a API responde 503 ao salvar um número. Ligado, quem cadastra o celular (com DDD e consentimento marcado) recebe cada aviso novo também no WhatsApp, pela API oficial da Meta (Cloud API).
+
+1. **Crie o app e o número** no [WhatsApp Business Platform](https://developers.facebook.com/docs/whatsapp/cloud-api/get-started). O número de teste da Meta serve para conferir o fluxo; em produção, o número precisa de uma conta comercial verificada.
+2. **Crie o template** de categoria *Utility*, idioma `pt_BR`, com o nome `alerta_de_preco` (ou outro, em `WHATSAPP_ALERT_TEMPLATE`) e três variáveis no corpo, nesta ordem: produto, preço e mercado. Exemplo:
+
+   > O preço que você esperava chegou! **{{1}}** está **{{2}}** no **{{3}}**. Veja no Gomo.
+
+   Mensagem que o Gomo manda primeiro só pode sair por template aprovado.
+3. **Gere um token permanente** de um usuário do sistema com a permissão `whatsapp_business_messaging`.
+4. **Configure** em `/etc/gomo/gomo.env` e reinicie o serviço:
+
+   ```bash
+   WHATSAPP_ENABLED=true
+   WHATSAPP_PHONE_NUMBER_ID=...   # o "Phone number ID", não o número em si
+   WHATSAPP_ACCESS_TOKEN=...
+   WHATSAPP_ALERT_TEMPLATE=alerta_de_preco
+   ```
+
+   Faltando o id ou o token, a aplicação não sobe e o log diz o que falta.
+
+Como a entrega funciona: o aviso continua nascendo no sininho, dentro da coleta. Um job (`WhatsAppAlertDispatcher`, a cada minuto) manda os avisos novos de quem autorizou o número e grava cada tentativa em `whatsapp_deliveries`. Uma recusa espera 10 minutos para a próxima tentativa, até 3; aviso com mais de 6 horas não sai mais, porque o preço já pode ter mudado. Trocar o número renova o consentimento, então nada antigo vai para o número novo. O número entra na exportação de dados e sai junto com a conta.

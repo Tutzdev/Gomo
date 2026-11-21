@@ -3,6 +3,7 @@ package br.com.supermercados.prices;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -97,6 +98,18 @@ class AlertIntegrationTests {
                 .andExpect(jsonPath("$.alertasDePreco[0].tipo").value("abaixo da média"))
                 .andExpect(jsonPath("$.alertasDePreco[0].percentualAbaixoDaMedia").value(15))
                 .andExpect(jsonPath("$.alertasDePreco[0].precoAlvo").isEmpty());
+    }
+
+    @Test
+    void whatsAppStaysOffUntilTheBusinessAccountIsConfigured() throws Exception {
+        String token = registerAndLogin();
+
+        perform(get("/api/v1/users/me/whatsapp"), token)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.available").value(false));
+        perform(put("/api/v1/users/me/whatsapp").content(json.writeValueAsString(Map.of(
+                "phoneNumber", "24999998888", "consent", true))), token)
+                .andExpect(status().isServiceUnavailable());
     }
 
     @Test
