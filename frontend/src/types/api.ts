@@ -533,6 +533,18 @@ export interface AlertNotification {
   discountPercent: number | null;
 }
 
+export interface WhatsAppContact {
+  /** False until the WhatsApp Business account is configured on the server. */
+  available: boolean;
+  phoneNumber: string | null;
+  consentedAt: string | null;
+}
+
+export interface WhatsAppContactInput {
+  phoneNumber: string;
+  consent: boolean;
+}
+
 export interface UserPreference {
   preferredCityId: string | null;
   favoriteStoreIds: string[];

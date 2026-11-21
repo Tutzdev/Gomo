@@ -45,6 +45,8 @@ import type {
   SubscriptionStatus,
   User,
   UserPreference,
+  WhatsAppContact,
+  WhatsAppContactInput,
 } from "@/types/api";
 
 export interface ProductFilters {
@@ -283,6 +285,13 @@ export const preferenceApi = {
       `/users/me/preferences/favorite-stores/${storeId}`,
       { method: "DELETE" },
     ),
+};
+
+export const whatsAppApi = {
+  get: () => apiRequest<WhatsAppContact>("/users/me/whatsapp"),
+  save: (input: WhatsAppContactInput) =>
+    apiRequest<WhatsAppContact>("/users/me/whatsapp", { method: "PUT", body: input }),
+  remove: () => apiRequest<WhatsAppContact>("/users/me/whatsapp", { method: "DELETE" }),
 };
 
 export const shoppingListApi = {

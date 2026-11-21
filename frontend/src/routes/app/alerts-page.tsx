@@ -12,6 +12,7 @@ import { formatCurrency, formatDate } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { useDefaultCityId } from "@/lib/use-default-city";
 import { alertApi, catalogApi } from "@/services/gomo-api";
+import { WhatsAppAlertsCard } from "@/features/alerts/whatsapp-alerts-card";
 import { PlanLimitNotice } from "@/features/plan/plan-locks";
 import { useLimitUpsell } from "@/features/plan/use-limit-upsell";
 import { planLimitOf, usePlan } from "@/features/plan/use-plan";
@@ -89,6 +90,7 @@ export function AlertsPage() {
       <PageHeading title="Alertas de preço" description="Diga quanto quer pagar, ou quanto abaixo do normal, e o Gomo avisa quando algum mercado chegar lá." action={<NativeButton onClick={openNewAlertForm}><Plus className="size-4" aria-hidden />Novo alerta</NativeButton>} />
       {!premium ? <p className="-mt-2 mb-5 text-sm text-muted">Plano grátis: {Math.min(activeAlerts, FREE_ACTIVE_ALERTS)} de {FREE_ACTIVE_ALERTS} alertas ativos, com aviso no máximo 1 vez ao dia. No Premium, sem limite, a cada coleta e também pela média.</p> : null}
       {alertLimit.notice ? <div className="mb-5"><PlanLimitNotice>{alertLimit.notice}</PlanLimitNotice></div> : null}
+      <WhatsAppAlertsCard />
       {showForm ? (
         <form className="surface mb-5 grid gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_1fr_0.8fr_auto] lg:items-end" onSubmit={(event) => { event.preventDefault(); if (productId && selectedCityId && valueReady) createAlert.mutate(); }}>
           <div className="lg:col-span-4">
