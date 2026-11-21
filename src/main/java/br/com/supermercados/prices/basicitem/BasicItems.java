@@ -54,7 +54,7 @@ public final class BasicItems {
             PADARIA,
             Measure.KG,
             "1",
-            "\\bPAO\\b(?: [A-Z0-9]+){0,1} (?:FRANCES|CARIOQUINHA)\\b",
+            "\\bPAO\\b(?: [A-Z0-9]+){0,1} (?:FRANCES|CARIOQUINHA)\\b|^PAO DE SAL\\b",
             "\\b(?:CONGELAD[OA]|PRE ASSADO|MINI|TAPIOCA|INTEGRAL|MISTURA|GRAOS|GLUTEN|GLUTEM|SCHAR|"
                     + READY_MEALS + ")\\b"),
         BasicItem.of(
@@ -143,7 +143,8 @@ public final class BasicItems {
             MERCEARIA,
             Measure.KG,
             "1",
-            "\\bFEIJAO\\b(?: [A-Z0-9]+){0,4} CARIOCA\\b|\\bCARIOCA\\b(?: [A-Z0-9]+){0,3} FEIJAO\\b",
+            "\\bFEIJAO\\b(?: [A-Z0-9]+){0,4} (?:CARIOCA|CARIOC|CARIO|CARI|CAR)\\b"
+                    + "|\\bCARIOCA\\b(?: [A-Z0-9]+){0,3} FEIJAO\\b",
             "\\b(?:FEIJOADA|LATA|CONGELAD[OA]|TIPO 2|FUGINI|FUGIN|SACHE|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "feijao-preto",
@@ -221,7 +222,7 @@ public final class BasicItems {
             MERCEARIA,
             Measure.KG,
             "1",
-            "^(?:SAL|[0-9]SAL)\\b(?: [A-Z0-9]+){0,3} REFINADO\\b",
+            "^(?:SAL|[0-9]SAL)\\b(?: [A-Z0-9]+){0,3} REFINADO\\b|^SAL [A-Z]+ 1 ?KG$",
             "\\b(?:LIGHT|SACHE|SACHES|HIMALAIA|ROSA|GROSSO|PARRILLA|SALEIRO|" + READY_MEALS + ")\\b"),
         BasicItem.of(
             "ovos-brancos",
@@ -303,7 +304,7 @@ public final class BasicItems {
             FRIOS,
             Measure.KG,
             "1",
-            "^(?:QUEIJO )?(?:MU[CS]+AREL+A|MOZZARELLA|MOZARELA|MUZZARELA)\\b",
+            "^(?:QUEIJO |QJO )?(?:MU[CS]+AREL+A|MOZZARELLA|MOZARELA|MUZZARELA)\\b",
             "\\b(?:BUFALA|BUFULA|BUFALO|LACTOSE|LACTO|LAC|LACFREE|MINI|LIGHT|FIT|VEG|VEGANA|VEGANO|VEGETAL|CASTANHA|CAJU|BOLINHA|NOZINHO|PALITO"
                     + "|PALITOS|TRANCA|CEREJA|PIZZA|PAO|PASTEL|ESFIHA|EMPANAD[OA]|RALAD[OA]|SALGADINHO|BATATA)\\b"),
         BasicItem.of(
@@ -342,17 +343,17 @@ public final class BasicItems {
             LIMPEZA,
             Measure.L,
             "0.5",
-            "^(?:DETERGENTE|DET)\\b",
+            "^(?:DETERGENTE|DETERG|DET)\\b",
             "\\b(?:PO|EM PO|MAQ|MAQUINA|LAVA LOUCAS|PASTILHAS?|TABLETES?|GEL|GELATINOSO|HARPIC|SANITARIO|BLOCO|ROUPAS?"
-                    + "|DESINFETANTE|LIMPADOR|CONCENTRADO|PASTA)\\b"),
+                    + "|DESINFETANTE|LIMPADOR|CONCENTRADO|CONC|PASTA)\\b"),
         BasicItem.of(
             "sabao-em-po",
             "Sabão em pó",
             LIMPEZA,
             Measure.KG,
             "1.6",
-            "^SABAO\\b(?: EM)? PO\\b",
-            "\\b(?:COCO|LIQUIDO|BARRA|PASTOSO)\\b"),
+            "^SABAO\\b(?: EM)? PO\\b|^LAVA ROUPAS?\\b(?=.*\\b[0-9]+ ?(?:KG|G|GR)\\b)",
+            "\\b(?:COCO|LIQUIDO|LIQ|ML|L|BARRA|PASTOSO|TIRA MANCHAS?|ALVEJANTE|AMACIANTE)\\b"),
         BasicItem.of(
             "papel-higienico",
             "Papel higiênico folha dupla",

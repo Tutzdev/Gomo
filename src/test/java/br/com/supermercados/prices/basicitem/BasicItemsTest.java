@@ -78,6 +78,14 @@ class BasicItemsTest {
         "DET LIMPOL NEUTRO 50 500ml | detergente",
         "Sabão em Pó Tixan Ypê Primavera 1,6Kg | sabao-em-po",
         "SABAO PO OMO 700G | sabao-em-po",
+        "Lava Roupa Omo 1,6kg Lav. Perf | sabao-em-po",
+        "Lava-Roupas Em Pó Lavanda Omo 800G | sabao-em-po",
+        "Deterg. Ype 500ml Neutro | detergente",
+        "Pão De Sal Royal (preço de 1 kg) | pao-frances",
+        "FEIJAO GRANFINO CARI 1kg | feijao-carioca",
+        "FEIJAO CALDAO CARIOC 1.0 kg | feijao-carioca",
+        "SAL CISNE 1KG | sal-refinado",
+        "Qjo Mussarela Relyal Kg (preço de 1 kg) | mucarela",
         "Papel Higiênico Cotton Folha Dupla 12 Rolos | papel-higienico",
         "PAPEL HIG FAMILIAR FD 30M L12P11 | papel-higienico"
     })
@@ -157,6 +165,10 @@ class BasicItemsTest {
         "Detergente Em Pó Finish Power Powder 1Kg",
         "Detergente Em Pastilhas Para Lava Louças Limpol 315G 20 Pastilhas",
         "SABAO PO COCO RUTH 500G",
+        "Lava Roupa Liq. Ariel 3l Class",
+        "LAVA ROUPA RUTH 500ML COCO",
+        "Deterg. Conc. Ype 406g Neutro",
+        "SAL CISNE GROSSO 1KG",
         "Papel Higiênico Albamax 300 Metros C/8 Branco",
         "Papel Hig. Neve C/12 F.tripla"
     })
@@ -185,7 +197,13 @@ class BasicItemsTest {
         "Papel Higienico Mimmo Neutro Folha Dupla 6x40m | UN | 6",
         "Papel Higiênico Cotton Folha Dupla 24 Rolos | UN | 24",
         "PAPEL HIGIENICO NEVE F DUPLA 20M C/12 | UN | 12",
-        "Sabão em Pó Tixan Ypê Primavera 1,6Kg | KG | 1.6"
+        "Sabão em Pó Tixan Ypê Primavera 1,6Kg | KG | 1.6",
+        "Sabão Em Pó Lavagem Perfeita Grátis 200G Omo 800G | KG | 0.8",
+        "Lava Roupas Brilhante Limpeza Total Gratis150g 1,6kg | KG | 1.6",
+        "Lava Roupa Omo Lv1,6 Pg1,280kg | KG | 1.6",
+        "Cafe Pilao Almofada Leve 500 Pague 450G | KG | 0.5",
+        "Detergente Líquido Omo Multiação Leve 3 Pague 2,5L | L | 3",
+        "Lava Roupas Tixan Ype Maciez Leve + Pague - 1,6 Kg | KG | 1.6"
     })
     void packageSizesAreReadInTheUnitOfTheItem(String name, Measure measure, BigDecimal expected) {
         Optional<BigDecimal> size = PackageSize.of(measure, name, null, null, null);

@@ -70,6 +70,27 @@ na loja (VipCommerce `disponivel=false` com `quantidade_maxima` 0; Nagumo `avail
 estava errado era a explicação: um mercado com o item em falta aparecia como "não vende no site". Agora aparece
 como "em falta no site".
 
-O teste `BasicItemsTest` guarda 67 nomes reais dos mercados que precisam cair no item certo e 72 parecidos que não
+O teste `BasicItemsTest` guarda 75 nomes reais dos mercados que precisam cair no item certo e 76 parecidos que não
 podem (pipoca de manteiga, ovo de Páscoa, Mr. Músculo, batata congelada, café solúvel...). Ao mexer numa regra,
 rode-o primeiro.
+
+## Nomes de cada mercado e tamanho em promoção (21/11/2026)
+
+A cobertura de produção (12 mercados com loja online) mostrou itens que existiam no mercado, mas com outro nome:
+
+| Item | Antes | Depois | Nome que faltava |
+| --- | --- | --- | --- |
+| Sabão em pó | 5 | **12** | "Lava Roupa Omo 1,6kg", "Lava-Roupas Em Pó Surf 800G" (líquidos continuam fora) |
+| Muçarela | 10 | **12** | "Qjo Mussarela" (Spani) |
+| Detergente | 11 | **12** | "Deterg. Ype 500ml" (Royal) |
+| Feijão carioca | 11 | **12** | "FEIJAO GRANFINO CARI 1kg" (o Ville corta o nome em 20 letras) |
+| Sal refinado | 11 | **12** | "SAL CISNE 1KG" (sem a palavra "refinado") |
+| Pão francês | 5 | 6 | "Pão De Sal" (Royal) |
+
+O tamanho da embalagem também ignorava a promoção: "Grátis 200G Omo 800G" virava 200 g (o preço por kg ficava 4×
+maior) e "Leve 500 Pague 450G" virava 450 g. Agora vale o que a pessoa leva: o brinde ("grátis", "gts") e o
+"pague" só contam quando não há outro tamanho no nome.
+
+**Carnes.** Acém e patinho estão em 6 dos 12 mercados, e a regra já pega todos os nomes. Os outros mercados de fato
+não vendem esses cortes no site: o Atacadão não tem carne fresca online, e Pame e Pérola vendem outros cortes. O
+caminho para esses buracos é o preço conferido na loja, não a regra.

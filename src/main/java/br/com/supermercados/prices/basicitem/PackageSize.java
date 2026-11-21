@@ -5,6 +5,7 @@ import java.text.Normalizer;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,6 +22,13 @@ public final class PackageSize {
 
     private static final Pattern VOLUME = Pattern.compile(
             "\\b(?:(\\d+) X )?(\\d+(?:\\.\\d+)?) (ML|L|LT|LTS|LITROS?)\\b");
+
+    private static final Pattern TAKE_WITHOUT_UNIT = Pattern.compile(
+            "\\b(?:LEVE|LV) (\\d+(?:\\.\\d+)?) (?:E )?(?:PAGUE|PG) \\d+(?:\\.\\d+)? ([A-Z]+)\\b");
+
+    private static final Pattern PROMOTION_BEFORE = Pattern.compile("\\b(?:PAGUE|PG|GRATIS|GTS) $");
+
+    private static final Pattern PROMOTION_AFTER = Pattern.compile("^ (?:GRATIS|GTS)\\b");
 
     private static final List<Pattern> COUNTS = List.of(
         Pattern.compile("\\b(?:LEVE|LV|L) (\\d+)(?: E)? (?:PAGUE|PG|P)(?: \\d+)?\\b"),
@@ -57,23 +65,38 @@ public final class PackageSize {
         if (measure == Measure.KG && text.contains(PRICED_PER_KILOGRAM)) {return Optional.of(BigDecimal.ONE);}
 
         return switch (measure) {
-            case KG -> amount(WEIGHT.matcher(text), multiplyPacks).filter(PackageSize::plausibleAmount);
-            case L -> amount(VOLUME.matcher(text), multiplyPacks).filter(PackageSize::plausibleAmount);
+            case KG -> amount(WEIGHT, text, multiplyPacks).filter(PackageSize::plausibleAmount);
+            case L -> amount(VOLUME, text, multiplyPacks).filter(PackageSize::plausibleAmount);
             case UN -> count(text).filter(PackageSize::plausibleCount);
         };
     }
 
-    private static Optional<BigDecimal> amount(Matcher matcher, boolean multiplyPacks) {
-        if (!matcher.find()) {return Optional.empty();}
+    private static Optional<BigDecimal> amount(Pattern pattern, String text, boolean multiplyPacks) {
+        String taken = TAKE_WITHOUT_UNIT.matcher(text).replaceAll("LEVE $1 $2");
+        List<MatchResult> matches = pattern.matcher(taken).results().toList();
 
-        BigDecimal amount = new BigDecimal(matcher.group(2));
-        String unit = matcher.group(3);
+        Optional<MatchResult> packed = matches.stream()
+                .filter(match -> !promotional(taken, match))
+                .findFirst()
+                .or(() -> matches.stream().findFirst());
+
+        return packed.map(match -> amount(match, multiplyPacks));
+    }
+
+    private static boolean promotional(String text, MatchResult match) {
+        return PROMOTION_BEFORE.matcher(text.substring(0, match.start())).find()
+                || PROMOTION_AFTER.matcher(text.substring(match.end())).find();
+    }
+
+    private static BigDecimal amount(MatchResult match, boolean multiplyPacks) {
+        BigDecimal amount = new BigDecimal(match.group(2));
+        String unit = match.group(3);
 
         if (unit.startsWith("G") || unit.equals("ML")) {amount = amount.divide(THOUSAND);}
 
-        if (multiplyPacks && matcher.group(1) != null) {amount = amount.multiply(new BigDecimal(matcher.group(1)));}
+        if (multiplyPacks && match.group(1) != null) {amount = amount.multiply(new BigDecimal(match.group(1)));}
 
-        return Optional.of(amount.stripTrailingZeros());
+        return amount.stripTrailingZeros();
     }
 
     private static Optional<BigDecimal> count(String text) {
