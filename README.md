@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1">
   <img src="https://img.shields.io/badge/PostgreSQL-49_migrações_Flyway-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + Flyway">
   <img src="https://img.shields.io/badge/Spring_Security-tokens_opacos-6DB33F?logo=springsecurity&logoColor=white" alt="Spring Security">
-  <img src="https://img.shields.io/badge/testes-707-success" alt="707 testes">
+  <img src="https://img.shields.io/badge/testes-757-success" alt="757 testes">
   <img src="https://img.shields.io/badge/deploy-GitHub_Actions_→_VPS-2088FF?logo=githubactions&logoColor=white" alt="Deploy contínuo">
 </p>
 
@@ -68,7 +68,7 @@ Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/produc
 - **Modo "No mercado":** a lista vira checklist no mercado escolhido, com o preço previsto de cada item, o preço da gôndola (que vira contribuição) e "Terminei a compra". Funciona com sinal fraco: as mudanças esperam numa fila no aparelho.
 - **Minha economia:** cada compra registrada é comparada com a média dos mercados da cidade naquele momento; o Início abre com "Em outubro, o Gomo te fez economizar R$ 83".
 - **Listas de compras** semanais e mensais recalculadas ("hoje sai R$ 412 no Bramil, R$ 18 a menos que semana passada"), **compartilhadas** com a casa por link de convite, com **Hora de estocar** (despensa no menor preço do período) e **equivalente mais barato** por kg ou litro.
-- Cidade preferida, lojas favoritas e **alertas de preço** com notificações internas: por preço escolhido ou por **% abaixo do preço de sempre**, avisando uma vez por promoção.
+- Cidade preferida, lojas favoritas e **alertas de preço** com notificações internas: por preço escolhido ou por **% abaixo do preço de sempre**, avisando uma vez por promoção. Os avisos também podem ir para o **WhatsApp** (Meta Cloud API, template aprovado, com consentimento e reenvio limitado), desligado até existir a conta comercial ([passo a passo](docs/operations.md#9-avisos-de-preço-no-whatsapp-opcional)).
 - **Contribuições da comunidade** com moderação, e área administrativa com auditoria.
 - **Freemium** aplicado no backend: plano gratuito com limites (3 mercados mais baratos, 5 comparações completas por dia, 1 lista) que respondem `403 PLAN_LIMIT`, e trial de 7 dias sem cartão. Enquanto não há cobrança, o beta aberto (`OPEN_BETA=true`, padrão) dá o Premium a toda conta; os limites voltam com `OPEN_BETA=false`.
 - **Busca aberta:** buscar, comparar e a lista de mercados funcionam sem conta (o visitante vê os 3 mercados mais baratos); listas, alertas e perfil pedem login.
@@ -108,8 +108,8 @@ A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publica
 
 ## Qualidade e entrega
 
-- **707 testes**: 674 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 33 no frontend (Vitest) para as contas que envolvem dinheiro, a rota, a fila do modo "No mercado" e a cesta da visita à loja.
-- **49 migrações Flyway** versionadas, com o Hibernate só validando o schema.
+- **757 testes**: 716 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 41 no frontend (Vitest) para as contas que envolvem dinheiro, a rota, a fila do modo "No mercado", a cesta da visita à loja e o celular dos avisos no WhatsApp.
+- **50 migrações Flyway** versionadas, com o Hibernate só validando o schema.
 - **Deploy contínuo:** push na `main` → GitHub Actions (testes com PostgreSQL descartável, testes e build do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`, que faz backup do banco antes das migrations. A chave do deploy só aceita esse comando.
 - **Docker Compose** com API, PostgreSQL e Mailpit para rodar o ambiente completo.
 
