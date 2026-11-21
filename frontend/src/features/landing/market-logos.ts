@@ -29,9 +29,9 @@ const LOGOS: Record<string, MarketLogo> = {
   hortifruti: { kind: "wordmark", src: hortifruti, scale: 1.45 },
   nagumo: { kind: "wordmark", src: nagumo, light: true, scale: 0.9 },
   pame: { kind: "wordmark", src: pame, light: true, scale: 0.8 },
-  perola: { kind: "mark", src: perola },
-  // Royal's only image online is a 35 px icon with the name inside; the name alone reads better.
-  spani: { kind: "wordmark", src: spani, scale: 0.8 },
+  perola: { kind: "wordmark", src: perola, scale: 1.1 },
+  // Royal's header logo is a 32 px emblem inside a 270 px canvas; the name alone reads better.
+  spani: { kind: "wordmark", src: spani, scale: 1.05 },
   supermarket: { kind: "wordmark", src: supermarket, scale: 1.2 },
   ville: { kind: "wordmark", src: ville, scale: 1.1 },
 };
