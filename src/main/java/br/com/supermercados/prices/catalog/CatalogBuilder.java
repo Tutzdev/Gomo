@@ -161,8 +161,7 @@ public class CatalogBuilder {
             statement.setString(7, representative.imageUrl());
             statement.setObject(8, representative.productId());
 
-            statement.setString(9, truncate(CatalogKey.words(displayName) + " "
-                    + group.identity.key().substring(0, group.identity.key().indexOf('|')), 1200));
+            statement.setString(9, truncate(group.searchText(displayName), 1200));
 
             statement.setInt(10, group.stores.size());
             statement.setTimestamp(11, now);
@@ -254,6 +253,18 @@ public class CatalogBuilder {
         void add(Offer offer) {
             products.putIfAbsent(offer.productId(), offer);
             stores.add(offer.storeId());
+        }
+
+        String searchText(String displayName) {
+            String keyWords = identity.key().substring(0, identity.key().indexOf('|'));
+
+            String kinds = products.values().stream()
+                    .flatMap(offer -> CatalogKey.productKinds(offer.name()).stream())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.joining(" "));
+
+            return (CatalogKey.words(displayName) + " " + keyWords + " " + kinds).strip();
         }
 
         Offer representative() {

@@ -35,6 +35,10 @@ Os termos são pesquisados independentemente da ordem. Correspondências exatas,
 
 Trigramas (`pg_trgm`) restringem candidatos aproximados; `levenshtein_less_equal` (`fuzzystrmatch`) aceita no máximo uma inserção, remoção ou substituição por palavra. A busca com múltiplos termos permite no máximo um termo aproximado. Isso permite “coca coala”, sem aceitar “lagartinho” como “patinho”. Descritores genéricos “carne” e “refrigerante” são sinais opcionais quando acompanhados de um nome mais específico, porque algumas fontes os omitem.
 
+**Busca só pelo tipo (21/11/2026).** No catálogo genérico, quem digitava só "refrigerante", "refri" ou "energético" recebia o catálogo inteiro (açúcar, óleo, maionese), porque essas palavras saem da chave do produto e a busca ficava sem termo. Agora o `search_text` de cada item guarda o tipo que algum mercado usa no nome (refrigerante, energético, repositor, bebida), e a busca usa o tipo só quando ele é tudo o que a pessoa digitou. "Refrigerante coca cola" continua procurando só coca cola.
+
+**Desempenho.** Cada termo vira `search_text LIKE '%TERMO%' AND ' ' || search_text LIKE '% TERMO%'`: a primeira parte usa o índice trigram, a segunda garante o início de palavra. A contagem de mercados com preço é feita só para os itens que casam com a busca. Em produção: busca aproximada ("macarao") 235 → 16 ms no catálogo e contagem de preços 133 → 31 ms.
+
 O preço para ordenação é o menor preço atual do produto nas lojas consultadas. A observação mais nova decide disponibilidade; registros vencidos, futuros ou sem estoque não entram. Promoções condicionais ou sem validade confirmada não entram. Ausência de preço vai ao final tanto na ordem crescente quanto na decrescente.
 
 ## Comparação e dados preservados

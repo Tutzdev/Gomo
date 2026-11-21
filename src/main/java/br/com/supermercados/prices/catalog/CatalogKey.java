@@ -102,6 +102,8 @@ public final class CatalogKey {
             + "UNIDADE UNIDADES CX CAIXA GELADO GELADA FRIO FRESCO NOVO NOVA PROMOCAO OFERTA TP TIPO LV "
             + "TRADICIONAL ORIGINAL ENERGY DRINK PRECO X L ML G KG").split(" "));
 
+    private static final Set<String> PRODUCT_KINDS = Set.of("REFRIGERANTE", "ENERGETICO", "REPOSITOR", "BEBIDA");
+
     private static final Pattern BUNDLE = Pattern.compile(
             "\\bKIT\\b(?!\\s*KAT\\b)|\\b(?:COMBO|PAGUE|BONUS|GRATIS|BRINDE|GANHE|SORTIDOS?|SORTIDAS)\\b|\\+");
 
@@ -468,17 +470,7 @@ public final class CatalogKey {
     }
 
     public static SearchTerms searchTerms(String query) {
-        String text = ascii(query == null ? "" : query);
-        text = text.replaceAll("(\\d),(\\d)", "$1.$2");
-        text = text.replaceAll("[^A-Z0-9.]+", " ");
-        text = text.replaceAll("(?<!\\d)\\.|\\.(?!\\d)", " ");
-        text = GLUED_SIZE.matcher(text).replaceAll("$1 ");
-        text = text.replaceAll("(\\d)([A-Z])", "$1 $2");
-
-        for (Rewrite rewrite : REWRITES) {
-            text = rewrite.pattern().matcher(text).replaceAll(rewrite.replacement());
-        }
-
+        String text = searchable(query);
         String size = null;
         Matcher measure = MEASURE.matcher(text);
 
@@ -500,7 +492,32 @@ public final class CatalogKey {
             }
         }
 
+        if (tokens.isEmpty()) {return new SearchTerms(productKindsIn(text), size);}
+
         return new SearchTerms(List.copyOf(tokens), size);
+    }
+
+    public static List<String> productKinds(String name) {
+        return productKindsIn(searchable(name));
+    }
+
+    private static List<String> productKindsIn(String text) {
+        return Arrays.stream(text.split(" ")).filter(PRODUCT_KINDS::contains).distinct().toList();
+    }
+
+    private static String searchable(String value) {
+        String text = ascii(value == null ? "" : value);
+        text = text.replaceAll("(\\d),(\\d)", "$1.$2");
+        text = text.replaceAll("[^A-Z0-9.]+", " ");
+        text = text.replaceAll("(?<!\\d)\\.|\\.(?!\\d)", " ");
+        text = GLUED_SIZE.matcher(text).replaceAll("$1 ");
+        text = text.replaceAll("(\\d)([A-Z])", "$1 $2");
+
+        for (Rewrite rewrite : REWRITES) {
+            text = rewrite.pattern().matcher(text).replaceAll(rewrite.replacement());
+        }
+
+        return text;
     }
 
     public record SearchTerms(List<String> tokens, String size) {}

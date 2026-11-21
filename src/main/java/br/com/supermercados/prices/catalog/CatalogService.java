@@ -49,6 +49,18 @@ public class CatalogService {
 
     private static final int MAXIMUM_STORES = 5000;
 
+    private static final int MINIMUM_FUZZY_LENGTH = 4;
+
+    private static final String PRICED_STORES_BY_ITEM = """
+            SELECT link.catalog_item_id, count(DISTINCT latest.store_id) AS priced_stores
+            FROM latest_prices latest
+            JOIN catalog_item_products link ON link.product_id = latest.product_id
+            WHERE latest.store_id IN (:stores) AND latest.collected_at > :visitFreshAfter
+              AND (latest.origin_type = 'STORE_VISIT' OR latest.collected_at > :freshAfter)
+              AND latest.collected_at <= :now AND latest.availability <> 'UNAVAILABLE'
+              AND (latest.valid_until IS NULL OR latest.valid_until > :now)%s
+            GROUP BY link.catalog_item_id""";
+
     private final CatalogItemRepository items;
     private final NamedParameterJdbcTemplate jdbc;
     private final PriceRecordRepository prices;
@@ -97,12 +109,15 @@ public class CatalogService {
 
         for (int index = 0; index < terms.tokens().size(); index++) {
             String token = terms.tokens().get(index);
+            String startsAWord = startsAWord(index);
+            parameters.addValue("contains" + index, "%" + token + "%");
             parameters.addValue("prefix" + index, "% " + token + "%");
             parameters.addValue("token" + index, token);
-            exact.add("' ' || item.search_text LIKE :prefix" + index);
+            exact.add(startsAWord);
 
-            approximate.add("(' ' || item.search_text LIKE :prefix" + index
-                    + (token.length() >= 4 ? " OR :token" + index + " <% item.search_text" : "") + ")");
+            approximate.add(token.length() >= MINIMUM_FUZZY_LENGTH
+                    ? "(" + startsAWord + " OR :token" + index + " <% item.search_text)"
+                    : startsAWord);
         }
 
         List<StoreResponse> selected = comparisonStores(cityId, storeIds);
@@ -112,15 +127,12 @@ public class CatalogService {
         if (cityId != null) {
             if (selected.isEmpty()) {return Page.empty(pageable);}
 
-            priced = """
-                    SELECT link.catalog_item_id, count(DISTINCT latest.store_id) AS priced_stores
-                    FROM latest_prices latest
-                    JOIN catalog_item_products link ON link.product_id = latest.product_id
-                    WHERE latest.store_id IN (:stores) AND latest.collected_at > :visitFreshAfter
-                      AND (latest.origin_type = 'STORE_VISIT' OR latest.collected_at > :freshAfter)
-                      AND latest.collected_at <= :now AND latest.availability <> 'UNAVAILABLE'
-                      AND (latest.valid_until IS NULL OR latest.valid_until > :now)
-                    GROUP BY link.catalog_item_id""";
+            String candidates = terms.tokens().isEmpty()
+                    ? ""
+                    : " AND link.catalog_item_id IN (SELECT item.id FROM catalog_items item WHERE "
+                            + String.join(" AND ", approximate) + ")";
+
+            priced = PRICED_STORES_BY_ITEM.formatted(candidates);
 
             parameters.addValue("stores", selected.stream().map(StoreResponse::id).toList())
                     .addValue("now", Timestamp.from(now))
@@ -160,6 +172,10 @@ public class CatalogService {
         List<CatalogItem> ordered = ids.stream().map(byId::get).toList();
 
         return new PageImpl<>(respond(ordered, selected), pageable, total[0]);
+    }
+
+    private static String startsAWord(int index) {
+        return "(item.search_text LIKE :contains" + index + " AND ' ' || item.search_text LIKE :prefix" + index + ")";
     }
 
     private static String foundSql(

@@ -190,6 +190,23 @@ class CatalogKeyTest {
     }
 
     @Test
+    void theKindOfProductIsSearchedOnlyWhenNothingElseWasTyped() {
+        assertThat(CatalogKey.searchTerms("refrigerante")).isEqualTo(
+                new CatalogKey.SearchTerms(List.of("REFRIGERANTE"), null));
+        assertThat(CatalogKey.searchTerms("refri 2l")).isEqualTo(
+                new CatalogKey.SearchTerms(List.of("REFRIGERANTE"), "x2000ML"));
+        assertThat(CatalogKey.searchTerms("refrigerante coca cola")).isEqualTo(
+                new CatalogKey.SearchTerms(List.of("COCA", "COLA"), null));
+    }
+
+    @Test
+    void productKindsComeFromTheNameEvenWhenAbbreviated() {
+        assertThat(CatalogKey.productKinds("Refrig. Coca-Cola 2L")).containsExactly("REFRIGERANTE");
+        assertThat(CatalogKey.productKinds("Energético Monster 473ml")).containsExactly("ENERGETICO");
+        assertThat(CatalogKey.productKinds("Coca-Cola 2L")).isEmpty();
+    }
+
+    @Test
     void sizeLabelsAreReadable() {
         assertThat(CatalogKey.sizeLabel("1x2000ML")).isEqualTo("2 L");
         assertThat(CatalogKey.sizeLabel("1x1500ML")).isEqualTo("1,5 L");

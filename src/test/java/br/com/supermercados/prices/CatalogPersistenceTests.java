@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,8 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.com.supermercados.prices.catalog.CatalogBuilder;
+import br.com.supermercados.prices.catalog.CatalogItemResponse;
+import br.com.supermercados.prices.catalog.CatalogService;
 import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.datasource.DataSourceService;
 import br.com.supermercados.prices.datasource.SourceObservation;
@@ -62,6 +65,9 @@ class CatalogPersistenceTests {
 
     @Autowired
     CatalogBuilder catalogBuilder;
+
+    @Autowired
+    CatalogService catalog;
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -221,12 +227,57 @@ class CatalogPersistenceTests {
                 .isEqualTo(catalogItemOf(sugar)).isNotEqualTo(previousItem);
     }
 
+    @Test
+    void searchingOnlyForTheKindOfProductFindsProductsSoldUnderThatName() {
+        UUID soda = sku("Refrigerante Guaraná Fictício 2L", "Fictício");
+        UUID sameSoda = sku("Guaraná Fictício 2L", "Fictício");
+        UUID sugar = sku("Açúcar Granulado União Premium 1kg");
+        price(soda, STORE_A, "Refrigerante Guaraná Fictício 2L");
+        price(sameSoda, STORE_B, "Guaraná Fictício 2L");
+        price(sugar, STORE_A, "Açúcar Granulado União Premium 1kg");
+        price(sugar, STORE_B, "Açúcar Granulado União Premium 1kg");
+
+        catalogBuilder.rebuild();
+
+        assertThat(namesFound("refrigerante", null)).containsExactly("Guaraná Fictício 2 L");
+        assertThat(namesFound("refri", rioCityId())).containsExactly("Guaraná Fictício 2 L");
+    }
+
+    @Test
+    void typosStillFindTheProductAndPricedStoresCountOnlyTheMatches() {
+        UUID soda = sku("Refrigerante Guaraná Fictício 2L", "Fictício");
+        UUID sugar = sku("Açúcar Granulado União Premium 1kg");
+        price(soda, STORE_A, "Refrigerante Guaraná Fictício 2L");
+        price(soda, STORE_B, "Refrigerante Guaraná Fictício 2L");
+        price(sugar, STORE_A, "Açúcar Granulado União Premium 1kg");
+        price(sugar, STORE_B, "Açúcar Granulado União Premium 1kg");
+
+        catalogBuilder.rebuild();
+
+        assertThat(namesFound("refrigerente", rioCityId())).containsExactly("Guaraná Fictício 2 L");
+        assertThat(namesFound("acucar granulado", rioCityId())).containsExactly("Açúcar Granulado União Premium 1 kg");
+    }
+
+    private List<String> namesFound(String query, UUID cityId) {
+        return catalog.search(query, cityId, null, PageRequest.of(0, 20)).getContent().stream()
+                .map(CatalogItemResponse::name)
+                .toList();
+    }
+
+    private UUID rioCityId() {
+        return jdbc.queryForObject("SELECT id FROM cities WHERE name = 'Rio de Janeiro'", UUID.class);
+    }
+
     private UUID sku(String name) {
+        return sku(name, "União");
+    }
+
+    private UUID sku(String name, String brand) {
         UUID id = UUID.randomUUID();
         jdbc.update("""
                 INSERT INTO products (id, name, brand, source_id, source_reference, collected_at, updated_at)
-                VALUES (?, ?, 'União', ?, ?, ?, ?)
-                """, id, name, SOURCE_ID, "synthetic-sku-" + id, recently(), recently());
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, id, name, brand, SOURCE_ID, "synthetic-sku-" + id, recently(), recently());
         return id;
     }
 
