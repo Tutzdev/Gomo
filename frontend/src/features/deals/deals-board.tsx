@@ -37,6 +37,7 @@ export function DealsBoard({ cityId, cityName, inApp }: { cityId: string; cityNa
     queryKey: ["deals", cityId, storeId, category, onlyMyLists, page],
     queryFn: () => dealApi.list({ cityId, storeId, category, onlyMyLists, page, size: PAGE_SIZE }),
     enabled: Boolean(cityId),
+    staleTime: 5 * 60 * 1000,
     placeholderData: (previous) => previous,
   });
   const inCity = cityName ? ` em ${cityName}` : "";

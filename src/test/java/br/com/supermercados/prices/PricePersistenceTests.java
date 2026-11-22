@@ -264,6 +264,9 @@ class PricePersistenceTests {
                 """, UUID.class, STORE_A, PRODUCT_A)).isEqualTo(newest.id());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM latest_prices WHERE product_id = ?", Long.class, PRODUCT_A))
                 .isEqualTo(2);
+        assertThat(jdbc.queryForObject("""
+                SELECT regular_price FROM latest_prices WHERE store_id = ? AND product_id = ?
+                """, BigDecimal.class, STORE_A, PRODUCT_A)).isEqualByComparingTo("5.00");
     }
 
     @Test

@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,8 @@ class DealServiceTest {
         UUID storeId = UUID.randomUUID();
         when(stores.selectComparisonStores(cityId, null, 500)).thenReturn(List.of(new StoreResponse(storeId, null,
                 cityId, "Synthetic store", null, null, null, true, UUID.randomUUID(), "synthetic", NOW, NOW, null)));
-        when(finder.find(any(), any())).thenReturn(List.of());
+        when(finder.currentPrices(any(), any())).thenReturn(List.of());
+        when(finder.history(any(), any())).thenReturn(Map.of());
     }
 
     @Test
@@ -58,7 +60,7 @@ class DealServiceTest {
         clock.advance(Duration.ofMinutes(29));
         service.find(null, cityId, UUID.randomUUID(), "Mercearia", false, PageRequest.of(1, 24));
 
-        verify(finder, times(1)).find(any(), any());
+        verify(finder, times(1)).currentPrices(any(), any());
         assertThat(background).isEmpty();
     }
 
@@ -72,24 +74,42 @@ class DealServiceTest {
 
         assertThat(stale.computedAt()).isEqualTo(NOW);
         assertThat(background).hasSize(1);
-        verify(finder, times(1)).find(any(), any());
+        verify(finder, times(1)).currentPrices(any(), any());
 
         background.removeFirst().run();
         var fresh = service.find(null, cityId, null, null, false, PageRequest.of(0, 24));
 
         assertThat(fresh.computedAt()).isEqualTo(NOW.plus(Duration.ofMinutes(31)));
-        verify(finder, times(2)).find(any(), any());
+        verify(finder, times(2)).currentPrices(any(), any());
     }
 
     @Test
-    void aPageTooOldToServeIsComputedInTheRequest() {
+    void aPageOfAnyAgeIsServedAtOnceSoNoVisitorWaitsForTheCalculation() {
         service.find(null, cityId, null, null, false, PageRequest.of(0, 24));
-        clock.advance(Duration.ofMinutes(30L * DealService.STALE_FACTOR + 1));
+        clock.advance(Duration.ofHours(12));
 
         var response = service.find(null, cityId, null, null, false, PageRequest.of(0, 24));
 
-        assertThat(response.computedAt()).isEqualTo(clock.instant());
-        assertThat(background).isEmpty();
+        assertThat(response.computedAt()).isEqualTo(NOW);
+        assertThat(background).hasSize(1);
+        verify(finder, times(1)).currentPrices(any(), any());
+    }
+
+    @Test
+    void thePriceHistoryIsReadOncePerDayWhileCurrentPricesFollowEveryRefresh() {
+        service.find(null, cityId, null, null, false, PageRequest.of(0, 24));
+        clock.advance(Duration.ofHours(1));
+        service.find(null, cityId, null, null, false, PageRequest.of(0, 24));
+        background.removeFirst().run();
+
+        verify(finder, times(2)).currentPrices(any(), any());
+        verify(finder, times(1)).history(any(), any());
+
+        clock.advance(Duration.ofDays(1));
+        service.find(null, cityId, null, null, false, PageRequest.of(0, 24));
+        background.removeFirst().run();
+
+        verify(finder, times(2)).history(any(), any());
     }
 
     @Test
@@ -99,14 +119,14 @@ class DealServiceTest {
         service.onStart();
         background.removeFirst().run();
         service.find(null, cityId, null, null, false, PageRequest.of(0, 24));
-        verify(finder, times(1)).find(any(), any());
+        verify(finder, times(1)).currentPrices(any(), any());
 
         clock.advance(Duration.ofMinutes(10));
         service.collectionCompleted();
         var response = service.find(null, cityId, null, null, false, PageRequest.of(0, 24));
 
         assertThat(response.computedAt()).isEqualTo(NOW.plus(Duration.ofMinutes(10)));
-        verify(finder, times(2)).find(any(), any());
+        verify(finder, times(2)).currentPrices(any(), any());
     }
 
     /** A clock the test moves forward. */

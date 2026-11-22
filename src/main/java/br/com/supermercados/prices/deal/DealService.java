@@ -6,6 +6,7 @@ import br.com.supermercados.prices.catalog.CatalogItemRepository;
 import br.com.supermercados.prices.collection.CollectionCompletedListener;
 import br.com.supermercados.prices.common.PageResponse;
 import br.com.supermercados.prices.location.LocationService;
+import br.com.supermercados.prices.price.UsualPrice;
 import br.com.supermercados.prices.shoppinglist.ShoppingListService;
 import br.com.supermercados.prices.store.StoreResponse;
 import br.com.supermercados.prices.store.StoreService;
@@ -14,6 +15,7 @@ import br.com.supermercados.prices.subscription.PlanLimitException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,7 +43,6 @@ public class DealService implements CollectionCompletedListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DealService.class);
     private static final int MAXIMUM_STORES = 500;
-    static final int STALE_FACTOR = 4;
 
     private final DealFinder finder;
     private final StoreService stores;
@@ -53,6 +54,7 @@ public class DealService implements CollectionCompletedListener {
     private final boolean warmUp;
     private final Executor background;
     private final Map<UUID, CityDeals> cache = new ConcurrentHashMap<>();
+    private final Map<UUID, CityHistory> histories = new ConcurrentHashMap<>();
     private final Set<UUID> refreshing = ConcurrentHashMap.newKeySet();
 
     @Autowired
@@ -94,14 +96,14 @@ public class DealService implements CollectionCompletedListener {
 
     @EventListener(ApplicationReadyEvent.class)
     public void onStart() {
-        if (warmUp && !cacheTtl.isZero()) {
+        if (warmUp && caching()) {
             background.execute(this::refreshAll);
         }
     }
 
     @Override
     public void collectionCompleted() {
-        if (!cacheTtl.isZero()) {
+        if (caching()) {
             refreshAll();
         }
     }
@@ -170,7 +172,7 @@ public class DealService implements CollectionCompletedListener {
         return new DealsResponse(
             cityId,
             city.computedAt(),
-            DealFinder.MINIMUM_DISCOUNT_PERCENT,
+            Offer.MINIMUM_DISCOUNT_PERCENT,
             PageResponse.from(page),
             storeCounts,
             categories,
@@ -179,12 +181,14 @@ public class DealService implements CollectionCompletedListener {
 
     private CityDeals cityDeals(UUID cityId) {
         Instant now = clock.instant();
+
+        if (!caching()) {return compute(cityId, now);}
+
         CityDeals cached = cache.get(cityId);
 
-        if (cached != null && cached.computedAt().isAfter(now.minus(cacheTtl))) {return cached;}
+        if (cached != null) {
+            if (cached.computedAt().isBefore(now.minus(cacheTtl))) {refreshInBackground(cityId);}
 
-        if (cached != null && cached.computedAt().isAfter(now.minus(cacheTtl.multipliedBy(STALE_FACTOR)))) {
-            refreshInBackground(cityId);
             return cached;
         }
 
@@ -221,9 +225,12 @@ public class DealService implements CollectionCompletedListener {
         Map<UUID, StoreResponse> cityStores = stores.selectComparisonStores(cityId, null, MAXIMUM_STORES).stream()
                 .collect(Collectors.toMap(StoreResponse::id, Function.identity()));
 
-        List<DealFinder.Offer> offers = finder.find(cityStores.keySet(), now);
+        Set<UUID> storeIds = Set.copyOf(cityStores.keySet());
+        List<Offer> offers = Offer.match(
+            finder.currentPrices(storeIds, now),
+            history(cityId, storeIds, LocalDate.ofInstant(now, UsualPrice.ZONE)));
 
-        Map<UUID, CatalogItem> byId = items.findAllById(offers.stream().map(DealFinder.Offer::itemId).distinct().toList())
+        Map<UUID, CatalogItem> byId = items.findAllById(offers.stream().map(Offer::itemId).distinct().toList())
                 .stream().collect(Collectors.toMap(CatalogItem::getId, Function.identity()));
 
         List<DealResponse> deals = offers.stream()
@@ -251,6 +258,23 @@ public class DealService implements CollectionCompletedListener {
         return new CityDeals(now, deals);
     }
 
+    private Map<UUID, DealFinder.ItemHistory> history(UUID cityId, Set<UUID> storeIds, LocalDate today) {
+        if (!caching()) {return finder.history(storeIds, today);}
+
+        CityHistory cached = histories.get(cityId);
+
+        if (cached != null && cached.covers(storeIds, today)) {return cached.items();}
+
+        CityHistory computed = new CityHistory(today, storeIds, finder.history(storeIds, today));
+        histories.put(cityId, computed);
+
+        return computed.items();
+    }
+
+    private boolean caching() {
+        return !cacheTtl.isZero();
+    }
+
     private static List<DealResponse> cheapestPerItem(List<DealResponse> deals) {
         Map<UUID, DealResponse> cheapest = new LinkedHashMap<>();
 
@@ -267,4 +291,11 @@ public class DealService implements CollectionCompletedListener {
     }
 
     private record CityDeals(Instant computedAt, List<DealResponse> deals) {}
+
+    private record CityHistory(LocalDate day, Set<UUID> storeIds, Map<UUID, DealFinder.ItemHistory> items) {
+
+        boolean covers(Set<UUID> stores, LocalDate today) {
+            return day.equals(today) && storeIds.equals(stores);
+        }
+    }
 }
