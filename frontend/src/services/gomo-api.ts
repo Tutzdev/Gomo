@@ -477,6 +477,7 @@ export interface DealFilters {
   cityId: string;
   storeId?: string;
   category?: string;
+  query?: string;
   /** Premium: only the products of the person's lists. Sent with the session; the rest is public. */
   onlyMyLists?: boolean;
   page?: number;

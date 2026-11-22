@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Lock, Store, Tag, Trophy } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Lock, Search, Store, Tag, Trophy, X } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Pagination, StatusBadge } from "@/components/page/page-elements";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/feedback";
 import { SelectField } from "@/components/ui/form-field";
+import { NativeButton } from "@/components/ui/native-button";
 import { ShareButton } from "@/components/ui/share-button";
 import { useAuth } from "@/features/auth/auth-context";
 import { AddToList } from "@/features/catalog/add-to-list";
@@ -12,121 +13,181 @@ import { CatalogItemThumbnail } from "@/features/catalog/catalog-item-picker";
 import { useUpsell } from "@/features/plan/upsell-context";
 import { usePlan } from "@/features/plan/use-plan";
 import { formatCurrency, formatDate } from "@/lib/brand";
-import { cn } from "@/lib/cn";
 import { productPagePath } from "@/lib/product-page-path";
 import { siteUrl } from "@/lib/site-url";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { dealApi } from "@/services/gomo-api";
 import type { Deal } from "@/types/api";
 
 const PAGE_SIZE = 24;
+const SEARCH_DELAY_MS = 300;
 
 /**
- * What is cheaper than usual in the city right now, by market and aisle. The same board is the public page
- * (/ofertas, for Google and WhatsApp) and a page of the app; inside the app a Premium account can narrow it to
- * the products of their lists.
+ * What is cheaper than usual in the city right now. One bar filters by word, market and aisle; the same board is
+ * the public page (/ofertas) and a page of the app, where a Premium account can narrow it to their lists.
  */
 export function DealsBoard({ cityId, cityName, inApp }: { cityId: string; cityName: string | null; inApp: boolean }) {
   const { user } = useAuth();
   const { premium } = usePlan();
   const { showUpsell } = useUpsell();
+  const [search, setSearch] = useState("");
   const [storeId, setStoreId] = useState("");
   const [category, setCategory] = useState("");
   const [onlyMyLists, setOnlyMyLists] = useState(false);
   const [page, setPage] = useState(0);
+  const query = useDebouncedValue(search.trim(), SEARCH_DELAY_MS);
   const deals = useQuery({
-    queryKey: ["deals", cityId, storeId, category, onlyMyLists, page],
-    queryFn: () => dealApi.list({ cityId, storeId, category, onlyMyLists, page, size: PAGE_SIZE }),
+    queryKey: ["deals", cityId, storeId, category, query, onlyMyLists, page],
+    queryFn: () => dealApi.list({ cityId, storeId, category, query, onlyMyLists, page, size: PAGE_SIZE }),
     enabled: Boolean(cityId),
     staleTime: 5 * 60 * 1000,
     placeholderData: (previous) => previous,
   });
   const inCity = cityName ? ` em ${cityName}` : "";
-  const reset = () => setPage(0);
+  const filtered = Boolean(search || storeId || category || onlyMyLists);
+  const data = deals.data;
+  const dealsInCity = data?.stores.reduce((sum, store) => sum + store.deals, 0) ?? 0;
+
+  const clearFilters = () => {
+    setSearch("");
+    setStoreId("");
+    setCategory("");
+    setOnlyMyLists(false);
+    setPage(0);
+  };
+
   const toggleMyLists = () => {
     if (!premium) {
       showUpsell("DEALS_FOR_MY_LISTS");
       return;
     }
+
     setOnlyMyLists((value) => !value);
-    reset();
+    setPage(0);
   };
 
-  if (deals.isPending) return <SkeletonRows rows={6} />;
-  if (deals.isError) return <ErrorState message={deals.error.message} retry={() => void deals.refetch()} />;
-  const data = deals.data;
-  const total = data.stores.reduce((sum, store) => sum + store.deals, 0);
-
   return (
-    <div className="space-y-5" aria-busy={deals.isFetching}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted">
-          Produtos pelo menos {data.minimumDiscountPercent}% abaixo do preço de sempre{inCity}, comparando com a média
-          dos últimos 30 dias. Atualizado em {formatDate(data.computedAt)}.
-        </p>
-        <ShareButton
-          label="Compartilhar ofertas"
-          text={`Ofertas de hoje${inCity} no Gomo: produtos abaixo do preço de sempre em cada mercado.`}
-          url={siteUrl("/ofertas")}
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Mercado">
-        <FilterChip active={storeId === ""} onClick={() => { setStoreId(""); reset(); }}>
-          Todos os mercados
-        </FilterChip>
-        {data.stores.map((store) => (
-          <FilterChip key={store.storeId} active={storeId === store.storeId} onClick={() => { setStoreId(store.storeId); reset(); }}>
-            {store.storeName} <span className="tabular-nums opacity-75">({store.deals})</span>
-          </FilterChip>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="w-full max-w-xs">
-          <SelectField id="deals-category" label="Corredor" value={category} onChange={(event) => { setCategory(event.target.value); reset(); }}>
+    <div className="space-y-5">
+      <section aria-label="Filtrar ofertas" className="surface space-y-3 p-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="col-span-2 md:col-span-1">
+            <label htmlFor="deals-search" className="mb-1.5 block text-sm font-semibold text-foreground">
+              Buscar oferta
+            </label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden />
+              <input
+                id="deals-search"
+                type="search"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(0);
+                }}
+                placeholder="Café, arroz, sabão em pó…"
+                autoComplete="off"
+                className="field-control"
+                style={{ paddingLeft: "2.25rem" }}
+              />
+            </div>
+          </div>
+          <SelectField
+            id="deals-store"
+            label="Mercado"
+            value={storeId}
+            onChange={(event) => {
+              setStoreId(event.target.value);
+              setPage(0);
+            }}
+          >
             <option value="">Todos</option>
-            {data.categories.map((entry) => (
+            {data?.stores.map((store) => (
+              <option key={store.storeId} value={store.storeId}>{store.storeName} ({store.deals})</option>
+            ))}
+          </SelectField>
+          <SelectField
+            id="deals-category"
+            label="Corredor"
+            value={category}
+            onChange={(event) => {
+              setCategory(event.target.value);
+              setPage(0);
+            }}
+          >
+            <option value="">Todos</option>
+            {data?.categories.map((entry) => (
               <option key={entry.category} value={entry.category}>{entry.category} ({entry.deals})</option>
             ))}
           </SelectField>
         </div>
         {inApp && user ? (
-          <button
-            type="button"
-            aria-pressed={onlyMyLists}
-            onClick={toggleMyLists}
-            className={cn(
-              "inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              onlyMyLists ? "border-primary bg-primary text-white" : "border-border bg-white text-foreground hover:border-primary/40",
-            )}
-          >
-            {!premium ? <Lock className="size-4" aria-label="Premium" /> : null}
+          <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" checked={onlyMyLists} onChange={toggleMyLists} className="size-4 accent-primary" />
             Só o que está nas minhas listas
-          </button>
+            {!premium ? <Lock className="size-4 text-muted" aria-label="Premium" /> : null}
+          </label>
         ) : null}
-      </div>
+      </section>
 
-      {!data.deals.content.length ? (
-        <EmptyState
-          title={onlyMyLists ? "Nada da sua lista em oferta agora" : "Nenhuma oferta por aqui agora"}
-          description={
-            onlyMyLists
-              ? "Quando um produto das suas listas ficar pelo menos 10% abaixo do preço de sempre, ele aparece aqui."
-              : total === 0
-                ? "Os preços são coletados 4 vezes ao dia; as ofertas aparecem depois de uma semana de histórico na cidade."
-                : "Tente outro mercado ou corredor."
-          }
-        />
-      ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {data.deals.content.map((deal) => (
-            <DealCard key={`${deal.itemId}-${deal.storeId}`} deal={deal} inApp={inApp} />
-          ))}
-        </ul>
-      )}
-      {data.deals.totalPages > 1 ? <Pagination page={page} totalPages={data.deals.totalPages} onChange={setPage} /> : null}
+      {deals.isPending ? <SkeletonRows rows={6} /> : null}
+      {deals.isError ? <ErrorState message={deals.error.message} retry={() => void deals.refetch()} /> : null}
+
+      {data ? (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3" aria-live="polite" aria-busy={deals.isFetching}>
+            <p className="text-sm text-muted">
+              <span className="font-semibold text-foreground">
+                {data.deals.totalElements} {data.deals.totalElements === 1 ? "oferta" : "ofertas"}
+              </span>{" "}
+              com {data.minimumDiscountPercent}% ou mais de desconto · atualizado em {formatDate(data.computedAt)}
+            </p>
+            <div className="flex items-center gap-2">
+              {filtered ? (
+                <NativeButton variant="ghost" size="sm" onClick={clearFilters}>
+                  <X className="size-4" aria-hidden />
+                  Limpar filtros
+                </NativeButton>
+              ) : null}
+              <ShareButton
+                label="Compartilhar"
+                text={`Ofertas de hoje${inCity} no Gomo: produtos abaixo do preço de sempre em cada mercado.`}
+                url={siteUrl("/ofertas")}
+              />
+            </div>
+          </div>
+
+          {!data.deals.content.length ? (
+            <EmptyState
+              title={emptyTitle(query, onlyMyLists)}
+              description={emptyDescription(filtered, dealsInCity)}
+              action={filtered ? <NativeButton variant="secondary" onClick={clearFilters}>Limpar filtros</NativeButton> : undefined}
+            />
+          ) : (
+            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {data.deals.content.map((deal) => (
+                <DealCard key={`${deal.itemId}-${deal.storeId}`} deal={deal} inApp={inApp} />
+              ))}
+            </ul>
+          )}
+          {data.deals.totalPages > 1 ? <Pagination page={page} totalPages={data.deals.totalPages} onChange={setPage} /> : null}
+        </>
+      ) : null}
     </div>
   );
+}
+
+function emptyTitle(query: string, onlyMyLists: boolean) {
+  if (query) return `Nenhuma oferta para "${query}"`;
+  if (onlyMyLists) return "Nada da sua lista em oferta agora";
+  return "Nenhuma oferta por aqui agora";
+}
+
+function emptyDescription(filtered: boolean, dealsInCity: number) {
+  if (filtered) return "Tente outra palavra, outro mercado ou outro corredor.";
+  if (dealsInCity === 0) {
+    return "Os preços são coletados 4 vezes ao dia; as ofertas aparecem depois de uma semana de histórico na cidade.";
+  }
+  return "Volte mais tarde: as ofertas mudam a cada coleta.";
 }
 
 function DealCard({ deal, inApp }: { deal: Deal; inApp: boolean }) {
@@ -176,21 +237,5 @@ function DealCard({ deal, inApp }: { deal: Deal; inApp: boolean }) {
         ) : null}
       </div>
     </li>
-  );
-}
-
-function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        "min-h-9 rounded-full px-3.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-        active ? "bg-primary text-white" : "bg-surface-strong text-muted hover:text-foreground",
-      )}
-    >
-      {children}
-    </button>
   );
 }

@@ -124,6 +124,7 @@ public class DealService implements CollectionCompletedListener {
         UUID cityId,
         UUID storeId,
         String category,
+        String query,
         boolean onlyMyLists,
         Pageable pageable) {
 
@@ -140,6 +141,7 @@ public class DealService implements CollectionCompletedListener {
 
         List<DealResponse> scope = city.deals().stream()
                 .filter(deal -> mine == null || mine.contains(deal.itemId()))
+                .filter(DealSearch.matching(query))
                 .toList();
 
         List<DealResponse> view = storeId == null ? cheapestPerItem(scope)

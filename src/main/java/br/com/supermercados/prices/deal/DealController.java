@@ -24,6 +24,7 @@ public class DealController {
         @RequestParam UUID cityId,
         @RequestParam(required = false) UUID storeId,
         @RequestParam(required = false) String category,
+        @RequestParam(required = false) String query,
         @RequestParam(defaultValue = "false") boolean onlyMyLists,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "24") int size) {
@@ -33,6 +34,7 @@ public class DealController {
             cityId,
             storeId,
             category,
+            query,
             onlyMyLists,
             PageRequests.create(page, size, Sort.unsorted()));
     }

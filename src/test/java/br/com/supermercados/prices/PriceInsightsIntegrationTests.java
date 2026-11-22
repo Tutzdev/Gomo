@@ -105,6 +105,9 @@ class PriceInsightsIntegrationTests {
         // 5% under the usual price is the usual price with some noise, not a deal.
         mvc.perform(get("/api/v1/deals").param("cityId", rioCityId()).param("storeId", STORE_B.toString()))
                 .andExpect(jsonPath("$.deals.content.length()").value(0));
+        mvc.perform(get("/api/v1/deals").param("cityId", rioCityId()).param("query", "nada parecido"))
+                .andExpect(jsonPath("$.deals.content.length()").value(0))
+                .andExpect(jsonPath("$.stores.length()").value(0));
     }
 
     @Test
