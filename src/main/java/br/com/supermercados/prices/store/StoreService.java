@@ -14,6 +14,7 @@ import br.com.supermercados.prices.price.PriceRecordRepository;
 import br.com.supermercados.prices.price.StorePriceUpdate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -42,10 +43,21 @@ public class StoreService {
 
         locationService.requireCity(cityId);
 
-        return withPriceUpdates(storeRepository.findPricedActiveStores(cityId, pageable));
+        return withPriceUpdates(storeRepository.findPricedActiveStores(cityId, visitFreshAfter(), pageable));
     }
 
     public Page<StoreResponse> findListedStores(UUID cityId, Pageable pageable) {
+        List<StoreResponse> listed = findStoresWithStatus(cityId, Pageable.unpaged(pageable.getSort()))
+                .filter(StoreService::hasUsablePrices)
+                .toList();
+
+        int from = (int) Math.min(pageable.getOffset(), listed.size());
+        int to = Math.min(from + pageable.getPageSize(), listed.size());
+
+        return new PageImpl<>(listed.subList(from, to), pageable, listed.size());
+    }
+
+    public Page<StoreResponse> findStoresWithStatus(UUID cityId, Pageable pageable) {
         if (cityId != null) {locationService.requireCity(cityId);}
 
         Page<Store> stores = cityId == null ? storeRepository.findByActiveTrue(pageable)
@@ -56,6 +68,15 @@ public class StoreService {
         Map<UUID, Instant> updates = lastPriceUpdates(stores.stream().map(Store::getId).toList());
 
         return stores.map(store -> withStatus(store, updates.get(store.getId())));
+    }
+
+    private Instant visitFreshAfter() {
+        return clock.instant().minus(pricePolicy.inStoreMaxAge());
+    }
+
+    private static boolean hasUsablePrices(StoreResponse store) {
+        return store.priceStatus() == StorePriceStatus.CURRENT
+                || store.priceStatus() == StorePriceStatus.OUTDATED && store.priceChannel() == StorePriceChannel.ONLINE;
     }
 
     public StoreResponse findStore(UUID storeId) {
@@ -90,7 +111,7 @@ public class StoreService {
     public List<StoreResponse> findAllActiveStores(UUID cityId, int maximumStores) {
         locationService.requireCity(cityId);
         PageRequest request = PageRequest.of(0, maximumStores, Sort.by("name", "id"));
-        Page<Store> page = storeRepository.findPricedActiveStores(cityId, request);
+        Page<Store> page = storeRepository.findPricedActiveStores(cityId, visitFreshAfter(), request);
 
         if (page.getTotalElements() > maximumStores) {
             throw new ApiException(

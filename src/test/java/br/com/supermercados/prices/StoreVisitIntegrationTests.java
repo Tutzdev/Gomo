@@ -2,8 +2,8 @@ package br.com.supermercados.prices;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -31,6 +32,10 @@ import br.com.supermercados.prices.common.ApiException;
 import br.com.supermercados.prices.price.PriceObservation;
 import br.com.supermercados.prices.price.PriceService;
 import br.com.supermercados.prices.price.StockAvailability;
+import br.com.supermercados.prices.store.StorePriceChannel;
+import br.com.supermercados.prices.store.StorePriceStatus;
+import br.com.supermercados.prices.store.StoreResponse;
+import br.com.supermercados.prices.store.StoreService;
 import br.com.supermercados.prices.storevisit.StoreVisitRequest;
 import br.com.supermercados.prices.storevisit.StoreVisitService;
 import br.com.supermercados.prices.support.PostgresTestDatabase;
@@ -54,6 +59,7 @@ class StoreVisitIntegrationTests {
     @Autowired private StoreVisitService visits;
     @Autowired private PriceService prices;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private StoreService stores;
     @Autowired private jakarta.persistence.EntityManager entityManager;
 
     @DynamicPropertySource
@@ -62,7 +68,7 @@ class StoreVisitIntegrationTests {
     }
 
     @Test
-    void barraMansaMarketsWithoutAnOnlineStoreAreListedBeforeTheirFirstVisit() throws Exception {
+    void barraMansaMarketsWithoutAnOnlineStoreStayOffThePublicListUntilTheirFirstVisit() throws Exception {
         assertThat(jdbc.queryForObject("""
                 SELECT count(*) FROM stores WHERE city_id = ?::uuid AND price_channel = 'IN_STORE' AND active""",
                 Integer.class, BARRA_MANSA)).isEqualTo(5);
@@ -72,7 +78,11 @@ class StoreVisitIntegrationTests {
                 .andExpect(jsonPath("$.priceChannel").value("IN_STORE"))
                 .andExpect(jsonPath("$.priceStatus").value("NO_PRICES"));
         mvc.perform(get("/api/v1/stores").param("cityId", BARRA_MANSA).param("size", "50")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[?(@.priceChannel == 'IN_STORE')].priceStatus", everyItem(is("NO_PRICES"))));
+                .andExpect(jsonPath("$.content[?(@.priceChannel == 'IN_STORE')]", empty()));
+        assertThat(stores.findStoresWithStatus(UUID.fromString(BARRA_MANSA), PageRequest.of(0, 50)).getContent())
+                .filteredOn(store -> store.priceChannel() == StorePriceChannel.IN_STORE)
+                .hasSize(5)
+                .allMatch(store -> store.priceStatus() == StorePriceStatus.NO_PRICES);
     }
 
     @Test
@@ -92,6 +102,9 @@ class StoreVisitIntegrationTests {
                 .andExpect(jsonPath("$.priceStatus").value("CURRENT"));
         mvc.perform(get("/api/v1/stores/{id}", ONLINE_STORE))
                 .andExpect(jsonPath("$.priceStatus").value("OUTDATED"));
+        mvc.perform(get("/api/v1/stores").param("cityId", BARRA_MANSA).param("size", "50"))
+                .andExpect(jsonPath("$.content[?(@.priceChannel == 'IN_STORE')].id",
+                        contains(SUPERMARKET_BARRA_MANSA.toString())));
         // Price ordering runs in SQL: the four-day-old shelf price still counts, so Beta comes before Alpha.
         mvc.perform(get("/api/v1/products").param("query", "FICTÍCIO").param("sort", "price_asc")
                         .param("storeId", SUPERMARKET_BARRA_MANSA.toString()))
@@ -127,6 +140,27 @@ class StoreVisitIntegrationTests {
         entityManager.flush();
         assertThat(jdbc.queryForObject("SELECT in_store_price_valid_days FROM stores WHERE id = ?", Integer.class,
                 SUPERMARKET_BARRA_MANSA)).isNull();
+    }
+
+    @Test
+    void aMarketWhoseShelfPricesExpiredLeavesThePublicListAndTheComparisons() throws Exception {
+        Instant twoDaysAgo = Instant.now().minus(Duration.ofDays(2)).truncatedTo(ChronoUnit.SECONDS);
+        visits.record(admin(), SUPERMARKET_BARRA_MANSA, new StoreVisitRequest(twoDaysAgo,
+                List.of(new StoreVisitRequest.Item(BETA, new BigDecimal("7.49")))));
+
+        assertThat(stores.findAllActiveStores(UUID.fromString(BARRA_MANSA), 500))
+                .extracting(StoreResponse::id).contains(SUPERMARKET_BARRA_MANSA);
+
+        jdbc.update("""
+                UPDATE price_records
+                SET collected_at = collected_at - interval '6 days', recorded_at = recorded_at - interval '6 days',
+                    valid_until = NULL
+                WHERE store_id = ?""", SUPERMARKET_BARRA_MANSA);
+
+        assertThat(stores.findAllActiveStores(UUID.fromString(BARRA_MANSA), 500))
+                .extracting(StoreResponse::id).doesNotContain(SUPERMARKET_BARRA_MANSA);
+        mvc.perform(get("/api/v1/stores").param("cityId", BARRA_MANSA).param("size", "50"))
+                .andExpect(jsonPath("$.content[?(@.priceChannel == 'IN_STORE')]", empty()));
     }
 
     @Test

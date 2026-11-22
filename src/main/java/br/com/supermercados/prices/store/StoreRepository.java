@@ -1,5 +1,6 @@
 package br.com.supermercados.prices.store;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,9 +17,13 @@ public interface StoreRepository extends JpaRepository<Store, UUID> {
 
     @Query("""
             select s from Store s where s.cityId = :cityId and s.active
-            and exists (select 1 from PriceRecord r where r.storeId = s.id)
+            and exists (
+                select 1 from PriceRecord r
+                where r.storeId = s.id
+                and (s.priceChannel = br.com.supermercados.prices.store.StorePriceChannel.ONLINE
+                     or r.collectedAt > :visitFreshAfter))
             """)
-    Page<Store> findPricedActiveStores(UUID cityId, Pageable pageable);
+    Page<Store> findPricedActiveStores(UUID cityId, Instant visitFreshAfter, Pageable pageable);
 
     Optional<Store> findBySourceIdAndSourceReference(UUID sourceId, String sourceReference);
 }

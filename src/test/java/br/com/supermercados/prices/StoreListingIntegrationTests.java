@@ -54,7 +54,7 @@ class StoreListingIntegrationTests {
     }
 
     @Test
-    void everyActiveMarketIsListedWithItsPriceStatus() throws Exception {
+    void onlyMarketsWithPricesAreListedWithTheirPriceStatus() throws Exception {
         price(STORE_A, Instant.now().minus(Duration.ofHours(2)));
         price(STORE_B, Instant.now().minus(Duration.ofDays(5)));
         UUID withoutPrices = UUID.randomUUID();
@@ -65,11 +65,12 @@ class StoreListingIntegrationTests {
                         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)""", withoutPrices, UUID.fromString(CITY), SOURCE);
 
         mvc.perform(get("/api/v1/stores").param("cityId", CITY)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[*].id",
-                        contains(STORE_A.toString(), STORE_B.toString(), withoutPrices.toString())))
-                .andExpect(jsonPath("$.content[*].priceStatus", contains("CURRENT", "OUTDATED", "NO_PRICES")))
-                .andExpect(jsonPath("$.content[2].lastPriceCollectedAt").isEmpty())
-                .andExpect(jsonPath("$.totalElements").value(3));
+                .andExpect(jsonPath("$.content[*].id", contains(STORE_A.toString(), STORE_B.toString())))
+                .andExpect(jsonPath("$.content[*].priceStatus", contains("CURRENT", "OUTDATED")))
+                .andExpect(jsonPath("$.totalElements").value(2));
+        mvc.perform(get("/api/v1/stores/{id}", withoutPrices)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.priceStatus").value("NO_PRICES"))
+                .andExpect(jsonPath("$.lastPriceCollectedAt").isEmpty());
         mvc.perform(get("/api/v1/stores/{id}", STORE_B)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.priceStatus").value("OUTDATED"))
                 .andExpect(jsonPath("$.lastPriceCollectedAt").isNotEmpty());

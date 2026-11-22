@@ -437,6 +437,8 @@ export const adminApi = {
   }) => apiRequest("/admin/sources", { method: "POST", body: input }),
   ingestChain: (input: unknown) =>
     apiRequest("/admin/chains", { method: "POST", body: input }),
+  stores: (page = 0, size = 100) =>
+    apiRequest<PageResponse<Store>>(`/admin/stores?${queryString({ page, size })}`),
   ingestStore: (input: unknown) =>
     apiRequest("/admin/stores", { method: "POST", body: input }),
   ingestProduct: (input: unknown) =>

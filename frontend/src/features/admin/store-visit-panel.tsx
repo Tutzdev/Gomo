@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/page/page-elements";
 import { ProductPicker } from "@/features/catalog/product-picker";
 import { ApiError } from "@/lib/api";
 import { formatDate } from "@/lib/brand";
-import { adminApi, catalogApi } from "@/services/gomo-api";
+import { adminApi } from "@/services/gomo-api";
 import { STORE_VISIT_BASKET, STORE_VISIT_BASKET_SIZE } from "./store-visit-basket";
 
 interface Reading {
@@ -62,7 +62,7 @@ const DEFAULT_VALID_DAYS = 7;
 /** Shelf prices of a market without an online store, written down item by item during a visit. */
 export function StoreVisitPanel() {
   const queryClient = useQueryClient();
-  const stores = useQuery({ queryKey: ["stores", "in-store"], queryFn: () => catalogApi.stores(undefined, 0, 100) });
+  const stores = useQuery({ queryKey: ["stores", "in-store"], queryFn: () => adminApi.stores() });
   const inStore = useMemo(
     () => (stores.data?.content ?? []).filter((store) => store.priceChannel === "IN_STORE"),
     [stores.data],
