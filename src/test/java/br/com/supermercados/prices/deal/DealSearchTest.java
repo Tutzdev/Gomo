@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 class DealSearchTest {
 
     private final DealResponse coffee = deal("Café Pilão Tradicional 500g", "Pilão", "Mercearia", "Spani Volta Redonda");
+    private final DealResponse cereal = deal("Cereal Nescau 180 g", "Nestlé", "Café da Manhã", "Spani Volta Redonda");
 
     @Test
     void everyWordMustAppearIgnoringAccentsAndCase() {
@@ -19,9 +20,9 @@ class DealSearchTest {
     }
 
     @Test
-    void theAisleAndTheMarketAreSearchableToo() {
-        assertThat(DealSearch.matching("mercearia").test(coffee)).isTrue();
+    void theMarketIsSearchableButTheAisleHasItsOwnFilter() {
         assertThat(DealSearch.matching("spani").test(coffee)).isTrue();
+        assertThat(DealSearch.matching("cafe").test(cereal)).isFalse();
     }
 
     @Test

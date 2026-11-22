@@ -26,7 +26,7 @@ final class DealSearch {
     }
 
     private static String searchableText(DealResponse deal) {
-        return Stream.of(deal.name(), deal.brand(), deal.sizeLabel(), deal.category(), deal.storeName())
+        return Stream.of(deal.name(), deal.brand(), deal.sizeLabel(), deal.storeName())
                 .filter(Objects::nonNull)
                 .map(DealSearch::normalize)
                 .collect(Collectors.joining(" "));
