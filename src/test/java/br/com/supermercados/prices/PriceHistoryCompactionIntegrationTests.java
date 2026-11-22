@@ -53,14 +53,14 @@ class PriceHistoryCompactionIntegrationTests {
         observe(PRODUCT_A, "d7", "3.50", now.minus(Duration.ofDays(7)));
         observe(PRODUCT_A, "d6", "3.50", now.minus(Duration.ofDays(6)));
         observe(PRODUCT_A, "d5", "3.00", now.minus(Duration.ofDays(5)));
-        observe(PRODUCT_A, "d2", "3.00", now.minus(Duration.ofDays(2)));
-        observe(PRODUCT_A, "d1", "3.00", now.minus(Duration.ofDays(1)));
+        observe(PRODUCT_A, "h12", "3.00", now.minus(Duration.ofHours(12)));
+        observe(PRODUCT_A, "h6", "3.00", now.minus(Duration.ofHours(6)));
         Map<String, Object> dailyLowestBefore = dailyLowest();
 
         long removed = compactor.compact();
 
         assertThat(removed).isEqualTo(3);
-        assertThat(references(PRODUCT_A)).containsExactly("d10", "d7", "d5", "d2", "d1");
+        assertThat(references(PRODUCT_A)).containsExactly("d10", "d7", "d5", "h12", "h6");
         assertThat(dailyLowest()).isEqualTo(dailyLowestBefore);
         assertThat(compactor.compact()).isZero();
     }
