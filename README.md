@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1">
   <img src="https://img.shields.io/badge/PostgreSQL-52_migrações_Flyway-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL + Flyway">
   <img src="https://img.shields.io/badge/Spring_Security-tokens_opacos-6DB33F?logo=springsecurity&logoColor=white" alt="Spring Security">
-  <img src="https://img.shields.io/badge/testes-760-success" alt="760 testes">
+  <img src="https://img.shields.io/badge/testes-763-success" alt="763 testes">
   <img src="https://img.shields.io/badge/deploy-GitHub_Actions_→_VPS-2088FF?logo=githubactions&logoColor=white" alt="Deploy contínuo">
 </p>
 
@@ -63,7 +63,7 @@ Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/produc
 - **Busca** que entende tamanho ("coca 1 litro") e só devolve itens com preço atual na cidade.
 - **Comparação** por produto e por lista, do mais barato ao mais caro, com histórico de preços e um veredito em uma linha: menor preço do período, abaixo do preço de sempre, preço de sempre ou "vale esperar".
 - **Preço de sempre** com uma definição só (média do menor preço de cada dia nos 30 dias antes de hoje, tabela `daily_lowest_prices` mantida por trigger), usada pelo veredito, pelo alerta, pelas ofertas e pela "Hora de estocar".
-- **Ofertas da semana** em página pública (`/ofertas`, no sitemap): o que está pelo menos 10% abaixo do preço de sempre em cada mercado agora, por mercado e corredor; no Premium, só o que está nas listas da pessoa.
+- **Ofertas da semana** em página pública (`/ofertas`, no sitemap): o que está pelo menos 10% abaixo do preço de sempre em cada mercado agora, com busca por palavra (sem acento, também pela marca e pelo mercado) e filtro de mercado e corredor; no Premium, só o que está nas listas da pessoa.
 - **Compra dividida:** num mercado só, em **no máximo 2 mercados** (a dupla mais barata, desde que a segunda parada economize pelo menos R$ 5) ou em todos, com a rota a partir da localização e a **economia real** depois da gasolina ou do ônibus, calculada no navegador.
 - **Modo "No mercado":** a lista vira checklist no mercado escolhido, com o preço previsto de cada item, o preço da gôndola (que vira contribuição) e "Terminei a compra". Funciona com sinal fraco: as mudanças esperam numa fila no aparelho.
 - **Minha economia:** cada compra registrada é comparada com a média dos mercados da cidade naquele momento; o Início abre com "Em outubro, o Gomo te fez economizar R$ 83".
@@ -108,7 +108,7 @@ A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publica
 
 ## Qualidade e entrega
 
-- **760 testes**: 719 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 41 no frontend (Vitest) para as contas que envolvem dinheiro, a rota, a fila do modo "No mercado", a cesta da visita à loja e o celular dos avisos no WhatsApp.
+- **763 testes**: 722 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 41 no frontend (Vitest) para as contas que envolvem dinheiro, a rota, a fila do modo "No mercado", a cesta da visita à loja e o celular dos avisos no WhatsApp.
 - **52 migrações Flyway** versionadas, com o Hibernate só validando o schema.
 - **Deploy contínuo:** push na `main` → GitHub Actions (testes com PostgreSQL descartável, testes e build do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`, que faz backup do banco antes das migrations. A chave do deploy só aceita esse comando.
 - **Docker Compose** com API, PostgreSQL e Mailpit para rodar o ambiente completo.
