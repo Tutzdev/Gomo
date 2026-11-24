@@ -26,6 +26,14 @@ class DealSearchTest {
     }
 
     @Test
+    void punctuationAndExtraSpacesDoNotBreakTheSearch() {
+        DealResponse soda = deal("Refrigerante Coca-Cola 2L", "Coca-Cola", "Bebidas", "Spani Volta Redonda");
+
+        assertThat(DealSearch.matching("coca cola").test(soda)).isTrue();
+        assertThat(DealSearch.matching("  coca-cola   2l ").test(soda)).isTrue();
+    }
+
+    @Test
     void anEmptySearchKeepsEveryDeal() {
         assertThat(DealSearch.matching(null).test(coffee)).isTrue();
         assertThat(DealSearch.matching("   ").test(coffee)).isTrue();
