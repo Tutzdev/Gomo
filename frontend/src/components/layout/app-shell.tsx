@@ -105,7 +105,7 @@ export function AppShell() {
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-40 hidden bg-sidebar transition-[width] duration-200 lg:block motion-reduce:transition-none",
-            collapsed ? "w-20" : "w-64",
+            collapsed ? "w-24" : "w-64",
           )}
         >
           <DashboardSidebar
@@ -142,21 +142,9 @@ export function AppShell() {
           </Dialog.Portal>
         </Dialog.Root>
 
-        <div className={cn("min-h-screen transition-[padding] duration-200 motion-reduce:transition-none", collapsed ? "lg:pl-20" : "lg:pl-64")}>
+        <div className={cn("min-h-screen transition-[padding] duration-200 motion-reduce:transition-none", collapsed ? "lg:pl-24" : "lg:pl-64")}>
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-white/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur sm:h-16 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-              {/* .icon-button sets its own display, so the breakpoint visibility lives on a wrapper. */}
-              <div className="hidden lg:block">
-                <button
-                  type="button"
-                  className="icon-button"
-                  onClick={toggleCollapsed}
-                  aria-label={collapsed ? "Expandir navegação" : "Recolher navegação"}
-                  aria-expanded={!collapsed}
-                >
-                  <Menu className="size-5" aria-hidden />
-                </button>
-              </div>
               <Link
                 to={user ? "/app" : "/"}
                 aria-label="Gomo — início"
@@ -242,7 +230,7 @@ function readCollapsed() {
 
 function planLabel(user: User) {
   if (user.role === "ADMIN") return "Administrador";
-  if (user.premiumSource === "BETA") return "Beta: tudo liberado";
+  if (user.premiumSource === "BETA") return "Teste grátis: tudo liberado";
   if (user.premiumSource === "TRIAL" && user.trialEndsAt) {
     const endsAt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(new Date(user.trialEndsAt));
     return `Teste Premium até ${endsAt}`;

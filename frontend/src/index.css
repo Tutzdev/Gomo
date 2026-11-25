@@ -1116,15 +1116,11 @@ a {
   }
 }
 
-/*
- * Aplicativo instalado (aberto pela tela inicial do celular): barra de abas fixa embaixo, ao alcance do polegar,
- * e o "Mais" no lugar do menu ☰. No navegador o site continua com o ☰ e a barra vermelha em gaveta.
- */
 .app-shell {
   --app-bottom-inset: 0px;
 }
 
-@media (display-mode: standalone) and (max-width: 63.999rem) {
+@media (max-width: 63.999rem) {
   .app-shell {
     --app-bottom-inset: calc(4.25rem + env(safe-area-inset-bottom));
   }

@@ -36,7 +36,7 @@ export function DashboardSidebar({
   const items = visibleNavigation(role);
   const actionClass = cn(
     "dashboard-nav-action flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-semibold text-white/78 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-    collapsed && "justify-center px-0",
+    collapsed && "flex-col justify-center gap-1 px-1 py-2 text-xs",
   );
 
   return (
@@ -55,15 +55,15 @@ export function DashboardSidebar({
             <X className="size-5" aria-hidden />
           </button>
         ) : !collapsed && onToggle ? (
-          <button type="button" className="sidebar-icon-button" onClick={onToggle} aria-label="Recolher menu lateral">
-            <ChevronLeft className="size-4" aria-hidden />
+          <button type="button" className="sidebar-icon-button" onClick={onToggle} aria-label="Diminuir o menu">
+            <ChevronLeft className="size-5" aria-hidden />
           </button>
         ) : null}
       </div>
 
       {collapsed && onToggle ? (
-        <button type="button" className="sidebar-icon-button mx-auto mt-3" onClick={onToggle} aria-label="Expandir menu lateral">
-          <ChevronRight className="size-4" aria-hidden />
+        <button type="button" className="sidebar-icon-button mx-auto mt-3" onClick={onToggle} aria-label="Mostrar o menu completo">
+          <ChevronRight className="size-5" aria-hidden />
         </button>
       ) : null}
 
@@ -78,17 +78,23 @@ export function DashboardSidebar({
                   to={item.to}
                   end={item.to === "/app"}
                   onClick={onNavigate}
-                  title={collapsed ? item.label : undefined}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "dashboard-nav-action flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
                     active ? "bg-white text-sidebar" : "text-white/78 hover:bg-white/10 hover:text-white",
-                    collapsed && "justify-center px-0",
+                    collapsed && "flex-col justify-center gap-1 px-1 py-2 text-xs leading-tight",
                   )}
                 >
                   <Icon className="size-5 shrink-0" aria-hidden />
-                  {!collapsed ? <span>{item.label}</span> : <span className="sr-only">{item.label}</span>}
+                  {collapsed ? (
+                    <>
+                      <span aria-hidden>{item.shortLabel ?? item.label}</span>
+                      <span className="sr-only">{item.label}</span>
+                    </>
+                  ) : (
+                    <span>{item.label}</span>
+                  )}
                 </NavLink>
               </li>
             );
@@ -104,19 +110,19 @@ export function DashboardSidebar({
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-white">{account.name}</p>
-              <p className="truncate text-xs text-white/65">{account.plan}</p>
+              <p className="truncate text-xs text-white/80">{account.plan}</p>
             </div>
           </div>
         ) : null}
         {role === null ? (
-          <NavLink to={`/entrar?depois=${returnPath}`} onClick={onNavigate} title={collapsed ? "Entrar" : undefined} className={actionClass}>
+          <NavLink to={`/entrar?depois=${returnPath}`} onClick={onNavigate} className={actionClass}>
             <LogIn className="size-5 shrink-0" aria-hidden />
-            {!collapsed ? <span>Entrar ou criar conta</span> : <span className="sr-only">Entrar ou criar conta</span>}
+            {collapsed ? <span>Entrar</span> : <span>Entrar ou criar conta</span>}
           </NavLink>
         ) : (
-          <button type="button" onClick={onLogout} title={collapsed ? "Sair" : undefined} className={actionClass}>
+          <button type="button" onClick={onLogout} className={actionClass}>
             <LogOut className="size-5 shrink-0" aria-hidden />
-            {!collapsed ? <span>Sair</span> : <span className="sr-only">Sair</span>}
+            <span>Sair</span>
           </button>
         )}
       </div>

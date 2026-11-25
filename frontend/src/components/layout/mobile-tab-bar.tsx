@@ -24,11 +24,6 @@ interface MobileTabBarProps {
   onLogout: () => void;
 }
 
-/**
- * The installed app's navigation (opened from the phone's home screen): a fixed bar at the bottom, like the apps
- * people use every day. In the browser the site keeps its ☰ menu, so the bar only shows in standalone display
- * mode below the large breakpoint (see .mobile-tab-bar in index.css).
- */
 export function MobileTabBar({ user, planLabel, returnPath, onLogout }: MobileTabBarProps) {
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
