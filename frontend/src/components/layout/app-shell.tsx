@@ -177,7 +177,7 @@ export function AppShell() {
                 {!user.premium ? (
                   <Link
                     to="/assinar?origem=topo"
-                    className="hidden min-h-9 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:inline-flex"
+                    className="hidden min-h-11 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:inline-flex"
                   >
                     <Sparkles className="size-3.5" aria-hidden />
                     Conhecer o Premium
@@ -265,7 +265,7 @@ function NotificationBell() {
       <Bell className="size-5" aria-hidden />
       {count > 0 ? (
         <span
-          className="absolute -right-0.5 -top-0.5 grid min-w-4.5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-bold leading-4.5 text-white tabular-nums"
+          className="absolute -right-0.5 -top-0.5 grid min-w-4.5 place-items-center rounded-full bg-primary px-1 text-xs font-bold leading-4.5 text-white tabular-nums"
           aria-hidden
         >
           {count > 99 ? "99+" : count}

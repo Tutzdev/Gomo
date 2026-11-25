@@ -101,7 +101,7 @@ export function MobileTabBar({ user, planLabel, returnPath, onLogout }: MobileTa
                 <Link
                   to="/assinar?origem=menu-celular"
                   onClick={() => setMoreOpen(false)}
-                  className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 >
                   <Sparkles className="size-3.5" aria-hidden />
                   Premium
@@ -131,7 +131,7 @@ export function MobileTabBar({ user, planLabel, returnPath, onLogout }: MobileTa
                       </span>
                       {item.label}
                       {badge > 0 ? (
-                        <span className="absolute right-2 top-2 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-bold leading-5 text-white tabular-nums">
+                        <span className="absolute right-2 top-2 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-xs font-bold leading-5 text-white tabular-nums">
                           {badge > 99 ? "99+" : badge}
                         </span>
                       ) : null}
