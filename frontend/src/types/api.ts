@@ -212,7 +212,7 @@ export interface Store {
   inStorePriceValidDays?: number | null;
 }
 
-export type SalesChannel = "ONLINE" | "PHYSICAL_FLYER" | "IN_STORE" | "DELIVERY_APP" | "UNSPECIFIED";
+export type SalesChannel = "ONLINE" | "PHYSICAL_FLYER" | "IN_STORE" | "UNSPECIFIED";
 
 export interface PriceRecord {
   sourceProductReference: string | null;

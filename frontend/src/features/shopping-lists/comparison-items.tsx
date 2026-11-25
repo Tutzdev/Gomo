@@ -1,12 +1,6 @@
 import { formatCurrency, formatDate } from "@/lib/brand";
 import type { ShoppingComparisonItem } from "@/types/api";
-import {
-  DELIVERY_APP_BADGE,
-  channelNote,
-  isDeliveryApp,
-  sourceDescription,
-  sourcePlace,
-} from "@/features/catalog/sales-channel";
+import { channelNote } from "@/features/catalog/sales-channel";
 
 export function ComparisonItems({
   items,
@@ -48,13 +42,10 @@ export function ComparisonItems({
                 {item.price.promotionApplied ? (
                   <p className="mt-1 text-xs font-semibold text-success">Em promoção</p>
                 ) : null}
-                {item.price.observation && isDeliveryApp(item.price.observation.salesChannel) ? (
-                  <p className="mt-1 text-xs font-semibold text-muted">{DELIVERY_APP_BADGE}</p>
-                ) : null}
                 {item.price.observation ? (
                   <details className="mt-1 text-xs text-muted">
                     <summary className="cursor-pointer">
-                      {isDeliveryApp(item.price.observation.salesChannel) ? "Visto no iFood em" : "Visto em"}{" "}
+                      Visto em{" "}
                       {formatDate(item.price.observation.collectedAt)}
                     </summary>
                     {channelNote(item.price.observation.salesChannel) ? (
@@ -62,7 +53,7 @@ export function ComparisonItems({
                     ) : null}
                     {item.price.observation.sourceProductReference ? (
                       <p className="mt-1 break-all">
-                        Código {sourcePlace(item.price.observation.salesChannel)}:{" "}
+                        Código no site do mercado:{" "}
                         {item.price.observation.sourceProductReference}
                       </p>
                     ) : null}
@@ -73,14 +64,14 @@ export function ComparisonItems({
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Ver {sourcePlace(item.price.observation.salesChannel)}
+                        Ver no site do mercado
                       </a>
                     ) : (
                       <p className="mt-1">
                         {item.price.observation.originType ===
                         "USER_CONTRIBUTION"
                           ? "Preço enviado pela comunidade."
-                          : sourceDescription(item.price.observation.salesChannel)}
+                          : "Do site do próprio mercado."}
                       </p>
                     )}
                     {item.price.observation.promotionalPrice !== null &&

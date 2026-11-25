@@ -2,14 +2,7 @@ import { Clock3 } from "lucide-react";
 import { StatusBadge } from "@/components/page/page-elements";
 import { formatCurrency, formatDate } from "@/lib/brand";
 import type { PriceQuote } from "@/types/api";
-import {
-  DELIVERY_APP_BADGE,
-  channelNote,
-  isDeliveryApp,
-  seenAtLabel,
-  sourceDescription,
-  sourcePlace,
-} from "./sales-channel";
+import { channelNote, seenAtLabel } from "./sales-channel";
 
 export function PriceDetails({ price }: { price: PriceQuote }) {
   const observation = price.observation;
@@ -34,9 +27,6 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
               ? "Disponível"
               : "Disponibilidade a confirmar"}
           </StatusBadge>
-          {observation && isDeliveryApp(observation.salesChannel) ? (
-            <StatusBadge>{DELIVERY_APP_BADGE}</StatusBadge>
-          ) : null}
         </>
       ) : (
         <p className="rounded-lg bg-warning-soft p-3 text-sm font-semibold text-warning">
@@ -46,7 +36,7 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
       {observation?.promotionalPrice != null ? (
         <div className="rounded-lg bg-surface-strong p-3 text-sm">
           <p>
-            Promoção {isDeliveryApp(observation.salesChannel) ? "no app" : "no site"}:{" "}
+            Promoção no site:{" "}
             <strong>{formatCurrency(observation.promotionalPrice)}</strong>
           </p>
           {observation.promotionCondition ? (
@@ -88,15 +78,15 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
             <p className="mt-2">
               {observation.originType === "USER_CONTRIBUTION"
                 ? "Preço enviado pela comunidade."
-                : sourceDescription(observation.salesChannel)}
+                : "Do site do próprio mercado."}
             </p>
             <p className="mt-2">
-              O horário é quando o Gomo consultou {isDeliveryApp(observation.salesChannel) ? "o app" : "o site"}. O mercado não informa
+              O horário é quando o Gomo consultou o site. O mercado não informa
               quando mudou o preço.
             </p>
             {observation.sourceProductReference ? (
               <p className="mt-2 break-all">
-                Código {sourcePlace(observation.salesChannel)}: {observation.sourceProductReference}
+                Código no site do mercado: {observation.sourceProductReference}
               </p>
             ) : null}
             {observation.originUrl ? (
@@ -106,7 +96,7 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
                 target="_blank"
                 rel="noreferrer"
               >
-                Ver {sourcePlace(observation.salesChannel)}
+                Ver no site do mercado
               </a>
             ) : null}
           </details>
