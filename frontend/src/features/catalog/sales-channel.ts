@@ -15,8 +15,8 @@ export function channelNote(channel: SalesChannel) {
 
 export function seenAtLabel(channel: SalesChannel) {
   if (channel === "IN_STORE") {
-    return "Anotado na loja em";
+    return "Anotado na loja";
   }
 
-  return "Visto no site do mercado em";
+  return "Visto no site do mercado";
 }

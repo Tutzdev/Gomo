@@ -10,7 +10,7 @@ describe("sales channel", () => {
   });
 
   it("says when the price was seen", () => {
-    expect(seenAtLabel("IN_STORE")).toBe("Anotado na loja em");
-    expect(seenAtLabel("ONLINE")).toBe("Visto no site do mercado em");
+    expect(seenAtLabel("IN_STORE")).toBe("Anotado na loja");
+    expect(seenAtLabel("ONLINE")).toBe("Visto no site do mercado");
   });
 });

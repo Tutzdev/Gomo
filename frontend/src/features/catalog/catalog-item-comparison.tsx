@@ -5,7 +5,7 @@ import { perMeasure } from "@/features/basic-items/basic-item-format";
 import { MissingStores } from "@/features/basic-items/missing-stores";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { StatusBadge } from "@/components/page/page-elements";
-import { formatCurrency } from "@/lib/brand";
+import { formatCurrency, formatUpdatedAt } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { DailyComparisonsMeter, DailyLimitNotice, LockedStores } from "@/features/plan/plan-locks";
 import { PriceHistoryPanel } from "@/features/plan/price-history-panel";
@@ -16,7 +16,7 @@ import { productPagePath } from "@/lib/product-page-path";
 import { siteUrl } from "@/lib/site-url";
 import { AddToList } from "./add-to-list";
 import { CatalogItemThumbnail } from "./catalog-item-picker";
-import { pricedStoresLabel, relativeTime } from "./comparison-text";
+import { pricedStoresLabel } from "./comparison-text";
 
 function productShareText(name: string, cheapest: number, cheapestStore: string, priciest: number | null) {
   const elsewhere = priciest !== null && priciest > cheapest ? `, e chega a ${formatCurrency(priciest)} em outro mercado` : "";
@@ -146,7 +146,7 @@ function ComparisonResult({ detail, cityName }: { detail: CatalogItemDetail; cit
                       {offer.price.promotionApplied ? <StatusBadge tone="success">Promoção</StatusBadge> : null}
                       {observation ? (
                         <span className="text-sm font-semibold text-muted">
-                          Atualizado {relativeTime(observation.collectedAt)}
+                          Atualizado {formatUpdatedAt(observation.collectedAt)}
                         </span>
                       ) : null}
                       {offer.originUrl ? (

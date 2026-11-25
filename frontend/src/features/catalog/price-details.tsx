@@ -1,6 +1,6 @@
 import { Clock3 } from "lucide-react";
 import { StatusBadge } from "@/components/page/page-elements";
-import { formatCurrency, formatDate } from "@/lib/brand";
+import { formatCurrency, formatDate, formatUpdatedAt } from "@/lib/brand";
 import type { PriceQuote } from "@/types/api";
 import { channelNote, seenAtLabel } from "./sales-channel";
 
@@ -64,7 +64,7 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
           <p className="flex items-center gap-2 text-xs text-muted">
             <Clock3 className="size-3.5" aria-hidden />
             {seenAtLabel(observation.salesChannel)}{" "}
-            {formatDate(observation.collectedAt)}
+            {formatUpdatedAt(observation.collectedAt)}
           </p>
           {price.expiresAt ? (
             <p className="text-xs text-muted">
