@@ -17,7 +17,6 @@ const steps: { text: string; art: ReactNode; accent?: boolean }[] = [
 
 export function FeaturesSection() {
   const { user } = useAuth();
-  const signUpPath = user ? "/app/produtos" : "/entrar?modo=cadastro";
 
   return (
     <section id="como-funciona" className="landing-section scroll-mt-20" aria-labelledby="how-title">
@@ -44,10 +43,31 @@ export function FeaturesSection() {
         </ol>
 
         <div className="how-cta">
-          <NativeButton to={signUpPath} size="lg" className="landing-button">
-            Comparar preços agora
-            <ArrowRight className="size-4" aria-hidden />
-          </NativeButton>
+          <div className="how-cta__buttons">
+            <NativeButton
+              to="/app/produtos"
+              size="lg"
+              className="landing-button"
+            >
+              Pesquisar um produto
+              <ArrowRight
+                className="size-4"
+                aria-hidden
+              />
+            </NativeButton>
+
+            {user ? null : (
+              <NativeButton
+                to="/entrar?modo=cadastro"
+                variant="secondary"
+                size="lg"
+                className="landing-button"
+              >
+                Criar conta grátis
+              </NativeButton>
+            )}
+          </div>
+
           <CoverageNote />
         </div>
       </div>

@@ -1,9 +1,12 @@
-import { ArrowRight, Check, ChevronDown } from "lucide-react";
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { ArrowRight, Check, ChevronDown, Search } from "lucide-react";
+import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { NativeButton } from "@/components/ui/native-button";
+import { useAuth } from "@/features/auth/auth-context";
 import { formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { HeroShowcase } from "./hero-showcase";
+import { productSearchPath } from "./product-search-path";
 import { useHeroComparison, type HeroProduct } from "./use-hero-comparison";
 import "./hero.css";
 
@@ -42,17 +45,103 @@ export function HeroSection({ signUpPath }: { signUpPath: string }) {
           </p>
 
           <div className="hero__actions">
-            <NativeButton to={signUpPath} size="lg" className="landing-button hero__cta">
-              Comparar preços grátis
-              <ArrowRight className="hero__cta-arrow size-[1.125rem]" aria-hidden />
-            </NativeButton>
-            <p className="hero__note">Sem cartão de crédito. Você cria a conta e já compara.</p>
+            <HeroSearch />
+
+            <p className="hero__note">
+              Não precisa de cadastro para pesquisar. A conta serve para salvar listas e alertas.
+            </p>
+
+            <HeroAccountButton signUpPath={signUpPath} />
           </div>
         </div>
 
         <HeroShowcase comparison={comparison} />
       </div>
     </section>
+  );
+}
+
+function HeroSearch() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    navigate(productSearchPath(query));
+  };
+
+  return (
+    <form
+      role="search"
+      className="hero__search"
+      onSubmit={submit}
+    >
+      <label
+        htmlFor="hero-search"
+        className="hero__search-label"
+      >
+        O que você quer comprar?
+      </label>
+
+      <div className="hero__search-row">
+        <div className="hero__search-field">
+          <Search
+            className="hero__search-icon"
+            aria-hidden
+          />
+          <input
+            id="hero-search"
+            type="search"
+            className="field-control hero__search-input"
+            placeholder="Ex.: arroz 5 kg, café, leite"
+            autoComplete="off"
+            enterKeyHint="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+
+        <NativeButton
+          type="submit"
+          size="lg"
+          className="landing-button hero__cta"
+        >
+          Ver preços
+          <ArrowRight
+            className="hero__cta-arrow size-[1.125rem]"
+            aria-hidden
+          />
+        </NativeButton>
+      </div>
+    </form>
+  );
+}
+
+function HeroAccountButton({ signUpPath }: { signUpPath: string }) {
+  const { user } = useAuth();
+
+  if (user) {
+    return (
+      <NativeButton
+        to="/app"
+        variant="secondary"
+        size="lg"
+        className="landing-button"
+      >
+        Abrir o Gomo
+      </NativeButton>
+    );
+  }
+
+  return (
+    <NativeButton
+      to={signUpPath}
+      variant="secondary"
+      size="lg"
+      className="landing-button"
+    >
+      Criar conta grátis
+    </NativeButton>
   );
 }
 
