@@ -12,7 +12,7 @@ import { AddToList } from "@/features/catalog/add-to-list";
 import { CatalogItemThumbnail } from "@/features/catalog/catalog-item-picker";
 import { useUpsell } from "@/features/plan/upsell-context";
 import { usePlan } from "@/features/plan/use-plan";
-import { formatCurrency, formatDate } from "@/lib/brand";
+import { formatCurrency, formatUpdatedAt } from "@/lib/brand";
 import { productPagePath } from "@/lib/product-page-path";
 import { siteUrl } from "@/lib/site-url";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
@@ -129,7 +129,12 @@ export function DealsBoard({ cityId, cityName, inApp }: { cityId: string; cityNa
         ) : null}
       </section>
 
-      {deals.isPending ? <SkeletonRows rows={6} /> : null}
+      {deals.isPending ? (
+        <div>
+          <p role="status" className="mb-3 text-sm text-muted">Buscando as ofertas da semana…</p>
+          <SkeletonRows rows={6} />
+        </div>
+      ) : null}
       {deals.isError ? <ErrorState message={deals.error.message} retry={() => void deals.refetch()} /> : null}
 
       {data ? (
@@ -139,7 +144,7 @@ export function DealsBoard({ cityId, cityName, inApp }: { cityId: string; cityNa
               <span className="font-semibold text-foreground">
                 {data.deals.totalElements} {data.deals.totalElements === 1 ? "oferta" : "ofertas"}
               </span>{" "}
-              com {data.minimumDiscountPercent}% ou mais de desconto · atualizado em {formatDate(data.computedAt)}
+              com {data.minimumDiscountPercent}% ou mais de desconto · atualizado {formatUpdatedAt(data.computedAt)}
             </p>
             <div className="flex items-center gap-2">
               {filtered ? (
