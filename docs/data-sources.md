@@ -4,17 +4,15 @@ A expansão de 18/09/2026, com novas unidades, protocolos, limites e operação,
 
 O banco inicial contém somente o estado e as quatro cidades autorizadas pelo escopo. Não há fontes comerciais, lojas, produtos, estoques ou preços pré-cadastrados. Uma fonte, rede e loja são criadas somente depois de uma coleta real bem-sucedida. Os registros sintéticos usados nos testes estão exclusivamente em `src/test`.
 
-As interfaces `ProductDataProvider`, `StoreDataProvider` e `PriceDataProvider` continuam definindo consultas paginadas. Os coletores automáticos implementam `SupermarketCollector` e entregam um catálogo normalizado ao mesmo domínio de ingestão. A ausência de uma integração não é convertida em dados inventados.
+Os coletores automáticos implementam `SupermarketCollector` e entregam um catálogo normalizado ao mesmo domínio de ingestão. A ausência de uma integração não é convertida em dados inventados.
 
 ## Regra de entrada
 
-Um mercado entra no Gomo de um destes jeitos (regra revista em 03/11/2026 e em 25/11/2026):
+Um mercado entra no Gomo de um destes dois jeitos (regra revista em 03/11/2026):
 
 1. **Loja online** (`price_channel = ONLINE`): e-commerce ou site com catálogo e preço público, lidos como o próprio site do mercado os mostra, 4 vezes por dia. Uma resposta 403, login ou captcha descarta a fonte, sem contornar o bloqueio.
 2. **Preço conferido na loja** (`price_channel = IN_STORE`): o mercado não vende online, e a equipe do Gomo vai à loja e anota o preço da etiqueta. A visita é gravada na aba **Preço na loja** do admin (`POST /api/v1/admin/stores/{id}/visits`), com uma cesta de 100 itens que mais pesam na compra do mês. Esse preço tem origem própria (`STORE_VISIT`) e vale **7 dias** (`PRICE_IN_STORE_MAX_AGE`), contra 2 dias do preço coletado, porque ninguém visita uma prateleira 4 vezes por dia. No app ele aparece como "Anotado na loja em …". Um mercado com loja online não aceita preço de visita, para não misturar as duas origens.
-3. **App de delivery** (canal `DELIVERY_APP`, deduzido da referência `ifood:` do preço): só quando o mercado **não tem loja online própria**. Se o mercado tiver as duas, vale a loja própria e o app fica de fora. O preço do app pode ser mais alto que o da prateleira, por isso aparece marcado como "Preço no app (iFood)" e com "Visto no iFood em …". Vale a mesma regra de bloqueio da loja online: 403, login ou captcha descarta a fonte. A coleta fica atrás da flag `IFOOD_COLLECTION_ENABLED`.
-
-Continuam fora: app de delivery de mercado que já tem loja online própria; API paga; e preço digitado pelo usuário sem moderação. A sugestão de produto que falta no catálogo existe (`/api/v1/product-suggestions`, moderada no admin), mas aprovar só marca como aceita: o produto é cadastrado à mão depois.
+Continuam fora: agregador de delivery (iFood, Rappi), que bloqueia coleta e cobra mais que a prateleira ([teste de 25/11/2026](#ifood-em-volta-redonda-25112026)); API paga; e preço digitado pelo usuário sem moderação. A sugestão de produto que falta no catálogo existe (`/api/v1/product-suggestions`, moderada no admin), mas aprovar só marca como aceita: o produto é cadastrado à mão depois.
 
 ## Situação das fontes em 16/10/2026
 
@@ -52,7 +50,7 @@ Busca de novas unidades em Volta Redonda pela regra de entrada: sites dos própr
 | Hortifruti, outras lojas | GraphQL do site | Fora | Só a unidade do Aterrado aparece em Volta Redonda. |
 | Royal: Aterrado (Av. Paulo de Frontin, 669), Av. Amaral Peixoto, 348, Av. São Lucas, 368, Rua 328, 2 e Empório Royale | VipCommerce | Fora | Conferido em 31/10/2026 nos centros de distribuição da loja online: em Volta Redonda só o Retiro (1) está ativo. O Royale Empório Porão (2, Jardim Amália) existe mas está desativado. As outras lojas físicas não aparecem. A unidade do Voldac é só um plano noticiado em 08/2026. |
 | Bramil, Spani e Pérola, outras unidades | VipCommerce | Fora | Conferido em 31/10/2026: a única unidade de Volta Redonda em cada loja online é a já ativa (Bramil 24, Spani 6, Pérola 1). |
-| Rede Supermarket (Centro, Av. Amaral Peixoto, 748; Av. Antônio de Almeida, 611) e Floresta | Site da rede, iFood | Fora | O botão "compra online" da página da loja não leva a catálogo, e o filtro "Compre Online" da rede não mostra Volta Redonda. O Floresta só aparece no iFood; pela regra de 25/11/2026 ele entra pelo app (ver [Volta Redonda no iFood](#volta-redonda-no-ifood-25112026)). |
+| Rede Supermarket (Centro, Av. Amaral Peixoto, 748; Av. Antônio de Almeida, 611) e Floresta | Site da rede, iFood | Fora | O botão "compra online" da página da loja não leva a catálogo, e o filtro "Compre Online" da rede não mostra Volta Redonda. O Floresta só aparece no iFood, que bloqueou a coleta (ver [iFood em Volta Redonda](#ifood-em-volta-redonda-25112026)). |
 | Empório Brasil | — | Fora | Só loja física e encartes; sem e-commerce. |
 | Paiva (São Lucas) | — | Fora | Atacarejo sem site de compras. |
 | Diga | — | Fora | Nenhuma loja online encontrada. |
@@ -91,20 +89,11 @@ Nova busca de lojas online em Barra Mansa: a lista da própria VipCommerce para 
 
 Enquanto não há visita, o mercado aparece na lista como "Sem preços" e fica fora das buscas e comparações. Se o Royal ativar o CD 6 na loja online, a unidade pode ganhar um coletor; aí o `price_channel` dela muda para `ONLINE` e ela deixa de aceitar preço de visita.
 
-### Volta Redonda no iFood (25/11/2026)
+### iFood em Volta Redonda (25/11/2026)
 
-Levantamento no site do iFood, sem login, com dois endereços de entrega: Av. Amaral Peixoto, 748, Centro, e Av. Antônio de Almeida, 611, Retiro. O catálogo de cada loja vem de `/site-api/v1/merchants/multicategory/{id}/catalog?latitude&longitude&category_items_size=N`, com `description`, `unitPrice`, `ean`, `availability` e `externalCode`.
+Levantamento no site do iFood, sem login, com entrega na Av. Amaral Peixoto, 748, Centro, e na Av. Antônio de Almeida, 611, Retiro. O único supermercado que o Gomo ainda não tinha era o Supermarket Floresta - Volta Redonda (Aterrado). Os outros supermercados do iFood já entram pela loja online própria (Nagumo, Hortifruti Aterrado, Atacadão São Geraldo, Royal Retiro, Pérola). Bramil, Assaí, as outras unidades do Royal, a Rede Supermarket do Centro, Diga e Paiva não aparecem lá.
 
-| Mercado | No Gomo | Situação |
-| --- | --- | --- |
-| Supermarket Floresta - Volta Redonda (Aterrado, merchant `964260c7-c1e2-4a1f-8f2b-5a053c9e09b1`) | Não | **Entra pelo app.** Único supermercado novo; não tem loja online própria. |
-| Atacadão São Geraldo | Sim | No iFood tem o catálogo completo, contra 45 itens no Gomo hoje. Tem loja online própria (VTEX), que pela regra acima continua valendo. |
-| Nagumo, Hortifruti Aterrado, Royal Retiro, Pérola | Sim | Já coletados pela loja online própria, que continua valendo. |
-| Americanas, empórios, lojas de produtos naturais, açougue e adegas | — | Fora: não são supermercados. |
-
-Não aparecem no iFood nesses endereços: Bramil, Assaí, as outras unidades do Royal, a Rede Supermarket do Centro (Av. Amaral Peixoto) e da Av. Antônio de Almeida, Diga e Paiva.
-
-O ganho real do iFood em Volta Redonda é um mercado novo (Floresta) e o catálogo completo do Atacadão, não uma leva de mercados.
+Um coletor do Floresta pelo iFood foi testado em produção em 25/11/2026, por volta de 13:30 (BRT). O servidor recebeu HTTP 403 da Cloudflare já no primeiro pedido. Pela regra de entrada, a fonte foi descartada e o coletor saiu do código.
 
 ## Fontes ativas do MVP
 
@@ -174,11 +163,9 @@ Contagens: `createdCount` = produtos criados; `updatedCount` / `observationsInse
 1. Confirme a existência da fonte, a autorização de acesso e o que seus dados realmente representam. Registre a documentação e a URL da origem. Uma rede conhecida não comprova a existência de uma unidade em determinada cidade.
 2. Para uma integração manual, cadastre a fonte por `POST /api/v1/admin/sources`. Um coletor automático pode registrá-la somente depois que a resposta real e a unidade forem validadas, como faz `CollectionCatalogService`.
 3. Implemente `SupermarketCollector` em um pacote próprio da integração. Mantenha o protocolo externo, a seleção de filial e o parsing fora do domínio principal.
-4. Configure credenciais externamente e defina timeouts de conexão e leitura. Valide a resposta da origem antes de transformá-la em observações. Falhas técnicas devem ser propagadas ou representadas explicitamente como indisponibilidade pelo contrato do provider, sem convertê-las em uma consulta vazia bem-sucedida.
+4. Configure credenciais externamente e defina timeouts de conexão e leitura. Valide a resposta da origem antes de transformá-la em observações. Falhas técnicas devem ser propagadas ou registradas como falha da coleta, sem convertê-las em uma consulta vazia bem-sucedida.
 5. Persista primeiro os registros necessários de catálogo, pelos serviços internos correspondentes, e somente depois envie observações de preços a `PriceService.appendObservation`. Não faça chamadas externas dentro da transação de persistência.
 6. Execute testes de contrato com respostas controladas e verificadas da fonte, cobrindo falhas, paginação, identidade da loja, duplicação e dados inválidos. Adicione o coletor à rotina existente; não crie um scheduler específico para cada rede.
-
-`ProviderResult` distingue `AVAILABLE` e `UNAVAILABLE`. Uma resposta disponível e vazia significa que a consulta foi concluída sem resultados. Uma resposta indisponível exige uma explicação e não pode conter itens ou cursor.
 
 Não associe produtos automaticamente por semelhança de nome. Um GTIN válido e os identificadores já verificados da fonte permitem identificação conservadora; diferenças de marca, embalagem ou quantidade exigem conferência antes de vincular registros.
 
