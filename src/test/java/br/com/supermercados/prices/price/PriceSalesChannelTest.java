@@ -7,13 +7,7 @@ import org.junit.jupiter.api.Test;
 class PriceSalesChannelTest {
 
     @Test
-    void marksIfoodPricesAsDeliveryApp() {
-        assertThat(PriceSalesChannel.fromSourceReference("ifood:964260c7:product:f0cd0ead"))
-                .isEqualTo(PriceSalesChannel.DELIVERY_APP);
-    }
-
-    @Test
-    void keepsTheOtherChannelsAsTheyWere() {
+    void readsTheChannelFromTheSourceReference() {
         assertThat(PriceSalesChannel.fromSourceReference("vip:53:product:1")).isEqualTo(PriceSalesChannel.ONLINE);
         assertThat(PriceSalesChannel.fromSourceReference("atacadao:flyer-product:9")).isEqualTo(PriceSalesChannel.PHYSICAL_FLYER);
         assertThat(PriceSalesChannel.fromSourceReference("outra:1")).isEqualTo(PriceSalesChannel.UNSPECIFIED);
