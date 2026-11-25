@@ -14,11 +14,20 @@ describe("store visit basket", () => {
 describe("store status", () => {
   const store = (overrides: Partial<Store>) => ({ name: "Mercado", lastPriceCollectedAt: null, priceSourceNote: null, ...overrides }) as Store;
 
-  it("tells a market without online store apart from one that went offline", () => {
+  it("tells a market without online store apart from one whose collection stopped", () => {
+    const inStore = storeStatus(store({ priceChannel: "IN_STORE", priceStatus: "OUTDATED", lastPriceCollectedAt: "2026-11-01T12:00:00Z" }));
+    const online = storeStatus(store({ priceChannel: "ONLINE", priceStatus: "OUTDATED", lastPriceCollectedAt: "2026-11-01T12:00:00Z" }));
+
     expect(storeStatus(store({ priceChannel: "IN_STORE", priceStatus: "NO_PRICES" })).help).toContain("primeira visita");
-    expect(storeStatus(store({ priceChannel: "IN_STORE", priceStatus: "OUTDATED", lastPriceCollectedAt: "2026-11-01T12:00:00Z" })).label)
-      .toBe("Preços vencidos");
-    expect(storeStatus(store({ priceChannel: "ONLINE", priceStatus: "OUTDATED", lastPriceCollectedAt: "2026-11-01T12:00:00Z" })).label)
-      .toBe("Fora do ar");
+    expect(inStore.label).toBe("Preços atrasados");
+    expect(inStore.help).toContain("próxima visita");
+    expect(online.label).toBe("Preços atrasados");
+    expect(online.help).toContain("próxima coleta");
+  });
+
+  it("names the badge by the prices, not by the store being open", () => {
+    expect(storeStatus(store({ priceChannel: "ONLINE", priceStatus: "CURRENT", lastPriceCollectedAt: "2026-11-01T12:00:00Z" })).label)
+      .toBe("Preços em dia");
+    expect(storeStatus(store({ priceChannel: "ONLINE", priceStatus: "NO_PRICES" })).label).toBe("Ainda sem preços");
   });
 });
