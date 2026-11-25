@@ -16,6 +16,7 @@ import { productPagePath } from "@/lib/product-page-path";
 import { siteUrl } from "@/lib/site-url";
 import { AddToList } from "./add-to-list";
 import { CatalogItemThumbnail } from "./catalog-item-picker";
+import { pricedStoresLabel, relativeTime } from "./comparison-text";
 
 function productShareText(name: string, cheapest: number, cheapestStore: string, priciest: number | null) {
   const elsewhere = priciest !== null && priciest > cheapest ? `, e chega a ${formatCurrency(priciest)} em outro mercado` : "";
@@ -30,10 +31,12 @@ export function CatalogItemComparison({
   itemId,
   cityId,
   storeIds,
+  cityName,
 }: {
   itemId: string;
   cityId: string;
   storeIds?: string[];
+  cityName?: string | null;
 }) {
   const detail = useQuery({
     queryKey: ["catalog-item", itemId, cityId, storeIds],
@@ -45,18 +48,21 @@ export function CatalogItemComparison({
   if (detail.isError) return <ErrorState message={detail.error.message} retry={() => void detail.refetch()} />;
   return (
     <>
+      <ComparisonResult
+        detail={detail.data}
+        cityName={cityName}
+      />
       <AnyBrandBanner
         itemId={itemId}
         cityId={cityId}
         exactStores={detail.data.offers.length + detail.data.access.lockedStores}
       />
-      <ComparisonResult detail={detail.data} />
       {detail.data.offers.length ? <PriceHistoryPanel itemId={itemId} productId={detail.data.item.productId} cityId={cityId} storeIds={storeIds} /> : null}
     </>
   );
 }
 
-function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
+function ComparisonResult({ detail, cityName }: { detail: CatalogItemDetail; cityName?: string | null }) {
   const { item, offers, missingStores, access } = detail;
   // Stores hidden by the plan still have a current price, so the headline counts them.
   const pricedStores = offers.length + access.lockedStores;
@@ -68,15 +74,11 @@ function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
       <header className="flex flex-wrap items-center gap-4 border-b border-border p-4 sm:p-5">
         <CatalogItemThumbnail imageUrl={item.imageUrl} />
         <div className="min-w-0 flex-1">
-          <h2 id={`compare-${item.id}`} className="text-lg font-extrabold leading-tight">
+          <h1 id={`compare-${item.id}`} className="page-title">
             {item.name}
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-muted">
-            {pricedStores > 1
-              ? `Preço atual em ${pricedStores} mercados`
-              : pricedStores === 1
-                ? "Preço atual em 1 mercado"
-                : "Sem preço atual nos mercados"}
+            {pricedStoresLabel(pricedStores, cityName)}
           </p>
           <div className="mt-2">
             <DailyComparisonsMeter access={access} />
@@ -136,22 +138,29 @@ function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
                       {index === 0 ? <span className="sr-only">(mais barato)</span> : null}
                     </p>
                     {offer.storeProductName ? (
-                      <p className="mt-0.5 truncate text-xs text-muted" title={offer.storeProductName}>
-                        No mercado: {offer.storeProductName}
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted">
+                        Nome no mercado: {offer.storeProductName}
                       </p>
                     ) : null}
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
                       {offer.price.promotionApplied ? <StatusBadge tone="success">Promoção</StatusBadge> : null}
-                      {observation ? <span>Atualizado {relativeTime(observation.collectedAt)}</span> : null}
+                      {observation ? (
+                        <span className="text-sm font-semibold text-muted">
+                          Atualizado {relativeTime(observation.collectedAt)}
+                        </span>
+                      ) : null}
                       {offer.originUrl ? (
                         <a
-                          className="inline-flex items-center gap-1 font-semibold text-primary underline"
+                          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border-strong bg-white px-3 text-sm font-semibold text-foreground hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                           href={offer.originUrl}
                           target="_blank"
                           rel="noreferrer"
                         >
-                          Ver no site
-                          <ExternalLink className="size-3" aria-hidden />
+                          Ver no site do mercado
+                          <ExternalLink
+                            className="size-4"
+                            aria-hidden
+                          />
                         </a>
                       ) : null}
                     </div>
@@ -165,7 +174,7 @@ function ComparisonResult({ detail }: { detail: CatalogItemDetail }) {
                     ) : index === 0 ? (
                       <p className="text-xs font-semibold text-success">Mais barato</p>
                     ) : (
-                      <p className="text-xs text-muted tabular-nums">+{formatCurrency(difference)}</p>
+                      <p className="text-sm font-semibold text-muted tabular-nums">+{formatCurrency(difference)}</p>
                     )}
                   </div>
                 </li>
@@ -192,7 +201,7 @@ function AnyBrandBanner({ itemId, cityId, exactStores }: { itemId: string; cityI
   return (
     <Link
       to={`/app/basicos/${item.slug}?cityId=${cityId}`}
-      className="mb-4 flex items-center gap-3 rounded-lg border border-primary/25 bg-primary-soft px-4 py-3 text-sm hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      className="mt-4 flex items-center gap-3 rounded-lg border border-primary/25 bg-primary-soft px-4 py-3 text-sm hover:bg-primary-soft-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
     >
       <Tags className="size-5 shrink-0 text-primary" aria-hidden />
       <span className="min-w-0 flex-1">
@@ -205,13 +214,4 @@ function AnyBrandBanner({ itemId, cityId, exactStores }: { itemId: string; cityI
       <span className="shrink-0 font-semibold text-primary">Comparar marcas</span>
     </Link>
   );
-}
-
-function relativeTime(value: string) {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000));
-  if (minutes < 60) return minutes <= 1 ? "agora" : `há ${minutes} min`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `há ${hours} h`;
-  const days = Math.round(hours / 24);
-  return days === 1 ? "ontem" : `há ${days} dias`;
 }

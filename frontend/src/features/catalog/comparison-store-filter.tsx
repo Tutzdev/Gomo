@@ -27,7 +27,7 @@ export function ComparisonStoreFilter({
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
         <input
           type="checkbox"
-          className="size-4 accent-primary"
+          className="size-5 accent-primary"
           checked={value.length === 0}
           onChange={() => onChange([])}
         />
@@ -55,7 +55,7 @@ export function ComparisonStoreFilter({
               >
                 <input
                   type="checkbox"
-                  className="size-4 shrink-0 accent-primary"
+                  className="size-5 shrink-0 accent-primary"
                   checked={value.includes(store.id)}
                   onChange={(event) =>
                     onChange(
@@ -69,7 +69,7 @@ export function ComparisonStoreFilter({
                   {store.name}
                   {store.priceSourceNote ? (
                     <span className="block text-xs text-muted">
-                      Preços não integrados
+                      Preços atualizados com menos frequência
                     </span>
                   ) : null}
                 </span>

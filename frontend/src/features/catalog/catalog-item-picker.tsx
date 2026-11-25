@@ -290,7 +290,7 @@ function CatalogItemOption({
           <span className="text-xs text-muted">Na lista</span>
         ) : item.lowestPrice !== null ? (
           <>
-            <span className="block text-[0.7rem] text-muted">a partir de</span>
+            <span className="block text-xs text-muted">a partir de</span>
             <span className="block text-sm font-bold tabular-nums">{formatCurrency(item.lowestPrice)}</span>
           </>
         ) : (
