@@ -11,16 +11,16 @@ const freeItems: PlanItem[] = [
   { icon: ListChecks, text: "1 lista com até 10 produtos" },
   { icon: Bell, text: "2 alertas de preço" },
   { icon: Tag, text: "Ofertas da semana em cada mercado" },
-  { icon: ShoppingCart, text: "Modo “No mercado” e a economia do mês" },
+  { icon: ShoppingCart, text: "Lista para ir marcando no mercado e a economia do mês" },
 ];
 
 const premiumItems: PlanItem[] = [
   { icon: Store, text: "Todos os mercados da cidade, sem limite diário" },
   { icon: Users, text: "Listas ilimitadas, compartilhadas com a casa" },
   { icon: Route, text: "Compra em até 2 mercados, com rota e quanto sobra depois da gasolina" },
-  { icon: History, text: "Histórico de 90 dias com o veredito do preço" },
+  { icon: History, text: "Histórico de 90 dias que diz se o preço de hoje está bom ou caro" },
   { icon: BellRing, text: "Alertas ilimitados, também abaixo do preço de sempre" },
-  { icon: PackagePlus, text: "Hora de estocar e equivalente mais barato por kg" },
+  { icon: PackagePlus, text: "Avisa quando vale comprar a mais para guardar e mostra a marca mais barata pelo quilo" },
   { icon: PiggyBank, text: "Economia do mês compra por compra" },
 ];
 

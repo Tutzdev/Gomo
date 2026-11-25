@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 import {
-  CircleDollarSign,
   Clock3,
   House,
   ListChecks,
@@ -11,6 +10,8 @@ import {
   Settings,
   Share2,
   Store,
+  Tag,
+  TrendingDown,
   type LucideIcon,
 } from "lucide-react";
 import gomoLogo from "../../../../gomo-logo.png";
@@ -23,7 +24,8 @@ const sidebar: { label: string; icon: LucideIcon; active?: boolean }[] = [
   { label: "Início", icon: House },
   { label: "Buscar preços", icon: Search, active: true },
   { label: "Minhas listas", icon: ListChecks },
-  { label: "Alertas de preço", icon: CircleDollarSign },
+  { label: "Ofertas da semana", icon: Tag },
+  { label: "Alertas de preço", icon: TrendingDown },
   { label: "Supermercados", icon: Store },
   { label: "Perfil", icon: Settings },
 ];
@@ -94,7 +96,7 @@ export function HeroShowcase({ comparison }: { comparison: HeroComparison }) {
                 </div>
                 <span className="hero-board__actions">
                   <span className="hero-board__button">
-                    <Plus />À lista
+                    <Plus />Adicionar à lista
                   </span>
                   <span className="hero-board__button hero-board__button--icon">
                     <Share2 />
