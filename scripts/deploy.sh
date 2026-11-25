@@ -82,4 +82,5 @@ sudo -n /usr/bin/systemctl restart "$SERVICE"
 
 health_ok || { log "health check falhou"; rollback 1; }
 rm -f "$JAR_DIR/gomo.jar.prev"
+rm -rf "$APP_DIR/target" "$APP_DIR/frontend/node_modules"
 log "deploy concluído: ${SHA:0:7}"
