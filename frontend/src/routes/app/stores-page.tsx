@@ -8,11 +8,14 @@ import { PageHeading, StatusBadge } from "@/components/page/page-elements";
 import { useAuth } from "@/features/auth/auth-context";
 import { catalogApi, preferenceApi } from "@/services/gomo-api";
 import { storeStatus } from "@/features/catalog/store-status";
+import { useDefaultCityId } from "@/lib/use-default-city";
 
 export function StoresPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [cityId, setCityId] = useState("");
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const defaultCityId = useDefaultCityId();
+  const cityId = selectedCity ?? defaultCityId;
   const [search, setSearch] = useState("");
   const cities = useQuery({
     queryKey: ["cities", "stores"],
@@ -66,7 +69,7 @@ export function StoresPage() {
           id="store-city"
           label="Cidade"
           value={cityId}
-          onChange={(event) => setCityId(event.target.value)}
+          onChange={(event) => setSelectedCity(event.target.value)}
         >
           <option value="">Todas as cidades</option>
           {cities.data?.content.map((city) => (
@@ -118,13 +121,9 @@ export function StoresPage() {
                   </span>
                   {user ? (
                     <NativeButton
-                      size="icon"
+                      size="sm"
                       variant="ghost"
-                      aria-label={
-                        favorite
-                          ? `Remover ${store.name} dos favoritos`
-                          : `Adicionar ${store.name} aos favoritos`
-                      }
+                      aria-pressed={favorite}
                       loading={
                         favoriteMutation.isPending &&
                         favoriteMutation.variables?.storeId === store.id
@@ -137,6 +136,8 @@ export function StoresPage() {
                         className={`size-5 ${favorite ? "fill-primary text-primary" : ""}`}
                         aria-hidden
                       />
+                      Favorito
+                      <span className="sr-only"> {store.name}</span>
                     </NativeButton>
                   ) : null}
                 </div>
