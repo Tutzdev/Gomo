@@ -4,6 +4,7 @@ public enum PriceSalesChannel {
     ONLINE,
     PHYSICAL_FLYER,
     IN_STORE,
+    DELIVERY_APP,
     UNSPECIFIED;
 
     static PriceSalesChannel of(PriceRecord record) {
@@ -16,6 +17,8 @@ public enum PriceSalesChannel {
         if (reference == null) {return UNSPECIFIED;}
 
         if (reference.startsWith("atacadao:flyer-product:")) {return PHYSICAL_FLYER;}
+
+        if (reference.startsWith("ifood:")) {return DELIVERY_APP;}
 
         if (reference.startsWith("atacadao:online:product:") || reference.startsWith("nagumo:product:")
                 || reference.startsWith("royal:product:") || reference.startsWith("vip:")
