@@ -49,7 +49,7 @@ export function saveTravelSettings(settings: TravelSettings) {
   }
 }
 
-export interface TravelEstimate {
+interface TravelEstimate {
   /** Extra street distance of the split, round trip, compared with going to the single store and back. */
   extraKm: number;
   /** What the extra trip costs in fuel or fares. */

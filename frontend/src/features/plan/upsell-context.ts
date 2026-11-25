@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type { UpsellContext, UpsellTrigger } from "./upsell-copy";
 
-export interface UpsellOptions {
+interface UpsellOptions {
   /**
    * An interruptive upsell appears because a limit blocked an action. Only one per session is shown;
    * after that the caller explains the limit inline. Clicking a locked element is not interruptive.

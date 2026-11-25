@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 /** Endereço público do site, definido no build; sem ele as tags que pedem URL absoluta ficam de fora. */
-export const SITE_URL = import.meta.env.VITE_SITE_URL?.trim().replace(/\/+$/, "") || null;
+const SITE_URL = import.meta.env.VITE_SITE_URL?.trim().replace(/\/+$/, "") || null;
 
 export function absoluteUrl(path: string) {
   return SITE_URL ? `${SITE_URL}${path}` : null;

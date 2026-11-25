@@ -15,7 +15,7 @@ import ville from "@/assets/markets/ville.webp";
  * - no entry: the market has no logo online, and its name alone is shown.
  * `light` logos are white (made for dark headers) and are drawn as a silhouette instead of in gray.
  */
-export type MarketLogo = {
+type MarketLogo = {
   kind: "wordmark" | "mark";
   src: string;
   /** Visual weight correction, so a tall emblem and a wide wordmark look the same size. */

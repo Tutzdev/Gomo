@@ -149,7 +149,7 @@ export function PlanActions({
   );
 }
 
-export function TrialButton({ action, compact = false }: { action: TrialAction; compact?: boolean }) {
+function TrialButton({ action, compact = false }: { action: TrialAction; compact?: boolean }) {
   switch (action.kind) {
     case "sign-up":
       return (

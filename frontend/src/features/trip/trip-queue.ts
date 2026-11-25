@@ -23,18 +23,18 @@ export type TripOperation =
       items: Array<{ itemId: string; shelfPrice?: number }>;
     };
 
-export interface QueueStorage {
+interface QueueStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
 }
 
 /** The queue of one list, read and written as a whole. */
-export interface QueueStore {
+interface QueueStore {
   load(): TripOperation[];
   save(queue: TripOperation[]): void;
 }
 
-export type FlushOutcome = { sent: number; dropped: TripOperation[]; waiting: number };
+type FlushOutcome = { sent: number; dropped: TripOperation[]; waiting: number };
 
 export function listQueue(listId: string, storage: QueueStorage = safeStorage()): QueueStore {
   const key = `gomo:trip-queue:${listId}`;
@@ -71,7 +71,7 @@ export function enqueue(queue: TripOperation[], operation: TripOperation, inFlig
 }
 
 /** No answer or a server error: worth trying again later. A 4xx will not change by resending. */
-export function isRetryable(error: unknown) {
+function isRetryable(error: unknown) {
   return !(error instanceof ApiError) || error.status === 0 || error.status >= 500;
 }
 

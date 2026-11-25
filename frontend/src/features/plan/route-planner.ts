@@ -3,7 +3,7 @@ export interface GeoPoint {
   longitude: number;
 }
 
-export interface RouteStop<T> {
+interface RouteStop<T> {
   stop: T;
   /** Straight-line distance from the previous point (the person or the previous store), in km. */
   legKm: number;

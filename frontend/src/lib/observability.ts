@@ -9,7 +9,7 @@
 
 type AnalyticsProvider = "plausible" | "umami";
 
-export interface AnalyticsSettings {
+interface AnalyticsSettings {
   provider: AnalyticsProvider;
   scriptUrl: string;
   siteId: string;
@@ -41,7 +41,7 @@ function startAnalytics(settings: AnalyticsSettings) {
   document.head.appendChild(script);
 }
 
-export function withoutQuery(url: string) {
+function withoutQuery(url: string) {
   return url.split(/[?#]/, 1)[0];
 }
 

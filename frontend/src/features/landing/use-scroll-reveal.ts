@@ -22,7 +22,7 @@ const PAGE_REVEALS: Reveals = [
   [".landing-closing", "card"],
 ];
 
-export type RevealMotion = "focus" | "rise" | "card" | "fade";
+type RevealMotion = "focus" | "rise" | "card" | "fade";
 
 /** Siblings past this one share the last delay, so long lists never make the visitor wait. */
 const MAX_STAGGER_STEPS = 5;

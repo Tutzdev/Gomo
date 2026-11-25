@@ -10,7 +10,7 @@ interface FieldFrameProps {
   children: ReactNode;
 }
 
-export function FieldFrame({ id, label, hint, error, children }: FieldFrameProps) {
+function FieldFrame({ id, label, hint, error, children }: FieldFrameProps) {
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 block text-sm font-semibold text-foreground">

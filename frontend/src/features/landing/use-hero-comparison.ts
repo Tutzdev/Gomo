@@ -25,7 +25,7 @@ const EVERYDAY_WORDS = [
   "creme dental", "achocolatado", "maionese", "biscoito", "queijo", "presunto", "ovos", "frango",
 ];
 
-export interface HeroOffer {
+interface HeroOffer {
   store: string;
   price: number;
 }

@@ -384,7 +384,7 @@ export const alertApi = {
     }),
 };
 
-export interface ContributionInput {
+interface ContributionInput {
   productId: string;
   storeId: string;
   regularPrice: number;
@@ -473,7 +473,7 @@ export const subscriptionApi = {
     apiRequest<PremiumValue>(`/subscription/premium-value?${queryString({ cityId })}`),
 };
 
-export interface DealFilters {
+interface DealFilters {
   cityId: string;
   storeId?: string;
   category?: string;
@@ -492,7 +492,7 @@ export const dealApi = {
     ),
 };
 
-export interface RecordPurchaseInput {
+interface RecordPurchaseInput {
   /** Chosen here, so sending the same purchase again records it once. */
   id: string;
   storeId: string;
@@ -546,7 +546,7 @@ export const sharingApi = {
     apiRequest<{ listId: string }>("/list-invites/acceptance", { method: "POST", body: { token } }),
 };
 
-export interface ProductSuggestionInput {
+interface ProductSuggestionInput {
   name: string;
   brand?: string;
   packageSize?: string;

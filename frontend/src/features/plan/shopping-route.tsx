@@ -17,7 +17,7 @@ type LocationState =
   | { status: "failed"; message: string };
 
 /** One way of splitting the purchase, with what it saves against the reference single store. */
-export interface RoutePlan {
+interface RoutePlan {
   id: string;
   label: string;
   combination: ShoppingCombination;
