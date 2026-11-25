@@ -2,6 +2,14 @@ import { Clock3 } from "lucide-react";
 import { StatusBadge } from "@/components/page/page-elements";
 import { formatCurrency, formatDate } from "@/lib/brand";
 import type { PriceQuote } from "@/types/api";
+import {
+  DELIVERY_APP_BADGE,
+  channelNote,
+  isDeliveryApp,
+  seenAtLabel,
+  sourceDescription,
+  sourcePlace,
+} from "./sales-channel";
 
 export function PriceDetails({ price }: { price: PriceQuote }) {
   const observation = price.observation;
@@ -26,6 +34,9 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
               ? "Disponível"
               : "Disponibilidade a confirmar"}
           </StatusBadge>
+          {observation && isDeliveryApp(observation.salesChannel) ? (
+            <StatusBadge>{DELIVERY_APP_BADGE}</StatusBadge>
+          ) : null}
         </>
       ) : (
         <p className="rounded-lg bg-warning-soft p-3 text-sm font-semibold text-warning">
@@ -35,7 +46,7 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
       {observation?.promotionalPrice != null ? (
         <div className="rounded-lg bg-surface-strong p-3 text-sm">
           <p>
-            Promoção no site:{" "}
+            Promoção {isDeliveryApp(observation.salesChannel) ? "no app" : "no site"}:{" "}
             <strong>{formatCurrency(observation.promotionalPrice)}</strong>
           </p>
           {observation.promotionCondition ? (
@@ -55,18 +66,14 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
       ) : null}
       {observation ? (
         <>
-          {observation.salesChannel !== "UNSPECIFIED" ? (
+          {channelNote(observation.salesChannel) ? (
             <p className="text-xs text-muted">
-              {observation.salesChannel === "ONLINE"
-                ? "Preço do site do mercado. Na loja física pode ser diferente."
-                : observation.salesChannel === "IN_STORE"
-                  ? "Preço anotado na prateleira pela equipe do Gomo. Pode ter mudado desde a visita."
-                  : "Oferta do encarte da loja."}
+              {channelNote(observation.salesChannel)}
             </p>
           ) : null}
           <p className="flex items-center gap-2 text-xs text-muted">
             <Clock3 className="size-3.5" aria-hidden />
-            {observation.salesChannel === "IN_STORE" ? "Anotado na loja em" : "Visto no site do mercado em"}{" "}
+            {seenAtLabel(observation.salesChannel)}{" "}
             {formatDate(observation.collectedAt)}
           </p>
           {price.expiresAt ? (
@@ -81,15 +88,15 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
             <p className="mt-2">
               {observation.originType === "USER_CONTRIBUTION"
                 ? "Preço enviado pela comunidade."
-                : "Do site do próprio mercado."}
+                : sourceDescription(observation.salesChannel)}
             </p>
             <p className="mt-2">
-              O horário é quando o Gomo consultou o site. O mercado não informa
+              O horário é quando o Gomo consultou {isDeliveryApp(observation.salesChannel) ? "o app" : "o site"}. O mercado não informa
               quando mudou o preço.
             </p>
             {observation.sourceProductReference ? (
               <p className="mt-2 break-all">
-                Código no site do mercado: {observation.sourceProductReference}
+                Código {sourcePlace(observation.salesChannel)}: {observation.sourceProductReference}
               </p>
             ) : null}
             {observation.originUrl ? (
@@ -99,7 +106,7 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
                 target="_blank"
                 rel="noreferrer"
               >
-                Ver no site do mercado
+                Ver {sourcePlace(observation.salesChannel)}
               </a>
             ) : null}
           </details>
