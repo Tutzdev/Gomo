@@ -3,7 +3,6 @@ package br.com.supermercados.prices.product;
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -72,15 +71,6 @@ public final class ProductNormalizer {
 
     public static boolean statesMeasurement(String name) {
         return lastMeasurement(name) != null;
-    }
-
-    public static boolean describesSamePackage(String name, String measurement) {
-        PackageDetails existing = parsePackage(name);
-        PackageDetails supplied = parsePackage(measurement);
-
-        return existing.quantity() != null && supplied.quantity() != null
-                && existing.quantity().compareTo(supplied.quantity()) == 0
-                && Objects.equals(existing.unit(), supplied.unit());
     }
 
     private static String normalizeOptionalText(String value) {

@@ -39,7 +39,7 @@ class TokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TokenService(tokens, PremiumAccess.withoutBeta(), CLOCK, TTL);
+        service = new TokenService(tokens, new PremiumAccess(false), CLOCK, TTL);
     }
 
     @Test
@@ -101,9 +101,9 @@ class TokenServiceTest {
 
     @Test
     void nonPositiveTokenTtlFailsAtStartup() {
-        assertThatThrownBy(() -> new TokenService(tokens, PremiumAccess.withoutBeta(), CLOCK, Duration.ZERO))
+        assertThatThrownBy(() -> new TokenService(tokens, new PremiumAccess(false), CLOCK, Duration.ZERO))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new TokenService(tokens, PremiumAccess.withoutBeta(), CLOCK, Duration.ofSeconds(-1)))
+        assertThatThrownBy(() -> new TokenService(tokens, new PremiumAccess(false), CLOCK, Duration.ofSeconds(-1)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

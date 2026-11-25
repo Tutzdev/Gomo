@@ -47,7 +47,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         auth = new AuthService(users, passwordEncoder, tokens, new PasswordPolicy(), accounts,
-                PremiumAccess.withoutBeta(), Clock.fixed(NOW, ZoneOffset.UTC));
+                new PremiumAccess(false), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test

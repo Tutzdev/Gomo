@@ -51,14 +51,6 @@ public class PriceService {
         this.clock = clock;
     }
 
-    @Transactional(readOnly = true)
-    public PageResponse<PriceRecordResponse> findHistory(UUID productId, UUID storeId, Pageable pageable) {
-        requireProductAndStore(productId, storeId);
-
-        return PageResponse.from(prices.findByProductIdAndStoreId(productId, storeId, pageable)
-                .map(PriceRecordResponse::from));
-    }
-
     public PageResponse<PriceRecordResponse> findRecentHistory(
         UUID productId,
         UUID storeId,

@@ -90,8 +90,8 @@ class PricePersistenceTests {
         Instant now = Instant.now().minusSeconds(5);
         var latest = prices.appendObservation(observation(STORE_A, PRODUCT_A, "latest", "4.35", now));
         prices.appendObservation(observation(STORE_A, PRODUCT_A, "older", "2.20", now.minusSeconds(60)));
-        var history = prices.findHistory(PRODUCT_A, STORE_A,
-                PageRequest.of(0, 20, Sort.by("collectedAt").descending()));
+        var history = prices.findRecentHistory(PRODUCT_A, STORE_A,
+                PageRequest.of(0, 20, Sort.by("collectedAt").descending()), true);
         assertThat(history.totalElements()).isEqualTo(2);
         assertThat(history.content().getFirst().id()).isEqualTo(latest.id());
         var result = comparisons.compareProduct(PRODUCT_A, cityId(), storePage());
@@ -127,7 +127,7 @@ class PricePersistenceTests {
         }
         entityManager.flush();
         entityManager.clear();
-        var history = prices.findHistory(PRODUCT_A, STORE_A, PageRequest.of(0, 20));
+        var history = prices.findRecentHistory(PRODUCT_A, STORE_A, PageRequest.of(0, 20), true);
         assertThat(history.totalElements()).isEqualTo(2);
         assertThat(history.content()).allSatisfy(record -> {
             assertThat(record.originUrl()).isEqualTo(origin);

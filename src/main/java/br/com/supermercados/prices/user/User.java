@@ -156,10 +156,6 @@ public class User {
         return PremiumSource.NONE;
     }
 
-    public boolean hasPremiumAccess(Instant now) {
-        return premiumSource(now) != PremiumSource.NONE;
-    }
-
     private boolean isTrialActive(Instant now) {
         return premiumTrialEndsAt != null && premiumTrialEndsAt.isAfter(now);
     }

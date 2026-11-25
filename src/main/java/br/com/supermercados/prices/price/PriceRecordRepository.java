@@ -25,8 +25,6 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
             """)
     List<StorePriceUpdate> findStoreUpdates(@Param("storeIds") Collection<UUID> storeIds);
 
-    Page<PriceRecord> findByProductIdAndStoreId(UUID productId, UUID storeId, Pageable pageable);
-
     Page<PriceRecord> findByProductIdAndStoreIdAndCollectedAtGreaterThanEqual(
         UUID productId,
         UUID storeId,

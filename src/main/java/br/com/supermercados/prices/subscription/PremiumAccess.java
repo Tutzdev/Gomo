@@ -14,10 +14,6 @@ public class PremiumAccess {
         this.openBeta = openBeta;
     }
 
-    public static PremiumAccess withoutBeta() {
-        return new PremiumAccess(false);
-    }
-
     public boolean openBeta() {
         return openBeta;
     }

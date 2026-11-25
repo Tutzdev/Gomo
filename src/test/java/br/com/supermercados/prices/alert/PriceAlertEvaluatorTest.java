@@ -49,7 +49,7 @@ class PriceAlertEvaluatorTest {
     @BeforeEach
     void setUp() {
         evaluator = new PriceAlertEvaluator(alerts, notifications, prices, stores,
-                new PricePolicy(Duration.ofDays(2)), users, PremiumAccess.withoutBeta(), Clock.fixed(NOW, ZoneOffset.UTC),
+                new PricePolicy(Duration.ofDays(2)), users, new PremiumAccess(false), Clock.fixed(NOW, ZoneOffset.UTC),
                 Duration.ofDays(1), Duration.ofHours(1));
         premiumOwner = new User("Conta Premium", "premium@example.test", "not-used-by-test", NOW.minusSeconds(3600));
         premiumOwner.activateSubscription(NOW.minusSeconds(3600));

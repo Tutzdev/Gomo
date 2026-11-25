@@ -35,10 +35,6 @@ public record BasicItemOffer(
             item.typicalPackage(packageAmount));
     }
 
-    public static Comparator<BasicItemOffer> cheapestFirst() {
-        return CHEAPEST_FIRST;
-    }
-
     public static BasicItemOffer cheaper(BasicItemOffer current, BasicItemOffer next) {
         return CHEAPEST_FIRST.compare(next, current) < 0 ? next : current;
     }

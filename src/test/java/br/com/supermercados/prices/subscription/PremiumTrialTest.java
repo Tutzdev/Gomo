@@ -41,7 +41,7 @@ class PremiumTrialTest {
     void setUp() {
         user = new User("Conta grátis", "gratis@example.test", "not-used-by-test", NOW.minusSeconds(60));
         subscriptions = new SubscriptionService(users, shoppingLists, alerts, comparisonUsage, comparisons, paidSubscriptions,
-                PremiumAccess.withoutBeta(), Clock.fixed(NOW, ZoneOffset.UTC));
+                new PremiumAccess(false), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -54,7 +54,6 @@ class PremiumTrialTest {
         assertThat(status.premiumSource()).isEqualTo(PremiumSource.TRIAL);
         assertThat(status.trialEndsAt()).isEqualTo(NOW.plus(Duration.ofDays(7)));
         assertThat(status.preferredBillingCycle()).isEqualTo(BillingCycle.ANNUAL);
-        assertThat(user.hasPremiumAccess(NOW.plus(Duration.ofDays(7)))).isFalse();
     }
 
     @Test
@@ -109,7 +108,7 @@ class PremiumTrialTest {
         user.activateSubscription(NOW.minusSeconds(30));
 
         assertThat(beta.sourceOf(user, NOW)).isEqualTo(PremiumSource.SUBSCRIPTION);
-        assertThat(PremiumAccess.withoutBeta().sourceOf(
+        assertThat(new PremiumAccess(false).sourceOf(
                 new User("Outra", "outra@example.test", "not-used-by-test", NOW), NOW)).isEqualTo(PremiumSource.NONE);
     }
 }
