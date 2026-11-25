@@ -9,8 +9,9 @@ import { InlineError } from "@/components/ui/feedback";
 import { TextField } from "@/components/ui/form-field";
 import { NativeButton } from "@/components/ui/native-button";
 import { useAuth } from "@/features/auth/auth-context";
+import { LIST_ITEM_ADDED_EVENT, addPendingListItem } from "@/features/catalog/pending-list-item";
 import { ApiError } from "@/lib/api";
-import { authApi } from "@/services/gomo-api";
+import { authApi, shoppingListApi } from "@/services/gomo-api";
 
 const loginSchema = z.object({
   email: z.email("Informe um e-mail válido."),
@@ -27,6 +28,12 @@ type LoginValues = z.infer<typeof loginSchema>;
 type RegisterValues = z.infer<typeof registerSchema>;
 
 /** Only same-site paths are accepted as a return destination, never another origin. */
+async function finishPendingListItem() {
+  const added = await addPendingListItem(shoppingListApi).catch(() => null);
+
+  if (added) {window.dispatchEvent(new Event(LIST_ITEM_ADDED_EVENT));}
+}
+
 function internalPath(value: string | null) {
   return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
 }
@@ -44,6 +51,7 @@ export function AuthPage() {
 
   const handleLogin = async (values: LoginValues) => {
     await login(values.email, values.password);
+    await finishPendingListItem();
     navigate(destination, { replace: true });
   };
 
@@ -52,6 +60,7 @@ export function AuthPage() {
     // A conta nova entra em seguida; o aviso de verificar o e-mail aparece dentro do app.
     const created = await register(values.name, values.email, values.password);
     if (!created) return false;
+    await finishPendingListItem();
     navigate(destination, { replace: true });
     return true;
   };
