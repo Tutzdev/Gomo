@@ -110,7 +110,7 @@ export function DashboardSidebar({
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-white">{account.name}</p>
-              <p className="truncate text-xs text-white/80">{account.plan}</p>
+              <p className="text-xs text-white/80">{account.plan}</p>
             </div>
           </div>
         ) : null}
