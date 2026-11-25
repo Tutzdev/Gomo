@@ -20,7 +20,7 @@ function missing(reason: MissingStore["reason"], lastPriceCollectedAt: string | 
 
 describe("basic item format", () => {
   it("shows the price per measure of the item", () => {
-    expect(perMeasure(16.98, bread)).toMatch(/16,98\/kg$/);
+    expect(perMeasure(16.98, bread)).toMatch(/16,98 o quilo$/);
   });
 
   it("says in how many markets the item has a price", () => {

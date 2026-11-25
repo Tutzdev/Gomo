@@ -6,13 +6,24 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { AddToList } from "@/features/catalog/add-to-list";
 import { DailyComparisonsMeter, DailyLimitNotice, LockedStores } from "@/features/plan/plan-locks";
 import { formatCurrency } from "@/lib/brand";
+import { measureName } from "@/features/catalog/unit-price";
 import { cn } from "@/lib/cn";
 import { basicItemApi } from "@/services/gomo-api";
 import type { BasicItem, BasicItemComparison as Comparison, BasicItemOffer } from "@/types/api";
 import { perMeasure } from "./basic-item-format";
 import { MissingStores } from "./missing-stores";
 
-export function BasicItemComparison({ slug, cityId, storeIds }: { slug: string; cityId: string; storeIds?: string[] }) {
+export function BasicItemComparison({
+  slug,
+  cityId,
+  storeIds,
+  cityName,
+}: {
+  slug: string;
+  cityId: string;
+  storeIds?: string[];
+  cityName?: string | null;
+}) {
   const comparison = useQuery({
     queryKey: ["basic-item", slug, cityId, storeIds],
     queryFn: () => basicItemApi.compare(slug, cityId, storeIds),
@@ -23,10 +34,15 @@ export function BasicItemComparison({ slug, cityId, storeIds }: { slug: string; 
   if (comparison.isError) {
     return <ErrorState message={comparison.error.message} retry={() => void comparison.refetch()} />;
   }
-  return <ComparisonResult comparison={comparison.data} />;
+  return (
+    <ComparisonResult
+      comparison={comparison.data}
+      cityName={cityName}
+    />
+  );
 }
 
-function ComparisonResult({ comparison }: { comparison: Comparison }) {
+function ComparisonResult({ comparison, cityName }: { comparison: Comparison; cityName?: string | null }) {
   const { item, offers, missingStores, access } = comparison;
   const pricedStores = offers.length + access.lockedStores;
   const cheapest = offers[0]?.pricePerMeasure ?? null;
@@ -39,15 +55,15 @@ function ComparisonResult({ comparison }: { comparison: Comparison }) {
     <section className="surface overflow-hidden" aria-labelledby={`basic-${item.slug}`}>
       <header className="flex flex-wrap items-center gap-4 border-b border-border p-4 sm:p-5">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Qualquer marca · {item.aisle}</p>
-          <h2 id={`basic-${item.slug}`} className="mt-1 text-lg font-extrabold leading-tight">
-            {item.name}
-          </h2>
+          <p className="text-xs font-semibold text-primary">{item.aisle}</p>
+          <h1 id={`basic-${item.slug}`} className="page-title mt-1">
+            {item.name} (qualquer marca)
+          </h1>
           <p className="mt-1 text-sm text-muted">
             {pricedStores
-              ? `Preço atual em ${pricedStores} de ${pricedStores + missingStores.length} mercados.`
+              ? `Preço atual em ${pricedStores} de ${pricedStores + missingStores.length} mercados${cityName ? ` de ${cityName}` : ""}.`
               : "Nenhum mercado com preço atual agora."}{" "}
-            Em cada mercado mostramos a opção mais barata por {item.measure}, perto de {item.typicalPackage}.
+            Em cada mercado mostramos a marca mais barata no preço do {measureName(item.measure)}, em embalagem perto de {item.typicalPackage}.
           </p>
           <div className="mt-2">
             <DailyComparisonsMeter access={access} />
@@ -123,33 +139,41 @@ function OfferRow({
             offer.productName
           )}
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-          <span className="tabular-nums">
-            {formatCurrency(price)} {offer.packageLabel ? `a embalagem de ${offer.packageLabel}` : "· tamanho não informado"}
-          </span>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           {offer.price.promotionApplied ? <StatusBadge tone="success">Promoção</StatusBadge> : null}
-          {!offer.typicalPackage && offer.packageLabel ? <span>· embalagem fora do comum</span> : null}
+          {!offer.typicalPackage && offer.packageLabel ? (
+            <span className="text-xs text-muted">Embalagem fora do comum</span>
+          ) : null}
           {offer.originUrl ? (
             <a
-              className="inline-flex items-center gap-1 font-semibold text-primary underline"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border-strong bg-white px-3 text-sm font-semibold text-foreground hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
               href={offer.originUrl}
               target="_blank"
               rel="noreferrer"
             >
-              Ver no site
-              <ExternalLink className="size-3" aria-hidden />
+              Ver no site do mercado
+              <ExternalLink
+                className="size-4"
+                aria-hidden
+              />
             </a>
           ) : null}
         </div>
       </div>
       <div className="text-right">
         <p className={cn("text-xl font-extrabold tabular-nums", first && "text-success")}>
-          {offer.pricePerMeasure !== null ? perMeasure(offer.pricePerMeasure, item) : formatCurrency(price)}
+          {formatCurrency(price)}
         </p>
+        <p className="text-xs text-muted">
+          {offer.packageLabel ? `embalagem de ${offer.packageLabel}` : "tamanho não informado"}
+        </p>
+        {offer.pricePerMeasure !== null ? (
+          <p className="mt-1 text-sm font-semibold tabular-nums">{perMeasure(offer.pricePerMeasure, item)}</p>
+        ) : null}
         {first ? (
-          <p className="text-xs font-semibold text-success">Mais barato</p>
+          <p className="text-sm font-semibold text-success">Mais barato</p>
         ) : difference !== null ? (
-          <p className="text-xs text-muted tabular-nums">+{perMeasure(difference, item)}</p>
+          <p className="text-sm font-semibold text-muted tabular-nums">+{perMeasure(difference, item)}</p>
         ) : null}
       </div>
     </li>

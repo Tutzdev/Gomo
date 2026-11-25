@@ -1,8 +1,9 @@
-import { formatCurrency, formatDate } from "@/lib/brand";
+import { formatDate } from "@/lib/brand";
+import { priceByMeasure } from "@/features/catalog/unit-price";
 import type { BasicItem, MissingStore } from "@/types/api";
 
 export function perMeasure(value: number, item: Pick<BasicItem, "measure">) {
-  return `${formatCurrency(value)}/${item.measure}`;
+  return priceByMeasure(value, item.measure);
 }
 
 export function basicItemCoverage(item: BasicItem) {

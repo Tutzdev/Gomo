@@ -35,13 +35,14 @@ export function BasicItemSuggestions({
           <>
             <Tags className="size-5 shrink-0 text-primary" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-xs font-semibold text-primary">Qualquer marca</span>
-              <span className="block font-bold leading-5">{item.name}</span>
+              <span className="block font-bold leading-6">{item.name} (qualquer marca)</span>
+              {!excluded && item.lowestPricePerMeasure !== null ? (
+                <span className="block text-sm font-semibold">
+                  A partir de {perMeasure(item.lowestPricePerMeasure, item)}
+                </span>
+              ) : null}
               <span className="mt-0.5 block text-xs text-muted">
-                {excluded ? "Já está na lista" : basicItemCoverage(item)}
-                {!excluded && item.lowestPricePerMeasure !== null
-                  ? ` · a partir de ${perMeasure(item.lowestPricePerMeasure, item)}`
-                  : ""}
+                {excluded ? "Já está na lista" : item.comparedStores ? `Compara todas as marcas. ${basicItemCoverage(item)}.` : basicItemCoverage(item)}
               </span>
             </span>
             <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />
