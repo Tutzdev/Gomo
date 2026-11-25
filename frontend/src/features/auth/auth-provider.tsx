@@ -30,12 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   const refreshUser = useCallback(async () => {
-    setSessionError(null);
     setLoading(true);
     try {
       setUser(await loadSessionUser());
+      setSessionError(null);
     } catch {
-      setSessionError("Não foi possível verificar sua sessão. Tente novamente em instantes.");
+      setSessionError("Não conseguimos confirmar seu login agora.");
     } finally {
       setLoading(false);
     }

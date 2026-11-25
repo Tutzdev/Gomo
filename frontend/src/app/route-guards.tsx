@@ -8,31 +8,35 @@ import { useAuth } from "@/features/auth/auth-context";
  * someone who arrives from a product page on Google can keep comparing without an account.
  */
 export function AppLayout() {
-  const { loading, sessionError, refreshUser } = useAuth();
+  const { user, loading, sessionError } = useAuth();
 
-  if (loading) {
+  if (loading && !user && !sessionError) {
     return (
       <main className="grid min-h-screen place-items-center p-4">
         <LoadingState label="Carregando sua conta…" />
       </main>
     );
   }
-  if (sessionError) {
-    return (
-      <main className="grid min-h-screen place-items-center p-4">
-        <ErrorState message={sessionError} retry={() => void refreshUser()} />
-      </main>
-    );
-  }
+
   return <AppShell />;
 }
 
 /** Pages that belong to an account (lists, alerts, profile): visitors sign in first and come back here. */
 export function AccountGuard() {
-  const { user } = useAuth();
+  const { user, sessionError, refreshUser } = useAuth();
   const { pathname, search, hash } = useLocation();
-  // The hash too: an invite link carries its token there.
-  if (!user) return <Navigate to={`/entrar?depois=${encodeURIComponent(pathname + search + hash)}`} replace />;
+
+  if (!user && sessionError) {
+    return (
+      <ErrorState
+        message="Não conseguimos abrir sua conta agora. Tente de novo em alguns minutos. Enquanto isso, você pode buscar preços normalmente."
+        retry={() => void refreshUser()}
+      />
+    );
+  }
+
+  if (!user) {return <Navigate to={`/entrar?depois=${encodeURIComponent(pathname + search + hash)}`} replace />;}
+
   return <Outlet />;
 }
 

@@ -204,6 +204,7 @@ export function AppShell() {
             )}
             tabIndex={-1}
           >
+            <SessionNotice />
             <Outlet />
           </main>
         </div>
@@ -260,5 +261,36 @@ function NotificationBell() {
         </span>
       ) : null}
     </Link>
+  );
+}
+
+function SessionNotice() {
+  const { user, loading, sessionError, refreshUser } = useAuth();
+
+  useEffect(() => {
+    if (!sessionError) {return;}
+
+    const retry = window.setInterval(() => void refreshUser(), 30_000);
+
+    return () => window.clearInterval(retry);
+  }, [sessionError, refreshUser]);
+
+  if (!sessionError || user) {return null;}
+
+  return (
+    <div role="status" className="mb-4 flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning-soft p-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-foreground">
+        <span className="font-semibold">{sessionError}</span>{" "}
+        Você pode pesquisar preços normalmente. Tentaremos de novo sozinhos em alguns instantes.
+      </p>
+      <NativeButton
+        variant="secondary"
+        size="sm"
+        loading={loading}
+        onClick={() => void refreshUser()}
+      >
+        Tentar agora
+      </NativeButton>
+    </div>
   );
 }
