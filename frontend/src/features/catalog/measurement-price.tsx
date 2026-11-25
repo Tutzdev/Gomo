@@ -1,4 +1,4 @@
-import { formatCurrency } from "@/lib/brand";
+import { priceByMeasure } from "./unit-price";
 import type { MeasurementPrice as Measurement } from "@/types/api";
 
 export function MeasurementPrice({
@@ -6,17 +6,13 @@ export function MeasurementPrice({
 }: {
   value: Measurement | null | undefined;
 }) {
-  if (!value) return null;
-  const unit =
-    (
-      { KG: "kg", L: "litro", UN: "unidade", M: "metro" } as Record<
-        string,
-        string
-      >
-    )[value.unit] ?? value.unit;
+  if (!value) {
+    return null;
+  }
+
   return (
     <p className="text-xs text-muted">
-      {formatCurrency(value.amount)} / {unit}
+      {priceByMeasure(value.amount, value.unit)}
     </p>
   );
 }

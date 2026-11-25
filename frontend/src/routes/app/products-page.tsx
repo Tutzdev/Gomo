@@ -1,35 +1,37 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, Store } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/feedback";
 import { SelectField } from "@/components/ui/form-field";
 import { NativeButton } from "@/components/ui/native-button";
 import {
   PageHeading,
   Pagination,
-  StatusBadge,
 } from "@/components/page/page-elements";
 import { BasicItemSuggestions } from "@/features/basic-items/basic-item-suggestions";
 import { AddToList } from "@/features/catalog/add-to-list";
+import { otherStoresLabel } from "@/features/catalog/catalog-card-text";
 import { CatalogItemThumbnail } from "@/features/catalog/catalog-item-picker";
 import { ComparisonStoreFilter } from "@/features/catalog/comparison-store-filter";
+import { unitPriceFromSize } from "@/features/catalog/unit-price";
 import { queryString } from "@/lib/api";
-import { formatCurrency, formatDate } from "@/lib/brand";
+import { formatCurrency, formatUpdatedAt } from "@/lib/brand";
 import { catalogApi } from "@/services/gomo-api";
 import type { CatalogItem } from "@/types/api";
 import { useDefaultCityId } from "@/lib/use-default-city";
 import { useScrollToTopOnChange } from "@/lib/use-scroll-to-top";
 
 const PAGE_SIZE = 24;
-/** Prices change four times a day: a page seen a minute ago is still right, so going back is instant. */
 const CATALOG_STALE_TIME = 2 * 60 * 1000;
 
 export function ProductsPage() {
+  const [searchParams] = useSearchParams();
+  const initialQuery = searchParams.get("q")?.trim() ?? "";
   const [storeIds, setStoreIds] = useState<string[]>([]);
   const [page, setPage] = useState(0);
-  const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
+  const [search, setSearch] = useState(initialQuery);
+  const [query, setQuery] = useState(initialQuery);
   const [selectedCity, setSelectedCity] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   useEffect(() => {
@@ -123,7 +125,7 @@ export function ProductsPage() {
             onClick={() => setShowFilters(!showFilters)}
           >
             <SlidersHorizontal className="size-4" aria-hidden />
-            Mercados
+            Escolher mercados
           </NativeButton>
         </div>
         {showFilters ? (
@@ -198,54 +200,41 @@ function CatalogItemCard({
   href: string;
   cityChosen: boolean;
 }) {
-  const priced = item.lowestPrice !== null;
-  const spread =
-    priced && item.highestPrice !== null && item.highestPrice > item.lowestPrice!
-      ? item.highestPrice - item.lowestPrice!
-      : 0;
+  const lowestPrice = item.lowestPrice;
+  const unitPrice = lowestPrice !== null ? unitPriceFromSize(lowestPrice, item.sizeLabel) : null;
+
   return (
     <article className="surface flex min-w-0 flex-col p-4 sm:p-5">
       <div className="flex items-start gap-3">
         <CatalogItemThumbnail imageUrl={item.imageUrl} />
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold leading-6">
+          <h3 className="font-semibold leading-6">
             <Link
               to={href}
-              className="hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-focus"
+              className="-my-2 block py-2 hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-focus"
             >
               {item.name}
             </Link>
           </h3>
-          <p className="mt-1 flex items-center gap-1 text-xs text-muted">
-            <Store className="size-3.5 shrink-0" aria-hidden />
-            {/* Without a city there are no current prices to count: say where it is sold instead of "0 mercados". */}
-            {!cityChosen
-              ? `Vendido em ${item.storeCount} mercados`
-              : item.pricedStores === 1
-                ? "Preço atual em 1 mercado"
-                : `Preço atual em ${item.pricedStores} mercados`}
-          </p>
+          {!cityChosen ? (
+            <p className="mt-1 flex items-center gap-1 text-xs text-muted">
+              <Store className="size-3.5 shrink-0" aria-hidden />
+              Vendido em {item.storeCount} mercados
+            </p>
+          ) : null}
         </div>
       </div>
-      <div className="mb-5 mt-5 flex-1">
-        {priced ? (
+      <div className="mb-5 mt-4 flex-1">
+        {lowestPrice !== null ? (
           <>
-            <StatusBadge tone={item.pricedStores > 1 ? "success" : "neutral"}>
-              {item.pricedStores > 1
-                ? `Menor preço entre ${item.pricedStores} mercados`
-                : "Preço atual em 1 mercado"}
-            </StatusBadge>
-            <p className="mt-2 text-2xl font-extrabold tabular-nums">
-              {formatCurrency(item.lowestPrice!)}
+            <p className="text-sm font-semibold text-success">Mais barato</p>
+            <p className="text-3xl font-extrabold tabular-nums">
+              {formatCurrency(lowestPrice)}
             </p>
-            <p className="mt-1 text-sm font-medium">{item.lowestPriceStore}</p>
-            {spread > 0 ? (
-              <p className="mt-1 text-xs text-muted">
-                Até {formatCurrency(item.highestPrice!)} nos outros: economia de{" "}
-                <span className="font-semibold text-foreground">{formatCurrency(spread)}</span>
-              </p>
-            ) : null}
-            <p className="mt-1 text-xs text-muted">Atualizado em {formatDate(item.pricesCollectedAt)}</p>
+            <p className="mt-1 text-sm font-semibold">no {item.lowestPriceStore}</p>
+            {unitPrice ? <p className="mt-1 text-sm text-muted">{unitPrice}</p> : null}
+            <p className="mt-2 text-sm">{otherStoresLabel(item)}</p>
+            <p className="mt-1 text-xs text-muted">Atualizado {formatUpdatedAt(item.pricesCollectedAt)}</p>
           </>
         ) : (
           <p className="text-sm text-muted">
@@ -256,7 +245,10 @@ function CatalogItemCard({
         )}
       </div>
       <div className="flex flex-wrap gap-2">
-        <NativeButton to={href} size="sm">
+        <NativeButton
+          to={href}
+          size="sm"
+        >
           Comparar
         </NativeButton>
         <AddToList catalogItem={item} />
