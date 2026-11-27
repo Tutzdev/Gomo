@@ -10,17 +10,10 @@ export type TripOperation =
   | { kind: "check"; itemId: string }
   | { kind: "uncheck"; itemId: string }
   | {
-      kind: "contribution";
-      productId: string;
-      storeId: string;
-      regularPrice: number;
-      observedAt: string;
-    }
-  | {
       kind: "purchase";
       purchaseId: string;
       storeId: string;
-      items: Array<{ itemId: string; shelfPrice?: number }>;
+      items: Array<{ itemId: string }>;
     };
 
 interface QueueStorage {

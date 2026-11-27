@@ -168,11 +168,7 @@ export function ProductDetailPage() {
                                 ? "Em falta"
                                 : "Não informada"}
                           </td>
-                          <td>
-                            {record.originType === "USER_CONTRIBUTION"
-                              ? "Comunidade"
-                              : "Site do mercado"}
-                          </td>
+                          <td>Site do mercado</td>
                         </tr>
                       ))}
                     </tbody>

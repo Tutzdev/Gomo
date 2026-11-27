@@ -1,12 +1,9 @@
 package br.com.supermercados.prices.purchase;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,7 +16,5 @@ public record RecordPurchaseRequest(
         items = List.copyOf(items);
     }
 
-    public record BoughtItem(
-            @NotNull UUID itemId,
-            @DecimalMin("0.01") @Digits(integer = 10, fraction = 2) BigDecimal shelfPrice) {}
+    public record BoughtItem(@NotNull UUID itemId) {}
 }

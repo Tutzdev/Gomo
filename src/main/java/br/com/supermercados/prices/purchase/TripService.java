@@ -57,8 +57,6 @@ public class TripService {
             BigDecimal lineTotal = quote.unitPrice() == null ? null
                     : quote.unitPrice().multiply(item.quantity()).setScale(2, RoundingMode.HALF_UP);
 
-            var matched = offers.matchedProduct(item.productId(), record);
-
             return new TripResponse.TripItem(
                 item.id(),
                 item.productId(),
@@ -66,7 +64,6 @@ public class TripService {
                 item.quantity(),
                 item.catalogItemId(),
                 item.imageUrl(),
-                matched == null ? item.productId() : matched.getId(),
                 quote.unitPrice(),
                 lineTotal,
                 quote.promotionApplied(),

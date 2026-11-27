@@ -1,7 +1,6 @@
 export type UserRole = "USER" | "ADMIN";
 export type ShoppingType = "DAILY" | "WEEKLY" | "MONTHLY" | "CUSTOM";
 export type StockAvailability = "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN";
-export type ContributionStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type RecommendationStatus = "COMPLETE_STORE_FOUND" | "NO_COMPLETE_STORE";
 /** BETA: the open beta, while there is no charging, gives every account the whole Premium. */
 export type PremiumSource = "SUBSCRIPTION" | "TRIAL" | "ADMIN" | "BETA" | "NONE";
@@ -159,29 +158,6 @@ export interface Product {
 }
 
 export type StorePriceStatus = "CURRENT" | "OUTDATED" | "NO_PRICES";
-export type StorePriceChannel = "ONLINE" | "IN_STORE";
-
-export interface StoreVisitResult {
-  storeId: string;
-  observedAt: string;
-  recordedPrices: number;
-  currentUntil: string;
-}
-
-export interface ProductSuggestion {
-  id: string;
-  name: string;
-  brand: string | null;
-  packageSize: string | null;
-  barcode: string | null;
-  storeId: string | null;
-  price: number | null;
-  note: string | null;
-  submittedAt: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  decidedAt: string | null;
-  rejectionReason: string | null;
-}
 
 /** A supermarket brand; each Store belongs to one. */
 export interface SupermarketChain {
@@ -206,13 +182,9 @@ export interface Store {
   priceSourceNote: string | null;
   /** Only filled by /stores and /stores/{id}; null in comparison responses. */
   priceStatus?: StorePriceStatus | null;
-  /** IN_STORE: no online store; prices are written down at the shelf by the Gomo team. */
-  priceChannel?: StorePriceChannel;
-  /** IN_STORE: dias que o preço anotado vale neste mercado; null usa o padrão (7). */
-  inStorePriceValidDays?: number | null;
 }
 
-export type SalesChannel = "ONLINE" | "PHYSICAL_FLYER" | "IN_STORE" | "UNSPECIFIED";
+export type SalesChannel = "ONLINE" | "PHYSICAL_FLYER" | "UNSPECIFIED";
 
 export interface PriceRecord {
   sourceProductReference: string | null;
@@ -232,9 +204,7 @@ export interface PriceRecord {
   promotionCondition: string | null;
   sourceId: string;
   sourceReference: string;
-  originType: "SOURCE" | "USER_CONTRIBUTION";
   originUrl: string | null;
-  contributionId: string | null;
 }
 
 export interface PriceQuote {
@@ -348,7 +318,7 @@ export interface CatalogItemDetail {
   access: ComparisonAccess;
 }
 
-export type MissingPriceReason = "NOT_SOLD_ONLINE" | "OUT_OF_STOCK" | "OUTDATED_PRICES" | "NOT_CHECKED_IN_STORE";
+export type MissingPriceReason = "NOT_SOLD_ONLINE" | "OUT_OF_STOCK" | "OUTDATED_PRICES";
 
 export interface MissingStore {
   storeId: string;
@@ -552,27 +522,7 @@ export interface UserPreference {
   favoriteStoreIds: string[];
 }
 
-export interface PriceContribution {
-  id: string;
-  contributorId: string;
-  productId: string;
-  storeId: string;
-  regularPrice: number;
-  promotionalPrice: number | null;
-  currency: string;
-  observedAt: string;
-  submittedAt: string;
-  validUntil: string | null;
-  promotionValidUntil: string | null;
-  availability: StockAvailability;
-  status: ContributionStatus;
-  moderatorId: string | null;
-  decidedAt: string | null;
-  rejectionReason: string | null;
-  priceRecordId: string | null;
-}
-
-export type MarketStatus = "OK" | "STALE" | "DOWN" | "NO_SOURCE" | "VISITED" | "VISIT_DUE" | "VISIT_OVERDUE";
+export type MarketStatus = "OK" | "STALE" | "DOWN" | "NO_SOURCE";
 export type CollectionRunStatus = "RUNNING" | "SUCCESS" | "PARTIAL" | "FAILED";
 
 export interface CollectorHealth {
@@ -660,8 +610,6 @@ export interface TripItem {
   quantity: number;
   catalogItemId: string | null;
   imageUrl: string | null;
-  /** The SKU this market sells for the item: what a shelf-price contribution is about. */
-  storeProductId: string;
   /** null when Gomo has no current price for it at this market. */
   unitPrice: number | null;
   lineTotal: number | null;
@@ -693,7 +641,6 @@ export interface Purchase {
     productName: string;
     quantity: number;
     unitPrice: number;
-    priceSource: "COLLECTED" | "SHELF";
     cityAveragePrice: number | null;
     cityStores: number;
     linePaid: number;

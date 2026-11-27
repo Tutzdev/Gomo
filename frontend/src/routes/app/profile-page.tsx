@@ -159,7 +159,7 @@ function DeleteAccountSection() {
       <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-danger-soft text-danger"><Trash2 className="size-5" aria-hidden /></span><div><h2 className="font-bold">Excluir conta</h2><p className="text-sm text-muted">Apaga na hora suas listas, alertas, preferências e sessões, e cancela a assinatura paga, se houver. Não dá para desfazer.</p></div></div>
       <form className="mt-6 grid gap-4 sm:max-w-md" onSubmit={(event) => { event.preventDefault(); deletion.reset(); setConfirming(true); }}>
         <TextField id="delete-password" label="Confirme com sua senha" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-        <p className="text-xs leading-5 text-muted">Preços que você enviou como contribuição continuam no histórico, sem seu nome. Veja a <Link to="/privacidade" className="font-semibold text-primary hover:underline">Política de Privacidade</Link>.</p>
+        <p className="text-xs leading-5 text-muted">Veja a <Link to="/privacidade" className="font-semibold text-primary hover:underline">Política de Privacidade</Link>.</p>
         <NativeButton type="submit" variant="danger" disabled={!password}>Excluir minha conta</NativeButton>
       </form>
       <ConfirmDialog open={confirming} onOpenChange={setConfirming} title="Excluir sua conta?" description="Suas listas, alertas e preferências serão apagados agora. Você poderá criar uma conta nova depois, mas não recuperar esta." confirmLabel="Excluir conta" loading={deletion.isPending} error={error} onConfirm={() => deletion.mutate()} />

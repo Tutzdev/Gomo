@@ -191,8 +191,8 @@ class ProductSearchPersistenceTests {
     private void price(UUID product, String price, String availability, Instant collectedAt) {
         jdbc.update("""
                 INSERT INTO price_records (id, product_id, store_id, source_id, source_reference,
-                    regular_price, currency, collected_at, recorded_at, availability, origin_type)
-                VALUES (?, ?, ?, ?, ?, ?, 'BRL', ?, CURRENT_TIMESTAMP, ?, 'SOURCE')
+                    regular_price, currency, collected_at, recorded_at, availability)
+                VALUES (?, ?, ?, ?, ?, ?, 'BRL', ?, CURRENT_TIMESTAMP, ?)
                 """, UUID.randomUUID(), product, STORE, SOURCE, UUID.randomUUID().toString(),
                 new BigDecimal(price), java.sql.Timestamp.from(collectedAt), availability);
     }

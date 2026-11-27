@@ -271,8 +271,8 @@ class ApiIntegrationTests {
         for (int store = 201; store <= 202; store++) {
             jdbc.update("""
                     insert into price_records (id, product_id, store_id, source_id, source_reference,
-                        origin_type, regular_price, currency, collected_at, recorded_at, availability)
-                    values (?, ?, ?, '00000000-0000-0000-0000-000000000101', ?, 'SOURCE', 8,
+                        regular_price, currency, collected_at, recorded_at, availability)
+                    values (?, ?, ?, '00000000-0000-0000-0000-000000000101', ?, 8,
                         'BRL', current_timestamp, current_timestamp, ?)
                     """, UUID.randomUUID(), UUID.fromString(PRODUCT_ID),
                     UUID.fromString("00000000-0000-0000-0000-000000000" + store), "batch-test-" + store,
@@ -296,7 +296,7 @@ class ApiIntegrationTests {
 
     @Test
     @Sql("/fixtures/catalog.sql")
-    void retiredMarketKeepsItsFavouriteRowsButTakesNoNewFavouriteOrContribution() throws Exception {
+    void retiredMarketKeepsItsFavouriteRowsButTakesNoNewFavourite() throws Exception {
         String email = uniqueEmail();
         register(email).andExpect(status().isAccepted());
         jdbc.update("update app_users set email_verified_at = CURRENT_TIMESTAMP where email = ?", email);
@@ -314,10 +314,6 @@ class ApiIntegrationTests {
         assertThat(jdbc.queryForObject("select count(*) from favorite_stores where store_id = ?::uuid",
                 Integer.class, STORE_B)).isOne();
         perform(put(favourites + STORE_B), token).andExpect(status().is(422));
-        perform(post("/api/v1/contributions").content(json(Map.of("productId", PRODUCT_ID, "storeId", STORE_B,
-                        "regularPrice", 5, "currency", "BRL", "observedAt", "2026-01-01T12:00:00Z",
-                        "availability", "AVAILABLE"))), token)
-                .andExpect(status().is(422));
         perform(delete(favourites + STORE_B), token).andExpect(status().isOk());
         assertThat(jdbc.queryForObject("select count(*) from favorite_stores where store_id = ?::uuid",
                 Integer.class, STORE_B)).isZero();

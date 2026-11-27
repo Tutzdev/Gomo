@@ -30,8 +30,7 @@ class DealFinder {
                                        AND latest.promotion_valid_until > :now AS applied) promotion
             JOIN catalog_item_products link ON link.product_id = latest.product_id
             JOIN catalog_items item ON item.id = link.catalog_item_id AND item.active
-            WHERE latest.store_id IN (:stores) AND latest.collected_at > :visitFreshAfter
-              AND (latest.origin_type = 'STORE_VISIT' OR latest.collected_at > :freshAfter)
+            WHERE latest.store_id IN (:stores) AND latest.collected_at > :freshAfter
               AND latest.collected_at <= :now
               AND latest.availability <> 'UNAVAILABLE' AND (latest.valid_until IS NULL OR latest.valid_until > :now)
             ORDER BY link.catalog_item_id, latest.store_id, price
@@ -58,16 +57,10 @@ class DealFinder {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final Duration maxPriceAge;
-    private final Duration inStoreMaxPriceAge;
 
-    DealFinder(
-        NamedParameterJdbcTemplate jdbc,
-        @Value("${app.prices.max-age:P2D}") Duration maxPriceAge,
-        @Value("${app.prices.in-store-max-age:P7D}") Duration inStoreMaxPriceAge) {
-
+    DealFinder(NamedParameterJdbcTemplate jdbc, @Value("${app.prices.max-age:P2D}") Duration maxPriceAge) {
         this.jdbc = jdbc;
         this.maxPriceAge = maxPriceAge;
-        this.inStoreMaxPriceAge = inStoreMaxPriceAge;
     }
 
     List<UUID> citiesWithStores() {
@@ -80,8 +73,7 @@ class DealFinder {
         var parameters = new MapSqlParameterSource()
                 .addValue("stores", storeIds)
                 .addValue("now", Timestamp.from(now))
-                .addValue("freshAfter", Timestamp.from(now.minus(maxPriceAge)))
-                .addValue("visitFreshAfter", Timestamp.from(now.minus(inStoreMaxPriceAge)));
+                .addValue("freshAfter", Timestamp.from(now.minus(maxPriceAge)));
 
         return jdbc.query(CURRENT_PRICES, parameters, (row, index) -> currentPrice(row));
     }

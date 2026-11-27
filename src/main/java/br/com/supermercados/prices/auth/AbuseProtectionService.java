@@ -13,20 +13,17 @@ public class AbuseProtectionService {
     private final int registrationLimit;
     private final int loginLimit;
     private final int accountMessageLimit;
-    private final int contributionLimit;
 
     public AbuseProtectionService(
         AttemptRateLimiter limiter,
         @Value("${app.rate-limit.registration:5}") int registrationLimit,
         @Value("${app.rate-limit.login:10}") int loginLimit,
-        @Value("${app.rate-limit.account-messages:5}") int accountMessageLimit,
-        @Value("${app.rate-limit.contributions:20}") int contributionLimit) {
+        @Value("${app.rate-limit.account-messages:5}") int accountMessageLimit) {
 
         this.limiter = limiter;
         this.registrationLimit = requirePositive(registrationLimit, "app.rate-limit.registration");
         this.loginLimit = requirePositive(loginLimit, "app.rate-limit.login");
         this.accountMessageLimit = requirePositive(accountMessageLimit, "app.rate-limit.account-messages");
-        this.contributionLimit = requirePositive(contributionLimit, "app.rate-limit.contributions");
     }
 
     public void checkRegistration(String remoteAddress, String email) {
@@ -50,10 +47,6 @@ public class AbuseProtectionService {
 
     public void checkPasswordChange(UUID userId) {
         limiter.check("password-change-user", userId.toString(), loginLimit, Duration.ofMinutes(15));
-    }
-
-    public void checkContribution(UUID userId) {
-        limiter.check("contribution-user", userId.toString(), contributionLimit, Duration.ofHours(1));
     }
 
     private String emailKey(String email) {

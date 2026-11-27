@@ -2,7 +2,7 @@ import { Clock3 } from "lucide-react";
 import { StatusBadge } from "@/components/page/page-elements";
 import { formatCurrency, formatDate, formatUpdatedAt } from "@/lib/brand";
 import type { PriceQuote } from "@/types/api";
-import { channelNote, seenAtLabel } from "./sales-channel";
+import { channelNote } from "./sales-channel";
 
 export function PriceDetails({ price }: { price: PriceQuote }) {
   const observation = price.observation;
@@ -63,7 +63,7 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
           ) : null}
           <p className="flex items-center gap-2 text-xs text-muted">
             <Clock3 className="size-3.5" aria-hidden />
-            {seenAtLabel(observation.salesChannel)}{" "}
+            Visto no site do mercado{" "}
             {formatUpdatedAt(observation.collectedAt)}
           </p>
           {price.expiresAt ? (
@@ -75,11 +75,7 @@ export function PriceDetails({ price }: { price: PriceQuote }) {
             <summary className="cursor-pointer font-semibold">
               De onde vem este preço
             </summary>
-            <p className="mt-2">
-              {observation.originType === "USER_CONTRIBUTION"
-                ? "Preço enviado pela comunidade."
-                : "Do site do próprio mercado."}
-            </p>
+            <p className="mt-2">Do site do próprio mercado.</p>
             <p className="mt-2">
               O horário é quando o Gomo consultou o site. O mercado não informa
               quando mudou o preço.

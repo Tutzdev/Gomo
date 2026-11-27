@@ -82,18 +82,6 @@ class PriceHistoryCompactionIntegrationTests {
     }
 
     @Test
-    void storeVisitsAreNeverThinned() {
-        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        observe(PRODUCT_A, "visit-1", "2.00", now.minus(Duration.ofDays(30)));
-        observe(PRODUCT_A, "visit-2", "2.00", now.minus(Duration.ofDays(20)));
-        observe(PRODUCT_A, "visit-3", "2.00", now.minus(Duration.ofDays(10)));
-        jdbc.update("UPDATE price_records SET origin_type = 'STORE_VISIT' WHERE product_id = ?", PRODUCT_A);
-
-        assertThat(compactor.compact()).isZero();
-        assertThat(references(PRODUCT_A)).hasSize(3);
-    }
-
-    @Test
     void aPromotionStartingOrEndingCountsAsAChange() {
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         observe(PRODUCT_A, "regular", "5.00", null, now.minus(Duration.ofDays(9)));

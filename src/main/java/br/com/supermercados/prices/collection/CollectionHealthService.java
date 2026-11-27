@@ -20,7 +20,6 @@ import br.com.supermercados.prices.price.PricePolicy;
 @Service
 public class CollectionHealthService {
 
-    static final Duration VISIT_DUE_BEFORE = Duration.ofDays(2);
 
     private final CollectionCoordinator coordinator;
     private final JdbcTemplate jdbc;
@@ -89,12 +88,6 @@ public class CollectionHealthService {
 
         for (var store : activeStores()) {
             List<CollectorHealth> collectors = collectorsByStore.getOrDefault(store.id(), List.of());
-
-            if (store.inStore()) {
-                markets.add(inStoreMarket(store, collectors, now));
-                continue;
-            }
-
             boolean hasSource = collectors.stream().anyMatch(CollectorHealth::scheduled);
             Instant lastPrice = store.lastPriceAt();
             MarketStatus status;
@@ -125,31 +118,6 @@ public class CollectionHealthService {
             staleAfter,
             pricePolicy.maxAge(),
             markets);
-    }
-
-    private MarketHealth inStoreMarket(StoreFreshness store, List<CollectorHealth> collectors, Instant now) {
-        Instant lastVisit = store.lastPriceAt();
-
-        Duration validity = store.inStoreValidDays() == null ? pricePolicy.inStoreMaxAge()
-                : Duration.ofDays(store.inStoreValidDays());
-
-        Instant expiresAt = lastVisit == null ? null : lastVisit.plus(validity);
-        MarketStatus status;
-
-        if (expiresAt == null || !expiresAt.isAfter(now)) {status = MarketStatus.VISIT_OVERDUE;}
-        else if (!expiresAt.isAfter(now.plus(VISIT_DUE_BEFORE))) {status = MarketStatus.VISIT_DUE;}
-        else {status = MarketStatus.VISITED;}
-        long currentProducts = status == MarketStatus.VISIT_OVERDUE ? 0
-                : currentProducts(store.id(), now.minus(pricePolicy.inStoreMaxAge()));
-
-        return new MarketHealth(
-            store.id(),
-            store.name(),
-            status,
-            lastVisit,
-            expiresAt,
-            currentProducts,
-            collectors);
     }
 
     private Map<String, LastRun> lastRuns() {
@@ -194,7 +162,7 @@ public class CollectionHealthService {
 
     private List<StoreFreshness> activeStores() {
         return jdbc.query("""
-                SELECT s.id, s.name, s.price_channel = 'IN_STORE' AS in_store, s.in_store_price_valid_days,
+                SELECT s.id, s.name,
                     (SELECT max(p.collected_at) FROM price_records p WHERE p.store_id = s.id) AS last_price
                 FROM stores s WHERE s.active ORDER BY s.name, s.id
                 """, (row, index) -> {
@@ -202,8 +170,6 @@ public class CollectionHealthService {
             return new StoreFreshness(
                 row.getObject("id", UUID.class),
                 row.getString("name"),
-                row.getBoolean("in_store"),
-                row.getObject("in_store_price_valid_days", Integer.class),
                 lastPrice == null ? null : lastPrice.toInstant());
         });
     }
@@ -221,14 +187,7 @@ public class CollectionHealthService {
         OK,
         STALE,
         DOWN,
-        NO_SOURCE,
-        VISITED,
-        VISIT_DUE,
-        VISIT_OVERDUE;
-
-        public boolean inStore() {
-            return this == VISITED || this == VISIT_DUE || this == VISIT_OVERDUE;
-        }
+        NO_SOURCE
     }
 
     public record CollectionHealthReport(
@@ -260,7 +219,5 @@ public class CollectionHealthService {
     private record StoreFreshness(
             UUID id,
             String name,
-            boolean inStore,
-            Integer inStoreValidDays,
             Instant lastPriceAt) {}
 }

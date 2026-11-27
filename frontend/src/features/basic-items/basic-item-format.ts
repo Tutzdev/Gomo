@@ -17,8 +17,6 @@ export function missingReason(store: MissingStore) {
       return store.lastPriceCollectedAt
         ? `O mercado vende, mas estava em falta no site na última leitura (${formatDate(store.lastPriceCollectedAt)}).`
         : "O mercado vende, mas está em falta no site agora.";
-    case "NOT_CHECKED_IN_STORE":
-      return "Mercado sem loja online: ainda não conferimos este item na prateleira.";
     case "OUTDATED_PRICES":
       return store.lastPriceCollectedAt
         ? `Os preços deste mercado estão desatualizados (última leitura em ${formatDate(store.lastPriceCollectedAt)}).`

@@ -84,7 +84,7 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
                 id, product_id, store_id, source_id, source_reference,
                 regular_price, promotional_price, currency, collected_at, recorded_at,
                 valid_until, promotion_valid_until, promotion_condition,
-                availability, origin_type, contribution_id, origin_url, source_product_reference, source_product_name
+                availability, origin_url, source_product_reference, source_product_name
             ) VALUES (
                 :#{#record.id}, :#{#record.productId}, :#{#record.storeId},
                 :#{#record.sourceId}, :#{#record.sourceReference},
@@ -92,7 +92,7 @@ public interface PriceRecordRepository extends Repository<PriceRecord, UUID> {
                 :#{#record.collectedAt}, :#{#record.recordedAt}, :#{#record.validUntil},
                 :#{#record.promotionValidUntil}, :#{#record.promotionCondition},
                 :#{#record.availability.name()},
-                :#{#record.originType.name()}, :#{#record.contributionId}, :#{#record.originUrl}, :#{#record.sourceProductReference}, :#{#record.sourceProductName}
+                :#{#record.originUrl},:#{#record.sourceProductReference}, :#{#record.sourceProductName}
             ) ON CONFLICT (source_id, source_reference) DO NOTHING
             """, nativeQuery = true)
     int insertIfAbsent(@Param("record") PriceRecord record);

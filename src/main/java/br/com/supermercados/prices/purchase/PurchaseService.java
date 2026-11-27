@@ -86,7 +86,7 @@ public class PurchaseService {
 
         for (BoughtItem bought : request.items()) {
             ShoppingListItemResponse listItem = listItems.get(bought.itemId());
-            BigDecimal paid = bought.shelfPrice() != null ? bought.shelfPrice() : pricing.atStore(listItem.productId());
+            BigDecimal paid = pricing.atStore(listItem.productId());
 
             if (paid == null) {
                 withoutPrice++;
@@ -101,7 +101,6 @@ public class PurchaseService {
                 listItem.productName(),
                 listItem.quantity(),
                 paid.setScale(2, RoundingMode.HALF_UP),
-                priceSource(bought),
                 cityAverage(cityPrices),
                 cityPrices.size()));
         }
@@ -217,10 +216,6 @@ public class PurchaseService {
         var offers = prices.find(productIds, searchedStores, now);
 
         return new PurchasePrices(store.getId(), cityStores, offers.byStore(), now);
-    }
-
-    private static PurchaseItem.PriceSource priceSource(BoughtItem bought) {
-        return bought.shelfPrice() != null ? PurchaseItem.PriceSource.SHELF : PurchaseItem.PriceSource.COLLECTED;
     }
 
     private static BigDecimal cityAverage(List<BigDecimal> cityPrices) {

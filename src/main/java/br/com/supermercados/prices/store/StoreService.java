@@ -43,7 +43,7 @@ public class StoreService {
 
         locationService.requireCity(cityId);
 
-        return withPriceUpdates(storeRepository.findPricedActiveStores(cityId, visitFreshAfter(), pageable));
+        return withPriceUpdates(storeRepository.findPricedActiveStores(cityId, pageable));
     }
 
     public Page<StoreResponse> findListedStores(UUID cityId, Pageable pageable) {
@@ -70,13 +70,8 @@ public class StoreService {
         return stores.map(store -> withStatus(store, updates.get(store.getId())));
     }
 
-    private Instant visitFreshAfter() {
-        return clock.instant().minus(pricePolicy.inStoreMaxAge());
-    }
-
     private static boolean hasUsablePrices(StoreResponse store) {
-        return store.priceStatus() == StorePriceStatus.CURRENT
-                || store.priceStatus() == StorePriceStatus.OUTDATED && store.priceChannel() == StorePriceChannel.ONLINE;
+        return store.priceStatus() != StorePriceStatus.NO_PRICES;
     }
 
     public StoreResponse findStore(UUID storeId) {
@@ -87,8 +82,7 @@ public class StoreService {
 
     private StoreResponse withStatus(Store store, Instant lastUpdate) {
         StorePriceStatus status = lastUpdate == null ? StorePriceStatus.NO_PRICES
-                : lastUpdate.isAfter(clock.instant().minus(store.getPriceChannel() == StorePriceChannel.IN_STORE
-                        ? pricePolicy.inStoreMaxAge() : pricePolicy.maxAge())) ? StorePriceStatus.CURRENT
+                : lastUpdate.isAfter(clock.instant().minus(pricePolicy.maxAge())) ? StorePriceStatus.CURRENT
                 : StorePriceStatus.OUTDATED;
 
         return StoreResponse.from(store, lastUpdate, status);
@@ -111,7 +105,7 @@ public class StoreService {
     public List<StoreResponse> findAllActiveStores(UUID cityId, int maximumStores) {
         locationService.requireCity(cityId);
         PageRequest request = PageRequest.of(0, maximumStores, Sort.by("name", "id"));
-        Page<Store> page = storeRepository.findPricedActiveStores(cityId, visitFreshAfter(), request);
+        Page<Store> page = storeRepository.findPricedActiveStores(cityId, request);
 
         if (page.getTotalElements() > maximumStores) {
             throw new ApiException(

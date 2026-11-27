@@ -66,25 +66,6 @@ public class AccountDataExportService {
             WHERE n.user_id = ? ORDER BY n.created_at
             """;
 
-    private static final String PRICE_CONTRIBUTIONS = """
-            SELECT p.name AS "produto", s.name AS "mercado", c.regular_price AS "preco",
-                c.promotional_price AS "precoPromocional", c.observed_at AS "vistoEm", c.submitted_at AS "enviadoEm",
-                c.status AS "situacao", c.rejection_reason AS "motivoDaRecusa"
-            FROM price_contributions c JOIN products p ON p.id = c.product_id JOIN stores s ON s.id = c.store_id
-            WHERE c.contributor_id = ? ORDER BY c.submitted_at
-            """;
-
-    private static final String PRODUCT_SUGGESTIONS = """
-            SELECT g.name AS "produto", g.brand AS "marca", g.package_size AS "embalagem",
-                g.barcode AS "codigoDeBarras", s.name AS "mercado", g.price AS "preco", g.note AS "observacao",
-                g.submitted_at AS "enviadoEm",
-                CASE g.status WHEN 'APPROVED' THEN 'aceita' WHEN 'REJECTED' THEN 'recusada' ELSE 'em análise' END
-                    AS "situacao",
-                g.decided_at AS "analisadaEm", g.rejection_reason AS "motivoDaRecusa"
-            FROM product_suggestions g LEFT JOIN stores s ON s.id = g.store_id
-            WHERE g.contributor_id = ? ORDER BY g.submitted_at
-            """;
-
     private static final String LISTS_SHARED_WITH_ME = """
             SELECT l.name AS "lista", u.name AS "dona", m.joined_at AS "entreiEm"
             FROM shopping_list_members m JOIN shopping_lists l ON l.id = m.shopping_list_id
@@ -138,8 +119,6 @@ public class AccountDataExportService {
         export.put("avisosDePreco", rows(ALERT_NOTIFICATIONS, userId));
         export.put("whatsapp", rows(WHATSAPP, userId).stream().findFirst().orElse(null));
         export.put("avisosNoWhatsApp", rows(WHATSAPP_DELIVERIES, userId));
-        export.put("precosEnviados", rows(PRICE_CONTRIBUTIONS, userId));
-        export.put("produtosSugeridos", rows(PRODUCT_SUGGESTIONS, userId));
         export.put("listasCompartilhadasComigo", rows(LISTS_SHARED_WITH_ME, userId));
         export.put("compras", purchases(userId));
         export.put("comparacoesPorDia", rows(COMPARISONS_PER_DAY, userId));
@@ -196,7 +175,6 @@ public class AccountDataExportService {
 
             row.put("itens", rows("""
                     SELECT product_name AS "produto", quantity AS "quantidade", unit_price AS "precoPago",
-                        CASE price_source WHEN 'SHELF' THEN 'digitado na gôndola' ELSE 'preço coletado' END AS "origemDoPreco",
                         city_average_price AS "mediaDaCidade"
                     FROM purchase_items WHERE purchase_id = ? ORDER BY product_name
                     """, purchase.get("id")));

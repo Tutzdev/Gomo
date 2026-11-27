@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Database, FileClock, RefreshCw, ShieldCheck, X } from "lucide-react";
+import { Database, FileClock, RefreshCw, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { ErrorState, InlineError, SkeletonRows } from "@/components/ui/feedback";
 import { SelectField, TextField } from "@/components/ui/form-field";
@@ -7,30 +7,22 @@ import { NativeButton } from "@/components/ui/native-button";
 import { PageHeading, StatusBadge, SurfaceTitle } from "@/components/page/page-elements";
 import { ApiError } from "@/lib/api";
 import { formatDate } from "@/lib/brand";
-import { adminApi, contributionApi } from "@/services/gomo-api";
-import { ProductSuggestionsQueue } from "@/features/admin/product-suggestions-queue";
+import { adminApi } from "@/services/gomo-api";
 import { BasicItemCoveragePanel } from "@/features/admin/basic-item-coverage-panel";
-import { StoreVisitPanel } from "@/features/admin/store-visit-panel";
 import type { MarketHealth, MarketStatus } from "@/types/api";
 
 export function AdminPage() {
-  const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"collections" | "coverage" | "visits" | "moderation" | "sources" | "ingestion" | "audit">("collections");
+  const [tab, setTab] = useState<"collections" | "coverage" | "sources" | "ingestion" | "audit">("collections");
   const audit = useQuery({ queryKey: ["admin-audit"], queryFn: () => adminApi.audit(0, 100), enabled: tab === "audit" });
-  const queue = useQuery({ queryKey: ["admin-contributions", "PENDING"], queryFn: () => contributionApi.moderation("PENDING"), enabled: tab === "moderation" });
-  const approve = useMutation({ mutationFn: contributionApi.approve, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-contributions"] }) });
-  const reject = useMutation({ mutationFn: (id: string) => contributionApi.reject(id, "Contribuição rejeitada pela moderação."), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-contributions"] }) });
 
   return (
     <>
-      <PageHeading title="Administração" description="Acompanhe as coletas, modere contribuições, registre fontes e consulte a auditoria." />
+      <PageHeading title="Administração" description="Acompanhe as coletas, registre fontes e consulte a auditoria." />
       <div className="mb-6 flex gap-2 overflow-x-auto border-b border-border" role="tablist" aria-label="Áreas administrativas">
-        {[{ id: "collections", label: "Coletas" }, { id: "coverage", label: "Cesta básica" }, { id: "visits", label: "Preço na loja" }, { id: "moderation", label: "Moderação" }, { id: "sources", label: "Fontes" }, { id: "ingestion", label: "Ingestão" }, { id: "audit", label: "Auditoria" }].map((item) => <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} className={`dashboard-tab min-h-11 shrink-0 border-b-2 px-3 text-sm font-bold ${tab === item.id ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground"}`} onClick={() => setTab(item.id as typeof tab)}>{item.label}</button>)}
+        {[{ id: "collections", label: "Coletas" }, { id: "coverage", label: "Cesta básica" }, { id: "sources", label: "Fontes" }, { id: "ingestion", label: "Ingestão" }, { id: "audit", label: "Auditoria" }].map((item) => <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} className={`dashboard-tab min-h-11 shrink-0 border-b-2 px-3 text-sm font-bold ${tab === item.id ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground"}`} onClick={() => setTab(item.id as typeof tab)}>{item.label}</button>)}
       </div>
       {tab === "collections" ? <CollectionsPanel /> : null}
       {tab === "coverage" ? <BasicItemCoveragePanel /> : null}
-      {tab === "visits" ? <StoreVisitPanel /> : null}
-      {tab === "moderation" ? <><section className="surface overflow-hidden"><SurfaceTitle title="Contribuições pendentes" description="Aprovação gera um registro de preço; rejeição mantém o motivo no histórico." />{queue.isLoading ? <div className="p-5"><SkeletonRows rows={5} /></div> : queue.isError ? <div className="p-5"><ErrorState retry={() => void queue.refetch()} /></div> : !queue.data?.content.length ? <div className="p-8 text-center text-sm text-muted">Não há contribuições pendentes.</div> : <div className="overflow-x-auto"><table className="data-table min-w-[56rem]"><caption className="sr-only">Fila de moderação</caption><thead><tr><th>Enviada</th><th>Produto</th><th>Loja</th><th>Preço</th><th>Ações</th></tr></thead><tbody>{queue.data.content.map((item) => <tr key={item.id}><td>{formatDate(item.submittedAt)}</td><td className="font-mono text-xs">{item.productId}</td><td className="font-mono text-xs">{item.storeId}</td><td>R$ {Number(item.promotionalPrice ?? item.regularPrice).toFixed(2).replace(".", ",")}</td><td><div className="flex gap-2"><NativeButton size="sm" loading={approve.isPending && approve.variables === item.id} onClick={() => approve.mutate(item.id)}><Check className="size-4" aria-hidden />Aprovar</NativeButton><NativeButton size="sm" variant="danger" loading={reject.isPending && reject.variables === item.id} onClick={() => reject.mutate(item.id)}><X className="size-4" aria-hidden />Rejeitar</NativeButton></div></td></tr>)}</tbody></table></div>}</section><ProductSuggestionsQueue /></> : null}
       {tab === "sources" ? <SourceRegistrationForm /> : null}
       {tab === "ingestion" ? <IngestionForm /> : null}
       {tab === "audit" ? <section className="surface overflow-hidden"><SurfaceTitle title="Auditoria administrativa" description="Ações feitas pelos administradores, com data e responsável." />{audit.isLoading ? <div className="p-5"><SkeletonRows rows={6} /></div> : audit.isError ? <div className="p-5"><ErrorState retry={() => void audit.refetch()} /></div> : <div className="overflow-x-auto"><table className="data-table min-w-[52rem]"><caption className="sr-only">Registro de auditoria administrativa</caption><thead><tr><th>Data</th><th>Ação</th><th>Recurso</th><th>Responsável</th></tr></thead><tbody>{audit.data?.content.map((entry) => <tr key={entry.id}><td>{formatDate(entry.occurredAt)}</td><td><StatusBadge>{translateAction(entry.action)}</StatusBadge></td><td>{entry.resourceType}<p className="mt-1 font-mono text-xs text-muted">{entry.resourceId}</p></td><td className="font-mono text-xs">{entry.actorUserId}</td></tr>)}</tbody></table></div>}</section> : null}
@@ -43,12 +35,7 @@ const MARKET_STATUS: Record<MarketStatus, { label: string; tone: "success" | "wa
   STALE: { label: "Atrasado", tone: "warning", help: "As últimas coletas falharam; os preços ainda valem, mas vão vencer." },
   DOWN: { label: "Fora do ar", tone: "danger", help: "Sem preço atual: o mercado saiu das buscas e comparações." },
   NO_SOURCE: { label: "Sem fonte", tone: "neutral", help: "Não há fonte pública de preços para esta unidade." },
-  VISITED: { label: "Visita em dia", tone: "success", help: "Preços anotados na loja, dentro da validade." },
-  VISIT_DUE: { label: "Visitar logo", tone: "warning", help: "Os preços anotados na loja vencem em até 2 dias." },
-  VISIT_OVERDUE: { label: "Visita vencida", tone: "danger", help: "Sem preço anotado válido: o mercado saiu das buscas e comparações." },
 };
-
-const IN_STORE_STATUSES: MarketStatus[] = ["VISITED", "VISIT_DUE", "VISIT_OVERDUE"];
 
 function CollectionsPanel() {
   const queryClient = useQueryClient();
@@ -61,13 +48,11 @@ function CollectionsPanel() {
   if (health.isError || !health.data) return <section className="surface p-5"><ErrorState retry={() => void health.refetch()} /></section>;
   const report = health.data;
   const attention = report.markets.filter((market) => market.status === "STALE" || market.status === "DOWN").length;
-  const visits = report.markets.filter((market) => market.status === "VISIT_DUE" || market.status === "VISIT_OVERDUE").length;
-  const visitNote = visits ? ` ${visits} mercado(s) sem loja online precisam de visita.` : "";
   return (
     <section className="surface overflow-hidden">
       <SurfaceTitle
         title="Coletas por mercado"
-        description={(attention ? `${attention} mercado(s) precisam de atenção.` : "Todos os mercados com fonte estão em dia.") + visitNote + ` Verificado em ${formatDate(report.checkedAt)}.`}
+        description={(attention ? `${attention} mercado(s) precisam de atenção.` : "Todos os mercados com fonte estão em dia.") + ` Verificado em ${formatDate(report.checkedAt)}.`}
       />
       <InlineError>{collect.isError ? (collect.error instanceof ApiError ? collect.error.message : "Não foi possível iniciar a coleta.") : null}</InlineError>
       <div className="overflow-x-auto">
@@ -84,16 +69,15 @@ function CollectionsPanel() {
 function MarketRow({ market, collecting, onCollect }: { market: MarketHealth; collecting: boolean; onCollect: (code: string) => void }) {
   const status = MARKET_STATUS[market.status];
   const collector = market.collectors.find((item) => item.scheduled) ?? market.collectors[0];
-  const inStore = IN_STORE_STATUSES.includes(market.status);
   return (
     <tr>
       <td className="font-semibold">{market.storeName}</td>
       <td><StatusBadge tone={status.tone}>{status.label}</StatusBadge><p className="mt-1 max-w-56 text-xs text-muted">{status.help}</p></td>
-      <td>{market.lastPriceAt ? formatDate(market.lastPriceAt) : "Nunca"}{inStore && market.priceExpiresAt ? <p className="mt-1 text-xs text-muted">vale até {formatDate(market.priceExpiresAt)}</p> : null}</td>
+      <td>{market.lastPriceAt ? formatDate(market.lastPriceAt) : "Nunca"}</td>
       <td>{market.currentProducts.toLocaleString("pt-BR")}</td>
       <td>
         {collector ? <>{collector.lastRunAt ? formatDate(collector.lastRunAt) : "Nunca"}{collector.lastStatus ? <span className="ml-2 font-mono text-xs text-muted">{collector.lastStatus}</span> : null}
-          {collector.lastStatus === "FAILED" && collector.lastError ? <p className="mt-1 max-w-72 text-xs text-danger">{collector.lastError}</p> : null}</> : <span className="text-muted">{inStore ? "Preço anotado na loja (aba Preço na loja)" : "—"}</span>}
+          {collector.lastStatus === "FAILED" && collector.lastError ? <p className="mt-1 max-w-72 text-xs text-danger">{collector.lastError}</p> : null}</> : <span className="text-muted">—</span>}
       </td>
       <td>{collector?.scheduled ? <NativeButton size="sm" variant="secondary" loading={collecting} onClick={() => onCollect(collector.code)}><RefreshCw className="size-4" aria-hidden />Coletar agora</NativeButton> : null}</td>
     </tr>
@@ -116,5 +100,5 @@ function IngestionForm() {
 }
 
 function translateAction(action: string) {
-  return ({ SOURCE_REGISTERED: "Fonte registrada", SOURCE_STATUS_CHANGED: "Fonte atualizada", CHAIN_INGESTED: "Rede ingerida", STORE_INGESTED: "Loja ingerida", PRODUCT_INGESTED: "Produto ingerido", PRICE_RECORDED: "Preço registrado", CONTRIBUTION_APPROVED: "Contribuição aprovada", CONTRIBUTION_REJECTED: "Contribuição rejeitada", STORE_VISIT_RECORDED: "Visita à loja gravada", STORE_VISIT_VALIDITY_CHANGED: "Validade do preço na loja alterada", PRODUCT_SUGGESTION_APPROVED: "Sugestão de produto aceita", PRODUCT_SUGGESTION_REJECTED: "Sugestão de produto recusada" } as Record<string, string>)[action] ?? action;
+  return ({ SOURCE_REGISTERED: "Fonte registrada", SOURCE_STATUS_CHANGED: "Fonte atualizada", CHAIN_INGESTED: "Rede ingerida", STORE_INGESTED: "Loja ingerida", PRODUCT_INGESTED: "Produto ingerido", PRICE_RECORDED: "Preço registrado", COLLECTION_TRIGGERED: "Coleta iniciada" } as Record<string, string>)[action] ?? action;
 }

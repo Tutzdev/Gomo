@@ -55,8 +55,7 @@ public class CatalogService {
             SELECT link.catalog_item_id, count(DISTINCT latest.store_id) AS priced_stores
             FROM latest_prices latest
             JOIN catalog_item_products link ON link.product_id = latest.product_id
-            WHERE latest.store_id IN (:stores) AND latest.collected_at > :visitFreshAfter
-              AND (latest.origin_type = 'STORE_VISIT' OR latest.collected_at > :freshAfter)
+            WHERE latest.store_id IN (:stores) AND latest.collected_at > :freshAfter
               AND latest.collected_at <= :now AND latest.availability <> 'UNAVAILABLE'
               AND (latest.valid_until IS NULL OR latest.valid_until > :now)%s
             GROUP BY link.catalog_item_id""";
@@ -70,7 +69,6 @@ public class CatalogService {
     private final PricePolicy policy;
     private final Clock clock;
     private final Duration maxPriceAge;
-    private final Duration inStoreMaxPriceAge;
 
     public CatalogService(
         CatalogItemRepository items,
@@ -81,10 +79,8 @@ public class CatalogService {
         StoreFreshnessService freshness,
         PricePolicy policy,
         Clock clock,
-        @Value("${app.prices.max-age:P2D}") Duration maxPriceAge,
-        @Value("${app.prices.in-store-max-age:P7D}") Duration inStoreMaxPriceAge) {
+        @Value("${app.prices.max-age:P2D}") Duration maxPriceAge) {
 
-        this.inStoreMaxPriceAge = inStoreMaxPriceAge;
         this.maxPriceAge = maxPriceAge;
         this.items = items;
         this.jdbc = jdbc;
@@ -136,8 +132,7 @@ public class CatalogService {
 
             parameters.addValue("stores", selected.stream().map(StoreResponse::id).toList())
                     .addValue("now", Timestamp.from(now))
-                    .addValue("freshAfter", Timestamp.from(now.minus(maxPriceAge)))
-                    .addValue("visitFreshAfter", Timestamp.from(now.minus(inStoreMaxPriceAge)));
+                    .addValue("freshAfter", Timestamp.from(now.minus(maxPriceAge)));
         }
 
         if (terms.size() != null) {parameters.addValue("size", "%|1" + terms.size());}

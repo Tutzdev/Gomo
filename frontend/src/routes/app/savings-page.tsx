@@ -124,7 +124,6 @@ function PurchaseCard({ purchase, onDelete }: { purchase: Purchase; onDelete: ()
             <li key={item.productId} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
               <span className="min-w-0">
                 {item.productName} <span className="text-muted">× {item.quantity.toLocaleString("pt-BR")}</span>
-                {item.priceSource === "SHELF" ? <span className="ml-1 text-xs text-muted">(preço da gôndola)</span> : null}
               </span>
               <span className="text-right tabular-nums">
                 {formatCurrency(item.linePaid)}
@@ -137,7 +136,7 @@ function PurchaseCard({ purchase, onDelete }: { purchase: Purchase; onDelete: ()
         </ul>
         {purchase.itemsWithoutPrice > 0 ? (
           <p className="border-t border-border px-4 py-2 text-xs text-muted">
-            {purchase.itemsWithoutPrice === 1 ? "1 item ficou de fora" : `${purchase.itemsWithoutPrice} itens ficaram de fora`}: sem preço no mercado e sem preço da gôndola.
+            {purchase.itemsWithoutPrice === 1 ? "1 item ficou de fora" : `${purchase.itemsWithoutPrice} itens ficaram de fora`}: sem preço neste mercado.
           </p>
         ) : null}
         <div className="border-t border-border p-3 text-right">

@@ -26,7 +26,6 @@ public record TripResponse(
             BigDecimal quantity,
             UUID catalogItemId,
             String imageUrl,
-            UUID storeProductId,
             BigDecimal unitPrice,
             BigDecimal lineTotal,
             boolean promotion,

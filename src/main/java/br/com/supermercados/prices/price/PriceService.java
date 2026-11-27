@@ -70,39 +70,12 @@ public class PriceService {
 
     @Transactional
     public PriceRecordResponse appendObservation(PriceObservation observation) {
-        return append(observation, null);
-    }
-
-    @Transactional
-    public PriceRecordResponse appendUserContribution(PriceObservation observation, UUID contributionId) {
-        if (contributionId == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "A contribuição é obrigatória.");
-        }
-
-        return append(observation, PriceOriginType.USER_CONTRIBUTION, contributionId);
-    }
-
-    @Transactional
-    public PriceRecordResponse appendStoreVisit(PriceObservation observation) {
-        return append(observation, PriceOriginType.STORE_VISIT, null);
-    }
-
-    private PriceRecordResponse append(PriceObservation observation, UUID contributionId) {
-        return append(observation, PriceOriginType.SOURCE, contributionId);
-    }
-
-    private PriceRecordResponse append(PriceObservation observation, PriceOriginType origin, UUID contributionId) {
         Instant now = clock.instant();
         validateObservation(observation, now);
         requireProductAndStore(observation.productId(), observation.storeId());
         sources.requireEnabledSource(observation.sourceId());
 
-        PriceRecord candidate = switch (origin) {
-            case SOURCE -> PriceRecord.from(observation, now);
-            case USER_CONTRIBUTION -> PriceRecord.fromContribution(observation, contributionId, now);
-            case STORE_VISIT -> PriceRecord.fromStoreVisit(observation, now);
-        };
-
+        PriceRecord candidate = PriceRecord.from(observation, now);
         prices.insertIfAbsent(candidate);
 
         PriceRecord persisted = prices.findBySourceIdAndSourceReference(

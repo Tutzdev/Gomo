@@ -40,12 +40,6 @@ public class PriceRecord {
     @Column(nullable = false, length = 500)
     private String sourceReference;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 24)
-    private PriceOriginType originType;
-
-    private UUID contributionId;
-
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal regularPrice;
 
@@ -82,23 +76,6 @@ public class PriceRecord {
     private String sourceProductName;
 
     static PriceRecord from(PriceObservation observation, Instant recordedAt) {
-        return from(observation, recordedAt, PriceOriginType.SOURCE, null);
-    }
-
-    static PriceRecord fromContribution(PriceObservation observation, UUID contributionId, Instant recordedAt) {
-        return from(observation, recordedAt, PriceOriginType.USER_CONTRIBUTION, contributionId);
-    }
-
-    static PriceRecord fromStoreVisit(PriceObservation observation, Instant recordedAt) {
-        return from(observation, recordedAt, PriceOriginType.STORE_VISIT, null);
-    }
-
-    private static PriceRecord from(
-        PriceObservation observation,
-        Instant recordedAt,
-        PriceOriginType originType,
-        UUID contributionId) {
-
         PriceRecord record = new PriceRecord();
 
         record.id = UUID.randomUUID();
@@ -106,8 +83,6 @@ public class PriceRecord {
         record.storeId = observation.storeId();
         record.sourceId = observation.sourceId();
         record.sourceReference = observation.sourceReference().strip();
-        record.originType = originType;
-        record.contributionId = contributionId;
         record.regularPrice = observation.regularPrice().setScale(2, RoundingMode.UNNECESSARY);
 
         record.promotionalPrice = observation.promotionalPrice() == null ? null
@@ -140,8 +115,6 @@ public class PriceRecord {
                 && storeId.equals(other.storeId)
                 && sourceId.equals(other.sourceId)
                 && sourceReference.equals(other.sourceReference)
-                && originType == other.originType
-                && Objects.equals(contributionId, other.contributionId)
                 && regularPrice.equals(other.regularPrice)
                 && Objects.equals(promotionalPrice, other.promotionalPrice)
                 && currency.equals(other.currency)

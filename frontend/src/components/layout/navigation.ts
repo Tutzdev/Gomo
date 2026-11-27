@@ -28,7 +28,7 @@ export type NavigationItem = {
 
 /**
  * Kept short on purpose: searching and comparing are one task, so they share one entry. Notifications live
- * behind the bell in the header, and price contributions stay out of the menu until there is time to moderate them.
+ * behind the bell in the header.
  */
 export const navigation: NavigationItem[] = [
   { label: "Início", to: "/app", icon: House },

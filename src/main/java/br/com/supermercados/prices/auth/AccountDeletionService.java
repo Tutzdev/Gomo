@@ -46,7 +46,6 @@ public class AccountDeletionService {
                 AND u.premium_paid_until IS NULL
                 AND u.created_at < ?
                 AND coalesce(u.last_login_at, u.created_at) < ?
-                AND NOT EXISTS (SELECT 1 FROM price_contributions c WHERE c.contributor_id = u.id OR c.moderator_id = u.id)
                 AND NOT EXISTS (SELECT 1 FROM admin_audit_entries a WHERE a.actor_user_id = u.id)
                 AND NOT EXISTS (SELECT 1 FROM billing_subscriptions b WHERE b.user_id = u.id)
             """;
@@ -54,10 +53,8 @@ public class AccountDeletionService {
     private static final String LOCK_ABANDONED_ACCOUNT =
             "SELECT u.id FROM app_users u WHERE u.id = ? AND " + ABANDONED_ACCOUNT + " FOR UPDATE";
 
-    private static final String HAS_PUBLIC_RECORDS = """
-            SELECT EXISTS (SELECT 1 FROM price_contributions WHERE contributor_id = ? OR moderator_id = ?)
-                OR EXISTS (SELECT 1 FROM admin_audit_entries WHERE actor_user_id = ?)
-            """;
+    private static final String HAS_PUBLIC_RECORDS =
+            "SELECT EXISTS (SELECT 1 FROM admin_audit_entries WHERE actor_user_id = ?)";
 
     private static final String ANONYMISE_ACCOUNT = """
             UPDATE app_users SET
@@ -129,8 +126,6 @@ public class AccountDeletionService {
         Boolean found = jdbc.queryForObject(
             HAS_PUBLIC_RECORDS,
             Boolean.class,
-            userId,
-            userId,
             userId);
 
         return Boolean.TRUE.equals(found);

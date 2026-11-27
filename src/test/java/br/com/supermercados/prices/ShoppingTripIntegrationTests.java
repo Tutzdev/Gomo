@@ -107,7 +107,6 @@ class ShoppingTripIntegrationTests {
                 .andExpect(jsonPath("$.pricedItems").value(1))
                 .andExpect(jsonPath("$.expectedTotal").value(10.00))
                 .andExpect(jsonPath("$.items[0].unitPrice").value(5.00))
-                .andExpect(jsonPath("$.items[0].storeProductId").value(PRODUCT_A.toString()))
                 .andExpect(jsonPath("$.items[1].unitPrice").isEmpty());
     }
 
@@ -120,18 +119,16 @@ class ShoppingTripIntegrationTests {
         accounts.perform(put(items(list) + "/" + rice + "/check"), account).andExpect(status().isOk());
         accounts.perform(put(items(list) + "/" + beans + "/check"), account).andExpect(status().isOk());
         String purchase = accounts.write(Map.of("id", UUID.randomUUID(), "storeId", STORE_A, "items", List.of(
-                Map.of("itemId", rice), Map.of("itemId", beans, "shelfPrice", new BigDecimal("3.00")))));
+                Map.of("itemId", rice), Map.of("itemId", beans))));
 
         accounts.perform(post("/api/v1/shopping-lists/" + list + "/purchases").content(purchase), account)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.listRestarted").value(true))
                 .andExpect(jsonPath("$.purchase.storeName").value("Loja fictícia A"))
-                // 2 × 5.00 collected + 1 × 3.00 typed from the shelf.
-                .andExpect(jsonPath("$.purchase.totalPaid").value(13.00))
-                // Only product A has a price in two stores: average 5.50, so 2 × 0.50 saved.
+                .andExpect(jsonPath("$.purchase.totalPaid").value(10.00))
                 .andExpect(jsonPath("$.purchase.comparedItems").value(1))
                 .andExpect(jsonPath("$.purchase.savings").value(1.00))
-                .andExpect(jsonPath("$.purchase.itemsWithoutPrice").value(0));
+                .andExpect(jsonPath("$.purchase.itemsWithoutPrice").value(1));
         accounts.perform(post("/api/v1/shopping-lists/" + list + "/purchases").content(purchase), account)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.purchase.savings").value(1.00));
@@ -144,7 +141,7 @@ class ShoppingTripIntegrationTests {
                 .andExpect(jsonPath("$.purchases").value(1))
                 .andExpect(jsonPath("$.savings").value(1.00))
                 .andExpect(jsonPath("$.locked").value(false))
-                .andExpect(jsonPath("$.details[0].items.length()").value(2)));
+                .andExpect(jsonPath("$.details[0].items.length()").value(1)));
         accounts.perform(delete("/api/v1/purchases/" + report.path("details").get(0).path("id").asString()), account)
                 .andExpect(status().isNoContent());
         accounts.perform(get("/api/v1/savings"), account).andExpect(jsonPath("$.purchases").value(0));

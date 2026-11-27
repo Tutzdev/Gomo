@@ -29,7 +29,7 @@ public class PriceHistoryCompactor {
                            AS repeats_previous,
                        lead(id) OVER w IS NULL AS newest
                 FROM price_records
-                WHERE store_id = ? AND product_id BETWEEN ? AND ? AND origin_type = 'SOURCE'
+                WHERE store_id = ? AND product_id BETWEEN ? AND ?
                 WINDOW w AS (PARTITION BY source_id, product_id ORDER BY collected_at, recorded_at, id)
             ) observation
             WHERE r.id = observation.id
@@ -37,7 +37,6 @@ public class PriceHistoryCompactor {
               AND NOT observation.newest
               AND observation.collected_at < ?
               AND NOT EXISTS (SELECT 1 FROM alert_notifications a WHERE a.price_record_id = r.id)
-              AND NOT EXISTS (SELECT 1 FROM price_contributions c WHERE c.price_record_id = r.id)
             """;
 
     private final JdbcTemplate jdbc;

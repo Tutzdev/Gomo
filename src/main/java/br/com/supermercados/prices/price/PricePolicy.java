@@ -1,6 +1,5 @@
 package br.com.supermercados.prices.price;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -12,23 +11,9 @@ import java.util.Objects;
 public class PricePolicy {
 
     private final Duration maxAge;
-    private final Duration inStoreMaxAge;
 
-    @Autowired
-    public PricePolicy(
-        @Value("${app.prices.max-age:P2D}") Duration maxAge,
-        @Value("${app.prices.in-store-max-age:P7D}") Duration inStoreMaxAge) {
-
+    public PricePolicy(@Value("${app.prices.max-age:P2D}") Duration maxAge) {
         this.maxAge = requirePositive(maxAge);
-        this.inStoreMaxAge = requirePositive(inStoreMaxAge);
-
-        if (inStoreMaxAge.compareTo(maxAge) < 0) {
-            throw new IllegalArgumentException("O preço conferido na loja não pode vencer antes do preço coletado.");
-        }
-    }
-
-    public PricePolicy(Duration maxAge) {
-        this(maxAge, maxAge.compareTo(Duration.ofDays(7)) > 0 ? maxAge : Duration.ofDays(7));
     }
 
     private static Duration requirePositive(Duration duration) {
@@ -43,14 +28,6 @@ public class PricePolicy {
 
     public Duration maxAge() {
         return maxAge;
-    }
-
-    public Duration inStoreMaxAge() {
-        return inStoreMaxAge;
-    }
-
-    public Duration maxAge(PriceOriginType origin) {
-        return origin == PriceOriginType.STORE_VISIT ? inStoreMaxAge : maxAge;
     }
 
     public PriceQuote quote(PriceRecord record, Instant comparedAt) {
@@ -98,7 +75,7 @@ public class PricePolicy {
     }
 
     private Instant observationExpiry(PriceRecord record) {
-        Instant freshnessLimit = record.getCollectedAt().plus(maxAge(record.getOriginType()));
+        Instant freshnessLimit = record.getCollectedAt().plus(maxAge);
 
         if (record.getValidUntil() != null && record.getValidUntil().isBefore(freshnessLimit)) {
             return record.getValidUntil();

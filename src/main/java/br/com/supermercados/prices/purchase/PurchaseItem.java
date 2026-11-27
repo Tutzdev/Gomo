@@ -2,8 +2,6 @@ package br.com.supermercados.prices.purchase;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
@@ -18,11 +16,6 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 class PurchaseItem {
-
-    enum PriceSource {
-        COLLECTED,
-        SHELF
-    }
 
     @Id
     private UUID id;
@@ -42,10 +35,6 @@ class PurchaseItem {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
-    private PriceSource priceSource;
-
     @Column(precision = 12, scale = 2)
     private BigDecimal cityAveragePrice;
 
@@ -58,7 +47,6 @@ class PurchaseItem {
         String productName,
         BigDecimal quantity,
         BigDecimal unitPrice,
-        PriceSource priceSource,
         BigDecimal cityAveragePrice,
         int cityStores) {
 
@@ -68,7 +56,6 @@ class PurchaseItem {
         this.productName = productName.length() > 200 ? productName.substring(0, 200) : productName;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
-        this.priceSource = priceSource;
         this.cityAveragePrice = cityAveragePrice;
         this.cityStores = cityStores;
     }

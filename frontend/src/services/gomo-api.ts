@@ -24,9 +24,6 @@ import type {
   PremiumValue,
   PriceAlert,
   CreatePriceAlertInput,
-  PriceContribution,
-  ProductSuggestion,
-  StoreVisitResult,
   PriceRecord,
   Product,
   ProductSearchFacets,
@@ -39,7 +36,6 @@ import type {
   ShoppingRecommendation,
   ShoppingListSummary,
   State,
-  StockAvailability,
   Store,
   StoreProduct,
   SubscriptionStatus,
@@ -384,46 +380,6 @@ export const alertApi = {
     }),
 };
 
-interface ContributionInput {
-  productId: string;
-  storeId: string;
-  regularPrice: number;
-  promotionalPrice?: number;
-  currency: "BRL";
-  observedAt: string;
-  validUntil?: string;
-  promotionValidUntil?: string;
-  availability: StockAvailability;
-}
-
-export const contributionApi = {
-  listMine: (page = 0, size = 20) =>
-    apiRequest<PageResponse<PriceContribution>>(
-      `/contributions?${queryString({ page, size })}`,
-    ),
-  submit: (input: ContributionInput) =>
-    apiRequest<PriceContribution>("/contributions", {
-      method: "POST",
-      body: input,
-    }),
-  moderation: (
-    status: "PENDING" | "APPROVED" | "REJECTED" = "PENDING",
-    page = 0,
-  ) =>
-    apiRequest<PageResponse<PriceContribution>>(
-      `/admin/contributions?${queryString({ status, page, size: 20 })}`,
-    ),
-  approve: (id: string) =>
-    apiRequest<PriceContribution>(`/admin/contributions/${id}/approval`, {
-      method: "POST",
-    }),
-  reject: (id: string, reason: string) =>
-    apiRequest<PriceContribution>(`/admin/contributions/${id}/rejection`, {
-      method: "POST",
-      body: { reason },
-    }),
-};
-
 export const adminApi = {
   audit: (page = 0, size = 20) =>
     apiRequest<PageResponse<AdminAudit>>(
@@ -437,8 +393,6 @@ export const adminApi = {
   }) => apiRequest("/admin/sources", { method: "POST", body: input }),
   ingestChain: (input: unknown) =>
     apiRequest("/admin/chains", { method: "POST", body: input }),
-  stores: (page = 0, size = 100) =>
-    apiRequest<PageResponse<Store>>(`/admin/stores?${queryString({ page, size })}`),
   ingestStore: (input: unknown) =>
     apiRequest("/admin/stores", { method: "POST", body: input }),
   ingestProduct: (input: unknown) =>
@@ -448,10 +402,6 @@ export const adminApi = {
   collectionHealth: () => apiRequest<CollectionHealth>("/admin/collections/health"),
   basicItemCoverage: (cityId: string) =>
     apiRequest<BasicItemCoverage>(`/admin/basic-items/coverage?${queryString({ cityId })}`),
-  setStoreVisitValidity: (storeId: string, days: number | null) =>
-    apiRequest<Store>(`/admin/stores/${storeId}/visit-validity`, { method: "PUT", body: { days } }),
-  recordStoreVisit: (storeId: string, input: { observedAt: string; items: { productId: string; price: number }[] }) =>
-    apiRequest<StoreVisitResult>(`/admin/stores/${storeId}/visits`, { method: "POST", body: input }),
   collect: (collectorCode: string, existingOnly: boolean) =>
     apiRequest<unknown>(`/admin/collections?${queryString({ collectorCode, existingOnly: String(existingOnly) })}`, { method: "POST" }),
 };
@@ -496,7 +446,7 @@ interface RecordPurchaseInput {
   /** Chosen here, so sending the same purchase again records it once. */
   id: string;
   storeId: string;
-  items: Array<{ itemId: string; shelfPrice?: number }>;
+  items: Array<{ itemId: string }>;
 }
 
 export const tripApi = {
@@ -546,25 +496,3 @@ export const sharingApi = {
     apiRequest<{ listId: string }>("/list-invites/acceptance", { method: "POST", body: { token } }),
 };
 
-interface ProductSuggestionInput {
-  name: string;
-  brand?: string;
-  packageSize?: string;
-  barcode?: string;
-  storeId?: string;
-  price?: number;
-  note?: string;
-}
-
-export const suggestionApi = {
-  listMine: (page = 0, size = 50) =>
-    apiRequest<PageResponse<ProductSuggestion>>(`/product-suggestions?${queryString({ page, size })}`),
-  submit: (input: ProductSuggestionInput) =>
-    apiRequest<ProductSuggestion>("/product-suggestions", { method: "POST", body: input }),
-  moderation: (status: ProductSuggestion["status"] = "PENDING", page = 0) =>
-    apiRequest<PageResponse<ProductSuggestion>>(`/admin/product-suggestions?${queryString({ status, page, size: 20 })}`),
-  approve: (id: string) =>
-    apiRequest<ProductSuggestion>(`/admin/product-suggestions/${id}/approval`, { method: "POST" }),
-  reject: (id: string, reason: string) =>
-    apiRequest<ProductSuggestion>(`/admin/product-suggestions/${id}/rejection`, { method: "POST", body: { reason } }),
-};

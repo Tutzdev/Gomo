@@ -12,14 +12,13 @@ import { clearSession, EMPTY_SESSION, loadSession, loadSnapshot, saveSession, sa
 import { useTripQueue, type SyncState } from "@/features/trip/use-trip-queue";
 import { formatCurrency } from "@/lib/brand";
 import { cn } from "@/lib/cn";
-import { contributionApi, tripApi } from "@/services/gomo-api";
+import { tripApi } from "@/services/gomo-api";
 import type { Purchase, Trip, TripItem } from "@/types/api";
 
 const formatQuantity = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 
 /**
- * "No mercado": the list as a big checklist at one market. Each item shows what it should cost there; a price
- * different on the shelf can be typed in (it goes to the purchase and, as a contribution, to everyone).
+ * "No mercado": the list as a big checklist at one market. Each item shows what it should cost there.
  * "Terminei a compra" records the purchase for the savings report. It keeps working when the signal drops:
  * changes wait in the phone and go out when it comes back.
  */
@@ -28,7 +27,6 @@ export function TripPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [session, setSession] = useState<TripSession>(() => loadSession(listId, storeId));
-  const [editing, setEditing] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [recorded, setRecorded] = useState<{ purchase: Purchase; listRestarted: boolean } | null>(null);
   const trip = useQuery({
@@ -73,15 +71,6 @@ export function TripPage() {
           });
           return updated;
         }
-        case "contribution":
-          return contributionApi.submit({
-            productId: operation.productId,
-            storeId: operation.storeId,
-            regularPrice: operation.regularPrice,
-            currency: "BRL",
-            observedAt: operation.observedAt,
-            availability: "AVAILABLE",
-          });
         case "purchase": {
           const result = await tripApi.recordPurchase(listId, {
             id: operation.purchaseId,
@@ -96,7 +85,6 @@ export function TripPage() {
             setSession((current) => {
               const next = {
                 boughtHere: [],
-                shelfPrices: {},
                 recorded: [...new Set([...current.recorded, ...operation.items.map((item) => item.itemId)])],
               };
               saveSession(listId, storeId, next);
@@ -125,9 +113,8 @@ export function TripPage() {
       (trip.data?.items ?? []).map((item) => ({
         ...item,
         inCart: pendingCheck(queue, item.itemId) ?? item.checkedAt !== null,
-        paidPrice: session.shelfPrices[item.itemId] ?? item.unitPrice,
       })),
-    [trip.data, queue, session.shelfPrices],
+    [trip.data, queue],
   );
 
   if (!trip.data) {
@@ -142,7 +129,7 @@ export function TripPage() {
   const boughtHere = new Set(session.boughtHere);
   const bought = inCart.filter((item) => !recordedHere.has(item.itemId)
     && (boughtHere.size === 0 || boughtHere.has(item.itemId)));
-  const cartTotal = bought.reduce((sum, item) => sum + (item.paidPrice === null ? 0 : item.paidPrice * item.quantity), 0);
+  const cartTotal = bought.reduce((sum, item) => sum + (item.unitPrice === null ? 0 : item.unitPrice * item.quantity), 0);
   const toggle = (item: TripItem & { inCart: boolean }) => {
     add({ kind: item.inCart ? "uncheck" : "check", itemId: item.itemId });
     updateSession((current) => ({
@@ -154,20 +141,12 @@ export function TripPage() {
       recorded: current.recorded.filter((itemId) => itemId !== item.itemId),
     }));
   };
-  const saveShelfPrice = (item: TripItem, price: number) => {
-    updateSession((current) => ({ ...current, shelfPrices: { ...current.shelfPrices, [item.itemId]: price } }));
-    // A typed price helps everyone once a moderator approves it; contributions need a confirmed e-mail.
-    if (user?.emailVerified && price !== item.unitPrice) {
-      add({ kind: "contribution", productId: item.storeProductId, storeId, regularPrice: price, observedAt: new Date().toISOString() });
-    }
-    setEditing(null);
-  };
   const finish = () => {
     add({
       kind: "purchase",
       purchaseId: crypto.randomUUID(),
       storeId,
-      items: bought.map((item) => ({ itemId: item.itemId, shelfPrice: session.shelfPrices[item.itemId] })),
+      items: bought.map((item) => ({ itemId: item.itemId })),
     });
     setConfirming(false);
   };
@@ -211,7 +190,7 @@ export function TripPage() {
         {toPick.length ? (
           <ul className="mt-2 space-y-2">
             {toPick.map((item) => (
-              <TripRow key={item.itemId} item={item} shelfPrice={session.shelfPrices[item.itemId]} editing={editing === item.itemId} onToggle={() => toggle(item)} onEdit={() => setEditing(editing === item.itemId ? null : item.itemId)} onSavePrice={(price) => saveShelfPrice(item, price)} me={user?.id} />
+              <TripRow key={item.itemId} item={item} onToggle={() => toggle(item)} me={user?.id} />
             ))}
           </ul>
         ) : (
@@ -224,7 +203,7 @@ export function TripPage() {
           <h2 id="in-cart" className="text-sm font-bold uppercase tracking-wide text-muted">No carrinho ({inCart.length})</h2>
           <ul className="mt-2 space-y-2">
             {inCart.map((item) => (
-              <TripRow key={item.itemId} item={item} shelfPrice={session.shelfPrices[item.itemId]} editing={editing === item.itemId} onToggle={() => toggle(item)} onEdit={() => setEditing(editing === item.itemId ? null : item.itemId)} onSavePrice={(price) => saveShelfPrice(item, price)} me={user?.id} />
+              <TripRow key={item.itemId} item={item} onToggle={() => toggle(item)} me={user?.id} />
             ))}
           </ul>
         </section>
@@ -257,23 +236,14 @@ export function TripPage() {
 
 function TripRow({
   item,
-  shelfPrice,
-  editing,
   onToggle,
-  onEdit,
-  onSavePrice,
   me,
 }: {
-  item: TripItem & { inCart: boolean; paidPrice: number | null };
-  shelfPrice: number | undefined;
-  editing: boolean;
+  item: TripItem & { inCart: boolean };
   onToggle: () => void;
-  onEdit: () => void;
-  onSavePrice: (price: number) => void;
   /** The person using the phone: their own checks need no name. */
   me: string | undefined;
 }) {
-  const [typed, setTyped] = useState(shelfPrice !== undefined ? String(shelfPrice) : "");
   return (
     <li className={cn("surface overflow-hidden", item.inCart && "opacity-75")}>
       <div className="flex items-center gap-3 p-3">
@@ -297,41 +267,14 @@ function TripRow({
           {item.inCart && item.checkedByName && item.checkedBy !== me ? <p className="text-xs font-semibold text-success">{item.checkedByName} pôs no carrinho</p> : null}
         </div>
         <div className="shrink-0 text-right">
-          {item.paidPrice !== null ? (
-            <p className="font-bold tabular-nums">{formatCurrency(item.paidPrice)}</p>
+          {item.unitPrice !== null ? (
+            <p className="font-bold tabular-nums">{formatCurrency(item.unitPrice)}</p>
           ) : (
             <p className="text-xs text-muted">Sem preço aqui</p>
           )}
-          {shelfPrice !== undefined ? <p className="text-xs text-muted">da gôndola</p> : item.promotion ? <p className="text-xs font-semibold text-success">promoção</p> : null}
-          <button type="button" onClick={onEdit} className="mt-1 text-xs font-semibold text-primary-dark hover:underline">
-            {item.unitPrice === null && shelfPrice === undefined ? "Informar preço" : "Preço diferente?"}
-          </button>
+          {item.promotion ? <p className="text-xs font-semibold text-success">promoção</p> : null}
         </div>
       </div>
-      {editing ? (
-        <form
-          className="flex items-end gap-2 border-t border-border bg-surface-strong p-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const price = Number(typed.replace(",", "."));
-            if (price > 0) onSavePrice(Math.round(price * 100) / 100);
-          }}
-        >
-          <label className="min-w-0 flex-1 text-sm font-semibold" htmlFor={`shelf-${item.itemId}`}>
-            Preço na gôndola (R$)
-            <input
-              id={`shelf-${item.itemId}`}
-              inputMode="decimal"
-              autoFocus
-              value={typed}
-              onChange={(event) => setTyped(event.target.value)}
-              className="mt-1 block min-h-11 w-full rounded-lg border border-border bg-white px-3 text-base tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-              placeholder={item.unitPrice === null ? "0,00" : String(item.unitPrice).replace(".", ",")}
-            />
-          </label>
-          <NativeButton type="submit" disabled={!(Number(typed.replace(",", ".")) > 0)}>Salvar</NativeButton>
-        </form>
-      ) : null}
     </li>
   );
 }

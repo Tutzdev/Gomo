@@ -6,8 +6,6 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -48,13 +46,6 @@ public class Store {
     @Column(nullable = false)
     private boolean active;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
-    private StorePriceChannel priceChannel = StorePriceChannel.ONLINE;
-
-    @Column(name = "in_store_price_valid_days")
-    private Integer inStorePriceValidDays;
-
     @Column(nullable = false)
     private UUID sourceId;
 
@@ -75,11 +66,6 @@ public class Store {
         sourceId = observation.source().sourceId();
         sourceReference = observation.source().sourceReference();
         update(observation, now);
-    }
-
-    public void changeInStorePriceValidDays(Integer days, Instant now) {
-        this.inStorePriceValidDays = days;
-        this.updatedAt = now;
     }
 
     void update(StoreObservation observation, Instant now) {

@@ -3,12 +3,9 @@ package br.com.supermercados.prices.price;
 public enum PriceSalesChannel {
     ONLINE,
     PHYSICAL_FLYER,
-    IN_STORE,
     UNSPECIFIED;
 
     static PriceSalesChannel of(PriceRecord record) {
-        if (record.getOriginType() == PriceOriginType.STORE_VISIT) {return IN_STORE;}
-
         return fromSourceReference(record.getSourceProductReference());
     }
 

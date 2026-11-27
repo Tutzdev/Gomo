@@ -36,15 +36,12 @@ public class ProductSearchRepository {
     private final EntityManager entityManager;
     private final Clock clock;
     private final Duration maxPriceAge;
-    private final Duration inStoreMaxPriceAge;
 
     public ProductSearchRepository(
         EntityManager entityManager,
         Clock clock,
-        @Value("${app.prices.max-age:P2D}") Duration maxPriceAge,
-        @Value("${app.prices.in-store-max-age:P7D}") Duration inStoreMaxPriceAge) {
+        @Value("${app.prices.max-age:P2D}") Duration maxPriceAge) {
 
-        this.inStoreMaxPriceAge = inStoreMaxPriceAge;
         this.entityManager = entityManager;
         this.clock = clock;
         this.maxPriceAge = maxPriceAge;
@@ -70,7 +67,6 @@ public class ProductSearchRepository {
         if (search.sort().startsWith("price_")) {
             query.setParameter("now", clock.instant());
             query.setParameter("freshAfter", clock.instant().minus(maxPriceAge));
-            query.setParameter("visitFreshAfter", clock.instant().minus(inStoreMaxPriceAge));
         }
 
         query.setFirstResult(Math.toIntExact(pageable.getOffset()));
@@ -326,8 +322,7 @@ public class ProductSearchRepository {
                  WHERE l.product_id = p.id
                 """ + storeFilter + """
 
-                     AND latest.collected_at > :visitFreshAfter
-                     AND (latest.origin_type = 'STORE_VISIT' OR latest.collected_at > :freshAfter)
+                     AND latest.collected_at > :freshAfter
                      AND latest.collected_at <= :now
                      AND (latest.valid_until IS NULL OR latest.valid_until > :now)
                      AND latest.availability <> 'UNAVAILABLE')

@@ -24,7 +24,7 @@ export function PrivacyPage() {
       <h2>Dados que guardamos</h2>
       <ul>
         <li><strong>Conta:</strong> nome, e-mail e a confirmação do e-mail. A senha é guardada apenas como hash (BCrypt): ninguém, nem a equipe do Gomo, consegue lê-la.</li>
-        <li><strong>O que você cria no app:</strong> listas de compras, alertas de preço e as notificações deles, cidade preferida, mercados favoritos e preços que você enviar como contribuição.</li>
+        <li><strong>O que você cria no app:</strong> listas de compras, alertas de preço e as notificações deles, cidade preferida e mercados favoritos.</li>
         <li><strong>Plano:</strong> se a conta é grátis ou Premium, as datas do teste grátis e quantas comparações completas você fez no dia (para o limite do plano grátis).</li>
         <li><strong>Sessão:</strong> um código de acesso guardado num cookie do Gomo, que só o nosso servidor lê (o cookie é HttpOnly e não serve para rastrear você). Do nosso lado ele fica só como hash e vale por 12 horas; sair da conta apaga o cookie.</li>
         <li><strong>Segurança:</strong> o endereço IP de quem tenta entrar ou criar conta é usado, apenas na memória do servidor e por no máximo uma hora, para limitar tentativas repetidas. O servidor também mantém registros técnicos de acesso por um período curto, para investigar falhas e abusos.</li>
@@ -53,8 +53,7 @@ export function PrivacyPage() {
       <h2>Por quanto tempo</h2>
       <p>
         Enquanto sua conta existir. Ao excluir a conta, apagamos na hora suas listas, alertas, preferências, sessões e
-        o registro de uso. Se você enviou preços como contribuição, eles continuam no histórico de preços, mas a conta
-        é anonimizada: sem nome, sem e-mail e sem como entrar nela. Uma conta que nunca confirmou o e-mail e fica 30
+        o registro de uso. Uma conta que nunca confirmou o e-mail e fica 30
         dias sem ser usada é apagada do mesmo jeito, automaticamente. O registro de comparações do plano grátis é
         apagado depois de 7 dias. Cópias de segurança do banco são mantidas por até 14 dias e depois descartadas.
       </p>
@@ -127,7 +126,6 @@ export function TermsPage() {
       <h2>Sua conta</h2>
       <ul>
         <li>Use um e-mail seu e uma senha só sua; você responde pelo que for feito com a sua conta.</li>
-        <li>Preços enviados como contribuição precisam ser verdadeiros. Eles passam por moderação e podem ser recusados; contribuições falsas podem levar ao bloqueio da conta.</li>
         <li>Não é permitido usar o Gomo para coletar dados em massa, sobrecarregar o serviço ou contornar os limites do plano.</li>
       </ul>
 

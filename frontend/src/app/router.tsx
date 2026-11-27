@@ -150,12 +150,6 @@ export const router = createBrowserRouter([
             lazy: () => import("@/routes/app/alerts-page").then(({ AlertsPage }) => ({ Component: AlertsPage })),
           },
           {
-            path: "contribuir",
-            lazy: () => import("@/routes/app/contributions-page").then(({ ContributionsPage }) => ({
-              Component: ContributionsPage,
-            })),
-          },
-          {
             path: "notificacoes",
             lazy: () => import("@/routes/app/notifications-page").then(({ NotificationsPage }) => ({
               Component: NotificationsPage,

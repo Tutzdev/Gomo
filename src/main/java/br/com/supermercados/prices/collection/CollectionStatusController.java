@@ -23,8 +23,7 @@ public class CollectionStatusController {
         var report = health.report();
 
         var markets = report.markets().stream()
-                .filter(market -> market.status() != CollectionHealthService.MarketStatus.NO_SOURCE
-                        && !market.status().inStore())
+                .filter(market -> market.status() != CollectionHealthService.MarketStatus.NO_SOURCE)
                 .map(market -> new MarketStatusResponse(market.storeName(), market.status(), market.lastPriceAt()))
                 .toList();
 

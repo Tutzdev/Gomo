@@ -12,17 +12,6 @@ export function storeStatus(store: Store) {
   const status = STATUS[store.priceStatus ?? "NO_PRICES"];
   const updated = store.lastPriceCollectedAt ? formatUpdatedAt(store.lastPriceCollectedAt) : null;
 
-  if (store.priceChannel === "IN_STORE") {
-    const help =
-      store.priceStatus === "CURRENT"
-        ? `Mercado sem loja online. Preços anotados na loja ${updated}.`
-        : store.priceStatus === "OUTDATED"
-          ? `Preços anotados na loja ${updated}. Ficam fora das buscas e comparações até a próxima visita.`
-          : "Mercado sem loja online. Os preços chegam depois da primeira visita da equipe do Gomo.";
-
-    return { ...status, help };
-  }
-
   const help =
     store.priceSourceNote ??
     (store.priceStatus === "CURRENT"

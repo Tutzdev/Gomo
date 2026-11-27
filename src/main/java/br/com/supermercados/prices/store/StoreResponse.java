@@ -19,9 +19,7 @@ public record StoreResponse(
         Instant updatedAt,
         Instant lastPriceCollectedAt,
         String priceSourceNote,
-        StorePriceStatus priceStatus,
-        StorePriceChannel priceChannel,
-        Integer inStorePriceValidDays) {
+        StorePriceStatus priceStatus) {
 
     public StoreResponse(
         UUID id,
@@ -53,8 +51,6 @@ public record StoreResponse(
             updatedAt,
             lastPriceCollectedAt,
             null,
-            null,
-            StorePriceChannel.ONLINE,
             null);
     }
 
@@ -82,8 +78,6 @@ public record StoreResponse(
             store.getUpdatedAt(),
             lastPriceCollectedAt,
             store.getPriceSourceNote(),
-            priceStatus,
-            store.getPriceChannel(),
-            store.getInStorePriceValidDays());
+            priceStatus);
     }
 }

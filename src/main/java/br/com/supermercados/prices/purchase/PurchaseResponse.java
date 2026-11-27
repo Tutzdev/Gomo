@@ -29,7 +29,6 @@ public record PurchaseResponse(
             String productName,
             BigDecimal quantity,
             BigDecimal unitPrice,
-            String priceSource,
             BigDecimal cityAveragePrice,
             int cityStores,
             BigDecimal linePaid,
@@ -41,7 +40,7 @@ public record PurchaseResponse(
                 purchase.getComparedItems(), purchase.getComparedPaid(), purchase.getComparedCityAverage(),
                 purchase.savings(), purchase.getItemsWithoutPrice(), items.stream().map(item -> new Item(
                         item.getProductId(), item.getProductName(), item.getQuantity(), item.getUnitPrice(),
-                        item.getPriceSource().name(), item.getCityAveragePrice(), item.getCityStores(),
+                        item.getCityAveragePrice(), item.getCityStores(),
                         item.linePaid(), item.lineCityAverage() == null ? null
                                 : item.lineCityAverage().subtract(item.linePaid()))).toList());
     }

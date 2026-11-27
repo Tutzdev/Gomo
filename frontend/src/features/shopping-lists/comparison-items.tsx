@@ -68,10 +68,7 @@ export function ComparisonItems({
                       </a>
                     ) : (
                       <p className="mt-1">
-                        {item.price.observation.originType ===
-                        "USER_CONTRIBUTION"
-                          ? "Preço enviado pela comunidade."
-                          : "Do site do próprio mercado."}
+                        Do site do próprio mercado.
                       </p>
                     )}
                     {item.price.observation.promotionalPrice !== null &&

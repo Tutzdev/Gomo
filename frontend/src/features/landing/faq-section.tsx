@@ -17,7 +17,7 @@ export function FaqSection() {
     },
     {
       question: "Como os preços são obtidos?",
-      answer: "A maior parte vem dos sites dos próprios supermercados, consultados várias vezes por dia. Nos mercados que não vendem pela internet, o preço é conferido na prateleira da loja. Cada preço mostra quando foi visto.",
+      answer: "Dos sites dos próprios supermercados, consultados várias vezes por dia. Cada preço mostra quando foi visto.",
     },
     {
       question: "Por que algumas lojas não aparecem na comparação?",

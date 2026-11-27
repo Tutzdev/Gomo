@@ -84,30 +84,6 @@ class CollectionHealthIntegrationTests {
         assertThat(statusOf(STORE_B)).isEqualTo(MarketStatus.NO_SOURCE);
     }
 
-    @Test
-    void aStoreWithoutOnlineSalesReportsWhenTheNextVisitIsDueWithoutRaisingAnAlert() {
-        price(STORE_A, Instant.now().minus(Duration.ofMinutes(30)));
-        run("SUCCESS", STORE_A, Instant.now().minus(Duration.ofMinutes(30)));
-        boolean healthyWithoutTheStore = health.report().healthy();
-        jdbc.update("UPDATE stores SET price_channel = 'IN_STORE' WHERE id = ?", STORE_B);
-
-        assertThat(statusOf(STORE_B)).isEqualTo(MarketStatus.VISIT_OVERDUE);
-
-        price(STORE_B, Instant.now().minus(Duration.ofDays(1)));
-        jdbc.update("UPDATE price_records SET origin_type = 'STORE_VISIT' WHERE store_id = ?", STORE_B);
-        var visited = marketOf(STORE_B);
-        assertThat(visited.status()).isEqualTo(MarketStatus.VISITED);
-        assertThat(visited.currentProducts()).isOne();
-        assertThat(visited.priceExpiresAt()).isEqualTo(visited.lastPriceAt().plus(Duration.ofDays(7)));
-
-        jdbc.update("UPDATE price_records SET collected_at = collected_at - interval '5 days', recorded_at = recorded_at - interval '5 days' WHERE store_id = ?", STORE_B);
-        assertThat(statusOf(STORE_B)).isEqualTo(MarketStatus.VISIT_DUE);
-
-        jdbc.update("UPDATE price_records SET collected_at = collected_at - interval '2 days', recorded_at = recorded_at - interval '2 days' WHERE store_id = ?", STORE_B);
-        assertThat(statusOf(STORE_B)).isEqualTo(MarketStatus.VISIT_OVERDUE);
-        assertThat(health.report().healthy()).isEqualTo(healthyWithoutTheStore);
-    }
-
     private MarketStatus statusOf(UUID storeId) {
         return marketOf(storeId).status();
     }

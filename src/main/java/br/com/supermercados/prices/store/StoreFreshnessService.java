@@ -15,7 +15,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import br.com.supermercados.prices.price.PriceOriginType;
 import br.com.supermercados.prices.price.PricePolicy;
 import lombok.RequiredArgsConstructor;
 
@@ -57,15 +56,13 @@ public class StoreFreshnessService {
                 .map(store -> new MissingStoreResponse(
                     store.id(),
                     store.name(),
-                    reason(store, lastCollected.get(store.id()), outOfStock.contains(store.id()), now),
+                    reason(lastCollected.get(store.id()), outOfStock.contains(store.id()), now),
                     lastCollected.get(store.id())))
                 .toList();
     }
 
-    private MissingPriceReason reason(StoreResponse store, Instant lastCollected, boolean outOfStock, Instant now) {
-        if (store.priceChannel() == StorePriceChannel.IN_STORE) {return MissingPriceReason.NOT_CHECKED_IN_STORE;}
-
-        if (lastCollected == null || lastCollected.isBefore(now.minus(policy.maxAge(PriceOriginType.SOURCE)))) {
+    private MissingPriceReason reason(Instant lastCollected, boolean outOfStock, Instant now) {
+        if (lastCollected == null || lastCollected.isBefore(now.minus(policy.maxAge()))) {
             return MissingPriceReason.OUTDATED_PRICES;
         }
 
@@ -90,7 +87,7 @@ public class StoreFreshnessService {
         MapSqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("storeIds", storeIds)
                 .addValue("productIds", productIds)
-                .addValue("freshAfter", Timestamp.from(now.minus(policy.maxAge(PriceOriginType.SOURCE))));
+                .addValue("freshAfter", Timestamp.from(now.minus(policy.maxAge())));
 
         Set<UUID> outOfStock = new HashSet<>();
 
