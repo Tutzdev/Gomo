@@ -18,7 +18,7 @@
 
 ## O que é
 
-O Gomo é um **SaaS com backend em Java/Spring Boot**, do scraping ao deploy: **11 supermercados** com loja online em Volta Redonda e Barra Mansa, coletados **4 vezes por dia**, mais os mercados de Barra Mansa sem loja online, com o preço anotado na prateleira pela equipe, num catálogo de **~10 mil produtos comparáveis** (incluindo hortifrúti e açougue por kg). Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
+O Gomo é um **SaaS com backend em Java/Spring Boot**, do scraping ao deploy: **11 supermercados** com loja online em Volta Redonda e Barra Mansa, coletados **4 vezes por dia**, num catálogo de **~10 mil produtos comparáveis** (incluindo hortifrúti e açougue por kg). Tem contas com verificação de e-mail, plano gratuito com limites e trial do plano pago.
 
 O valor do produto está numa regra simples e difícil de cumprir: **a busca devolve um produto genérico ("Coca-Cola 2 L"), nunca o anúncio de cada loja, e a comparação mostra só mercados com preço real e atual.** Nada de linha "indisponível" ou preço vencido.
 
@@ -65,11 +65,11 @@ Detalhes em [`docs/generic-catalog.md`](docs/generic-catalog.md) e [`docs/produc
 - **Preço de sempre** com uma definição só (média do menor preço de cada dia nos 30 dias antes de hoje, tabela `daily_lowest_prices` mantida por trigger), usada pelo veredito, pelo alerta, pelas ofertas e pela "Hora de estocar".
 - **Ofertas da semana** em página pública (`/ofertas`, no sitemap): o que está pelo menos 10% abaixo do preço de sempre em cada mercado agora, com busca por palavra (sem acento, no nome, na marca e no mercado) e filtro de mercado e corredor; no Premium, só o que está nas listas da pessoa.
 - **Compra dividida:** num mercado só, em **no máximo 2 mercados** (a dupla mais barata, desde que a segunda parada economize pelo menos R$ 5) ou em todos, com a rota a partir da localização e a **economia real** depois da gasolina ou do ônibus, calculada no navegador.
-- **Modo "No mercado":** a lista vira checklist no mercado escolhido, com o preço previsto de cada item, o preço da gôndola (que vira contribuição) e "Terminei a compra". Funciona com sinal fraco: as mudanças esperam numa fila no aparelho.
+- **Modo "No mercado":** a lista vira checklist no mercado escolhido, com o preço previsto de cada item e "Terminei a compra". Funciona com sinal fraco: as mudanças esperam numa fila no aparelho.
 - **Minha economia:** cada compra registrada é comparada com a média dos mercados da cidade naquele momento; o Início abre com "Em outubro, o Gomo te fez economizar R$ 83".
 - **Listas de compras** semanais e mensais recalculadas ("hoje sai R$ 412 no Bramil, R$ 18 a menos que semana passada"), **compartilhadas** com a casa por link de convite, com **Hora de estocar** (despensa no menor preço do período) e **equivalente mais barato** por kg ou litro.
 - Cidade preferida, lojas favoritas e **alertas de preço** com notificações internas: por preço escolhido ou por **% abaixo do preço de sempre**, avisando uma vez por promoção. Os avisos também podem ir para o **WhatsApp** (Meta Cloud API, template aprovado, com consentimento e reenvio limitado), desligado até existir a conta comercial ([passo a passo](docs/operations.md#9-avisos-de-preço-no-whatsapp-opcional)).
-- **Contribuições da comunidade** com moderação, e área administrativa com auditoria.
+- **Área administrativa** com monitor de coletas e auditoria.
 - **Freemium** aplicado no backend: plano gratuito com limites (3 mercados mais baratos, 5 comparações completas por dia, 1 lista) que respondem `403 PLAN_LIMIT`, e trial de 7 dias sem cartão. Enquanto não há cobrança, o beta aberto (`OPEN_BETA=true`, padrão) dá o Premium a toda conta; os limites voltam com `OPEN_BETA=false`.
 - **Busca aberta:** buscar, comparar e a lista de mercados funcionam sem conta (o visitante vê os 3 mercados mais baratos); listas, alertas e perfil pedem login.
 - **Premium pago** pela AbacatePay: checkout hospedado de assinatura mensal ou anual, sem dados de cartão no Gomo. Só o webhook confirmado libera o acesso, cada pagamento estende um ciclo e cancelar mantém o período já pago.
@@ -91,7 +91,7 @@ flowchart LR
     API --> DB
 ```
 
-O backend é organizado **por funcionalidade**: `auth`, `catalog`, `collection`, `comparison`, `deal`, `purchase`, `recurring`, `shoppinglist`, `subscription`, `alert`, `contribution`, `admin`, `price`, `product`, `store`, `location` e `user`. Cada pacote tem seus controllers, services, repositories e DTOs. As entidades nunca são expostas pela API.
+O backend é organizado **por funcionalidade**: `auth`, `catalog`, `collection`, `comparison`, `deal`, `purchase`, `recurring`, `shoppinglist`, `subscription`, `alert`, `admin`, `price`, `product`, `store`, `location` e `user`. Cada pacote tem seus controllers, services, repositories e DTOs. As entidades nunca são expostas pela API.
 
 A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publicada junto no mesmo domínio.
 
@@ -108,7 +108,7 @@ A interface web (`frontend/`, em React) consome só a API `/api/v1` e é publica
 
 ## Qualidade e entrega
 
-- **764 testes**: 723 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 41 no frontend (Vitest) para as contas que envolvem dinheiro, a rota, a fila do modo "No mercado", a cesta da visita à loja e o celular dos avisos no WhatsApp.
+- **764 testes**: 702 no backend (JUnit 5, Spring Boot Test e MockMvc) — parsers dos coletores com fixtures reais de cada site, regras do catálogo genérico, comparação de listas, limites do plano, autenticação e persistência — e 62 no frontend (Vitest) para as contas que envolvem dinheiro, a rota, a fila do modo "No mercado" e o celular dos avisos no WhatsApp.
 - **52 migrações Flyway** versionadas, com o Hibernate só validando o schema.
 - **Deploy contínuo:** push na `main` → GitHub Actions (testes com PostgreSQL descartável, testes e build do frontend) → SSH com *forced command* na VPS → `deploy.sh <sha>`, que faz backup do banco antes das migrations. A chave do deploy só aceita esse comando.
 - **Docker Compose** com API, PostgreSQL e Mailpit para rodar o ambiente completo.

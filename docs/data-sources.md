@@ -8,11 +8,9 @@ Os coletores automáticos implementam `SupermarketCollector` e entregam um catá
 
 ## Regra de entrada
 
-Um mercado entra no Gomo de um destes dois jeitos (regra revista em 03/11/2026):
+Um mercado só entra no Gomo com **loja online**: e-commerce ou site com catálogo e preço público, lidos como o próprio site do mercado os mostra, 4 vezes por dia. Uma resposta 403, login ou captcha descarta a fonte, sem contornar o bloqueio. Preço digitado à mão não entra: o preço anotado na prateleira, a contribuição de usuário, o preço da gôndola no modo "No mercado" e a sugestão de produto saíram em 27/11/2026 (`V60`), porque ninguém para a compra para digitar preço.
 
-1. **Loja online** (`price_channel = ONLINE`): e-commerce ou site com catálogo e preço público, lidos como o próprio site do mercado os mostra, 4 vezes por dia. Uma resposta 403, login ou captcha descarta a fonte, sem contornar o bloqueio.
-2. **Preço conferido na loja** (`price_channel = IN_STORE`): o mercado não vende online, e a equipe do Gomo vai à loja e anota o preço da etiqueta. A visita é gravada na aba **Preço na loja** do admin (`POST /api/v1/admin/stores/{id}/visits`), com uma cesta de 100 itens que mais pesam na compra do mês. Esse preço tem origem própria (`STORE_VISIT`) e vale **7 dias** (`PRICE_IN_STORE_MAX_AGE`), contra 2 dias do preço coletado, porque ninguém visita uma prateleira 4 vezes por dia. No app ele aparece como "Anotado na loja em …". Um mercado com loja online não aceita preço de visita, para não misturar as duas origens.
-Continuam fora: agregador de delivery (iFood, Rappi), que bloqueia coleta e cobra mais que a prateleira ([teste de 25/11/2026](#ifood-em-volta-redonda-25112026)); API paga; e preço digitado pelo usuário sem moderação. A sugestão de produto que falta no catálogo existe (`/api/v1/product-suggestions`, moderada no admin), mas aprovar só marca como aceita: o produto é cadastrado à mão depois.
+Continuam fora: agregador de delivery (iFood, Rappi), que bloqueia coleta e cobra mais que a prateleira ([teste de 25/11/2026](#ifood-em-volta-redonda-25112026)), e API paga.
 
 ## Situação das fontes em 16/10/2026
 
@@ -26,7 +24,7 @@ Continuam fora: agregador de delivery (iFood, Rappi), que bloqueia coleta e cobr
 
 ### Mercados retirados em 10/2026
 
-A migração `V34` desativou (`active = false`) as duas unidades sem loja online. Nada foi apagado: histórico de preços, favoritos, notificações de alerta e contribuições continuam no banco. Uma loja inativa não aparece na lista de mercados, na comparação, na recomendação, nos filtros da busca nem no monitor de coletas. Os favoritos dela deixam de ser listados (e voltam se ela voltar), e ela não aceita novo favorito nem contribuição de preço. Um `storeIds` com uma loja inativa ou desconhecida é ignorado; se nenhuma sobrar, a resposta é a mesma de quando nenhum mercado é escolhido.
+A migração `V34` desativou (`active = false`) as duas unidades sem loja online. Nada foi apagado: histórico de preços, favoritos e notificações de alerta continuam no banco. Uma loja inativa não aparece na lista de mercados, na comparação, na recomendação, nos filtros da busca nem no monitor de coletas. Os favoritos dela deixam de ser listados (e voltam se ela voltar), e ela não aceita novo favorito. Um `storeIds` com uma loja inativa ou desconhecida é ignorado; se nenhuma sobrar, a resposta é a mesma de quando nenhum mercado é escolhido.
 
 | Unidade | Motivo |
 | --- | --- |
@@ -75,19 +73,9 @@ Mesma regra de entrada. A cidade já estava no banco desde a `V3`. Nas redes Vip
 
 Os coletores das duas unidades são os mesmos `VipStoreCollector` de Volta Redonda, com a cidade na definição (`ServedCity`). Fonte e rede são compartilhadas com a unidade de Volta Redonda; a loja, o código do coletor e a referência de cada preço são próprios.
 
-### Barra Mansa: mercados sem loja online (03/11/2026)
+### Barra Mansa: mercados sem loja online (03/11/2026, retirados em 27/11/2026)
 
-Nova busca de lojas online em Barra Mansa: a lista da própria VipCommerce para a cidade traz só Bramil, Pérola e Royal (desativado); a lista "Compre Online" do Supermarket não tem Barra Mansa; não há Nagumo, Hortifruti nem Assaí na cidade. Com a regra do preço conferido na loja, a `V52` cadastra estes cinco mercados físicos, ativos e sem preço até a primeira visita:
-
-| Mercado | Endereço | Fonte da unidade |
-| --- | --- | --- |
-| Supermarket Barra Mansa Centro | Av. Domingos Mariano, 149, Centro | Página da loja no site da rede |
-| Royal Jardim Boa Vista | Av. Vereador Hamilton Reis Alves, 1391, Jardim Boa Vista | Centro de distribuição 6 da VipCommerce (inativo online) e iFood |
-| MAX Supermercado Goiabal | Rua Moisés Braga Lima, 536, Goiabal | Guia Comercial BM |
-| Mercado Pingo de Mel | Rua Padre Luis Santamaria Diez, 137, Vista Alegre | Guia Comercial BM |
-| Mercado Bom Jesus | Estrada Governador Chagas Freitas, 4819, Colônia | Guia Comercial BM |
-
-Enquanto não há visita, o mercado aparece na lista como "Sem preços" e fica fora das buscas e comparações. Se o Royal ativar o CD 6 na loja online, a unidade pode ganhar um coletor; aí o `price_channel` dela muda para `ONLINE` e ela deixa de aceitar preço de visita.
+A lista da própria VipCommerce para Barra Mansa traz só Bramil, Pérola e Royal (desativado); a lista "Compre Online" do Supermarket não tem Barra Mansa; não há Nagumo, Hortifruti nem Assaí na cidade. A `V52` chegou a cadastrar cinco mercados físicos (Supermarket Centro, Royal Jardim Boa Vista, MAX Goiabal, Pingo de Mel e Bom Jesus) para receber preço anotado na loja; a `V60` os apagou junto com essa regra. Se o Royal ativar o CD 6 na loja online, a unidade pode entrar com um coletor.
 
 ### iFood em Volta Redonda (25/11/2026)
 
@@ -232,8 +220,3 @@ O campo `combination` da recomendação escolhe a menor linha válida de cada pr
 
 É possível repetir uma única fonte por `POST /api/v1/admin/collections?collectorCode=nagumo_volta_redonda` ou `royal_retiro`. O bloqueio de coleta simultânea continua valendo; código desconhecido retorna 404. Sem parâmetro, ambas são executadas sequencialmente.
 
-## Contribuições de usuários
-
-Uma contribuição aprovada também precisa de uma origem rastreável. Cadastre uma fonte administrativa que represente a própria plataforma, usando a URL real do ambiente, e configure seu UUID em `CONTRIBUTION_SOURCE_ID`. Não crie uma fonte fictícia em migration.
-
-A aprovação publica a observação por `PriceService`, com `originType=USER_CONTRIBUTION`, uma referência determinística derivada do UUID da contribuição e vínculo único com o preço persistido. Repetir a aprovação não cria uma nova observação. Contribuições pendentes ou rejeitadas nunca chegam a `price_records` e, portanto, não participam das comparações ou alertas.
